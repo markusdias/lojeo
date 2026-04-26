@@ -162,7 +162,7 @@ export default function TwoFactorPage() {
             <button
               type="submit"
               disabled={busy || disableToken.length !== 6}
-              className="ml-3 bg-red-600 text-white text-sm px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50"
+              className="lj-btn-danger ml-3"
             >
               Desabilitar 2FA
             </button>
@@ -172,7 +172,7 @@ export default function TwoFactorPage() {
 
       {/* Estado: setup em progresso */}
       {!status?.enabled && setupQr && (
-        <div className="bg-white border border-gray-200 rounded-lg p-5 space-y-4">
+        <div className="lj-card p-5 space-y-4">
           <h2 className="font-semibold">1. Escaneie o QR code</h2>
           <p className="text-sm text-gray-600">
             Use Google Authenticator, 1Password, Bitwarden ou Authy para escanear o QR abaixo.
@@ -198,7 +198,7 @@ export default function TwoFactorPage() {
             <button
               type="submit"
               disabled={busy || token.length !== 6}
-              className="bg-indigo-600 text-white text-sm px-4 py-2 rounded hover:bg-indigo-700 disabled:opacity-50"
+              className="lj-btn-primary"
             >
               {busy ? 'Verificando...' : 'Confirmar e habilitar'}
             </button>
@@ -215,12 +215,12 @@ export default function TwoFactorPage() {
 
       {/* Estado: 2FA não habilitado */}
       {!status?.enabled && !setupQr && !recoveryCodes && (
-        <div className="bg-white border border-gray-200 rounded-lg p-5">
+        <div className="lj-card p-5">
           <p className="text-gray-700 mb-3">2FA não está habilitado nesta conta.</p>
           <button
             onClick={startSetup}
             disabled={busy}
-            className="bg-indigo-600 text-white text-sm px-4 py-2 rounded hover:bg-indigo-700 disabled:opacity-50"
+            className="lj-btn-primary"
           >
             {busy ? 'Gerando...' : 'Habilitar 2FA'}
           </button>

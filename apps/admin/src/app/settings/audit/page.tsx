@@ -96,7 +96,7 @@ export default function AuditPage() {
       ) : logs.length === 0 ? (
         <p className="text-sm text-gray-500">Nenhum log encontrado para os filtros atuais.</p>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100">
+        <div className="lj-card divide-y divide-gray-100">
           {logs.map(l => (
             <div key={l.id} className="p-4 text-sm">
               <div className="flex items-start justify-between gap-3 flex-wrap">

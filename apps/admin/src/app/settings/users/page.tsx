@@ -102,7 +102,7 @@ export default function UsersPage() {
       </header>
 
       {/* Invite form */}
-      <form onSubmit={handleInvite} className="bg-white border border-gray-200 rounded-lg p-5">
+      <form onSubmit={handleInvite} className="lj-card p-5">
         <h2 className="text-sm font-semibold text-gray-700 mb-3">Convidar pessoa</h2>
         <div className="flex gap-2 items-end flex-wrap">
           <div className="flex-1 min-w-[240px]">
@@ -129,7 +129,7 @@ export default function UsersPage() {
           <button
             type="submit"
             disabled={saving}
-            className="bg-indigo-600 text-white text-sm px-4 py-2 rounded hover:bg-indigo-700 disabled:opacity-50"
+            className="lj-btn-primary"
           >
             {saving ? 'Enviando...' : 'Convidar'}
           </button>
@@ -145,7 +145,7 @@ export default function UsersPage() {
       ) : rows.length === 0 ? (
         <p className="text-sm text-gray-500">Nenhum usuário cadastrado ainda.</p>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <div className="lj-card overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-xs uppercase text-gray-500">
               <tr>
