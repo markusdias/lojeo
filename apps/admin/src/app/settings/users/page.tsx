@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { InfoTooltip } from '@/components/ui/info-tooltip';
 
 interface UserRoleRow {
   id: string;
@@ -117,7 +118,10 @@ export default function UsersPage() {
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-600 mb-1">Papel</label>
+            <label className="block text-xs text-gray-600 mb-1">
+              Papel
+              <InfoTooltip text="Owner = todas permissões. Admin = todas exceto billing. Operador = pedidos+atendimento. Editor = produtos+UGC. Atendimento = só tickets+chatbot. Financeiro = pedidos+relatórios." />
+            </label>
             <select
               value={role}
               onChange={e => setRole(e.target.value)}

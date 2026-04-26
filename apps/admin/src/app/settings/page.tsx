@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, type FormEvent } from 'react';
+import { InfoTooltip } from '@/components/ui/info-tooltip';
 
 interface BrandGuide {
   brandName?: string;
@@ -205,7 +206,10 @@ export default function SettingsPage() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-1">Tipografia</label>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">
+                Tipografia
+                <InfoTooltip text="Combinação tipográfica do storefront. Mudança aplica imediatamente sem rebuild." />
+              </label>
               <select
                 value={typo}
                 onChange={e => setAppearance({ typo: e.target.value })}
@@ -235,7 +239,10 @@ export default function SettingsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-1">Raio de imagens</label>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">
+                Raio de imagens
+                <InfoTooltip text="Quanto arredondar cantos de imagens de produto. 0 = quadrado, 16 = bem arredondado." />
+              </label>
               <select
                 value={imgRadius}
                 onChange={e => setAppearance({ imgRadius: e.target.value as '0' | '8' | '16' })}
@@ -304,7 +311,10 @@ export default function SettingsPage() {
           <h2 className="font-semibold text-lg">Políticas comerciais</h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-1">Frete grátis acima de (R$)</label>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">
+                Frete grátis acima de (R$)
+                <InfoTooltip text="Acima desse valor (em reais), o cliente não paga frete. Ex: 30000 = R$ 300,00 grátis." />
+              </label>
               <input
                 type="number"
                 min={0}
@@ -315,7 +325,10 @@ export default function SettingsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-1">Desconto Pix (%)</label>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">
+                Desconto Pix (%)
+                <InfoTooltip text="Desconto exibido para clientes que pagam via Pix. Aplicado automaticamente no checkout." />
+              </label>
               <input
                 type="number"
                 min={0}
@@ -327,7 +340,10 @@ export default function SettingsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-1">Parcelas máximas no cartão</label>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">
+                Parcelas máximas no cartão
+                <InfoTooltip text="Máximo de parcelas sem juros no cartão. Acima disso, juros são cobrados (configurar com Mercado Pago)." />
+              </label>
               <input
                 type="number"
                 min={1}
@@ -339,7 +355,10 @@ export default function SettingsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-1">Garantia padrão (meses)</label>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">
+                Garantia padrão (meses)
+                <InfoTooltip text="Padrão usado quando produto não tem warrantyMonths próprio. Joalheria típica: 12 meses." />
+              </label>
               <input
                 type="number"
                 min={0}
@@ -373,7 +392,10 @@ export default function SettingsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-1">Limite mensal IA (USD — 0 = ilimitado)</label>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">
+                Limite mensal IA (USD — 0 = ilimitado)
+                <InfoTooltip text="Limite mensal em USD cents (ex: 5000 = $50). 0 = ilimitado. Acima do limite, IA bloqueia automaticamente até virar mês." />
+              </label>
               <input
                 type="number"
                 min={0}
@@ -439,7 +461,10 @@ export default function SettingsPage() {
           </p>
           <div className="grid grid-cols-2 gap-3">
             <label className="text-sm">
-              <span className="text-xs text-neutral-600">Google Tag Manager (GTM-XXXXXX)</span>
+              <span className="text-xs text-neutral-600">
+                Google Tag Manager (GTM-XXXXXX)
+                <InfoTooltip text="ID do Google Tag Manager. Cole o GTM-XXXXXX da sua conta. Loja respeita consent LGPD." />
+              </span>
               <input
                 value={settings.config.pixels?.gtmId ?? ''}
                 onChange={e => setConfig({ pixels: { ...settings.config.pixels, gtmId: e.target.value || undefined } })}
@@ -448,7 +473,10 @@ export default function SettingsPage() {
               />
             </label>
             <label className="text-sm">
-              <span className="text-xs text-neutral-600">Google Analytics 4 (G-XXXXXXXXXX)</span>
+              <span className="text-xs text-neutral-600">
+                Google Analytics 4 (G-XXXXXXXXXX)
+                <InfoTooltip text="ID do Google Analytics 4. Formato G-XXXXXXXXXX. Eventos automáticos: pageview, view_item, add_to_cart, purchase." />
+              </span>
               <input
                 value={settings.config.pixels?.gaTrackingId ?? ''}
                 onChange={e => setConfig({ pixels: { ...settings.config.pixels, gaTrackingId: e.target.value || undefined } })}
@@ -496,7 +524,10 @@ export default function SettingsPage() {
         </section>
 
         <section className="bg-white rounded-lg shadow p-6 space-y-3">
-          <h2 className="font-semibold text-lg">Robots.txt</h2>
+          <h2 className="font-semibold text-lg">
+            Robots.txt
+            <InfoTooltip text="Em branco usa default. Edite só se precisar bloquear bots específicos ou liberar áreas restritas." />
+          </h2>
           <p className="text-xs text-neutral-500">
             Deixe em branco para usar o padrão automático. Somente altere se necessário para integrações específicas.
           </p>
