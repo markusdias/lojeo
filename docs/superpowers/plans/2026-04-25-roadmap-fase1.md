@@ -309,7 +309,7 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 - [ ] Instruções contextuais em todas as telas (fator moleza)
 - [x] **Robots.txt configurável** pelo admin (Sec 12.3) — campo `config.robotsTxt` em settings + rota `/robots.ts` lê do DB com fallback default
 - [ ] **Relatórios programados por email** (Sec 13.2) — lojista define cron + filtros + destinatários, sistema dispara CSV/PDF
-- [ ] **A/B testing nativo integrado ao template** (Sec 12.2) — admin cria experimento (variante A/B), define audience, sistema rotaciona, mensura conversão. Base reusada para personalização de homepage no Sprint 12.
+- [x] **A/B testing nativo integrado ao template** (Sec 12.2) — schema `experiments` (variants jsonb com weights), `experiment_assignments` (unique anon×experiment, deterministic), `experiment_events` (exposure/conversion); helper puro `selectVariant()` com hash FNV-1a (5 testes); API admin `/api/experiments` GET com stats agregados + POST/PATCH/DELETE; storefront `/api/experiments?keys=X&anonymousId=Y` retorna assignments determinísticos + persiste idempotente + emite exposure event; UI admin `/experiments` com cards, form criar inline, status workflow draft→active→paused/completed, tabela variantes com taxa conversão. Base pronta para Sprint 12 personalização de homepage.
 - [x] **Feeds de catálogo automáticos** (Sec 6.2) — GET /api/feed/google (RSS XML) + GET /api/feed/meta (CSV), cache 1h/24h stale, pronto para colar no Google Merchant Center / Meta Commerce Manager.
 
 **Wishlist (retenção):**
@@ -695,8 +695,8 @@ Qual provider de geração de imagem? Trade-off custo vs qualidade vs API reliab
 - [ ] Modo degradado: se motor de recomendação cair, exibe homepage default
 
 **Sugestão de recompra storefront (NOVO):**
-- [ ] Área logada exibe "está na hora de repor?" baseado em ciclo + garantia
-- [ ] Email automático com sugestão de recompra (Trigger.dev: job semanal)
+- [x] Área logada exibe "está na hora de repor?" baseado em ciclo + garantia — `<RebuySuggestion>` em `/conta/pedidos`, ciclo = warrantyMonths × 0.85, status due_now/soon, top 3 sugestões
+- [ ] Email automático com sugestão de recompra (Trigger.dev: job semanal) — BLOQUEADO Trigger.dev + Resend
 - [ ] Sugestão de presente: aniversário cadastrado + sugestão de produto coerente
 
 **Justificativa CFO:** Clarity+IA + homepage personalizada são features de retenção e otimização que se pagam em 30-60 dias se a loja tem >500 visitantes/dia. Custo de implementação concentrado neste sprint, ganho contínuo.
@@ -717,7 +717,7 @@ Qual provider de geração de imagem? Trade-off custo vs qualidade vs API reliab
 - [ ] Core Web Vitals dentro dos limites do Google
 - [ ] PWA: instalável no celular, push notifications
 - [ ] Acessibilidade WCAG 2.1 AA (auditoria automatizada + manual)
-- [ ] **Carregamento progressivo / lazy loading (Sec 16)** — imagens abaixo do fold, vídeos em viewport, componentes pesados (galeria, recomendações) com Intersection Observer
+- [x] **Carregamento progressivo / lazy loading (Sec 16)** — UgcGallery com IntersectionObserver (rootMargin 300px) + skeleton placeholder + loading=lazy + decoding=async nas imgs; fetch só dispara quando galeria proxima do viewport. Padrão reusável para galeria/recomendações.
 - [ ] **CDN global Cloudflare (Sec 16)** — assets servidos do POP mais próximo do cliente. Crítico para coffee/internacional. Imagens via R2 com transformações on-the-fly.
 - [ ] Backup automático diário no Neon (retenção 30 dias)
 - [ ] Procedimento de restore testado e documentado

@@ -960,3 +960,78 @@ Antes de marcar promessas como concluídas, validei via Playwright nas URLs reai
 - Fluxo trocas/devoluções, etiqueta reversa — Bling + Melhor Envio
 
 **16 commits, 56 testes verdes (engine 28), zero regressão.** Próximo ciclo: enforcement 2FA login admin, CSRF middleware, lazy loading UGC, sugestão de recompra storefront client-side (sem Trigger).
+
+---
+
+## 2026-04-26 — Sprint 5+10+12: A/B testing nativo + lazy load UGC + sugestão recompra
+
+**A/B testing nativo (Sprint 5+12):**
+
+1. **Schema 3 tabelas em `packages/db/src/schema/experiments.ts`:**
+   - `experiments` (key unique por tenant, status draft/active/paused/completed, variants jsonb com `[{key,name,weight,payload}]`, audience jsonb, target_metric)
+   - `experiment_assignments` (unique constraint `experiment_id × anonymous_id` para idempotência) — registra qual variante caiu para cada sessão
+   - `experiment_events` (exposure / conversion / custom event_type) — granular para análise
+
+2. **Helper puro `selectVariant(experimentKey, anonymousId, variants)`:**
+   - Hash FNV-1a 32-bit (sem deps externas) determinístico
+   - Mesmo `anonymousId + experimentKey` sempre cai na mesma variante (estabilidade na sessão)
+   - Bucket `(hash % 10000) / 100` → 0..100 distribuído proporcionalmente aos weights
+   - 5 testes (db package: 2 → 7): null em vazio, determinístico, ~50/50 em 1000 amostras, weights 90/10 respeitados, experimentos diferentes redistribuem (correlation ≈ 50%)
+
+3. **API admin `/api/experiments`:**
+   - GET com stats agregados: `SUM(eventType=exposure)` e `SUM(eventType=conversion)` por variant_key, retornados em mapa `stats[experimentId][variantKey] = {exposures, conversions}`
+   - POST valida variants (mín 2, key únicas, weights somam 100), unique constraint no DB devolve 409 com mensagem amigável
+   - PATCH status workflow + audit log
+   - DELETE com cascade nas FKs (assignments + events)
+
+4. **Storefront API `/api/experiments`:**
+   - GET por keys + anonymousId — retorna assignments determinísticos só para experimentos ATIVOS
+   - Persiste assignment idempotente via `onConflictDoNothing` (evita duplicação ao re-render)
+   - Emite exposure event fire-and-forget (não bloqueia resposta)
+   - POST registra evento de conversão (`experimentKey, variantKey, anonymousId, eventType, value, metadata`)
+
+5. **UI admin `/experiments`:**
+   - Form criar inline com formato de variantes em texto `key:nome:peso` por linha (UX rápida sem JSON manual)
+   - Lista com cards: header (key code + status badge), tabela de variantes com taxa de conversão calculada (`conversions / exposures × 100`)
+   - Status workflow buttons: Iniciar (draft→active), Pausar/Concluir (active→paused/completed), Retomar (paused→active)
+   - Sidebar admin ganha 🧪 Experimentos
+   - Audit log: `experiment.create / status_change / update / delete`
+
+**Lazy loading UGC (Sprint 10):**
+
+- `<UgcGallery>` ganha IntersectionObserver com `rootMargin: '300px'` — fetch só dispara quando galeria proxima do viewport (300px antes para cobrir scroll fast). Em PDPs onde cliente não rola até a galeria, request UGC nunca é feita.
+- Skeleton placeholders durante load (4 squares + heading skeleton 280×32)
+- Imgs com `loading="lazy"` + `decoding="async"` — browser decide ordem de decode
+
+**Sugestão de recompra storefront (Sprint 12):**
+
+- Componente puro `<RebuySuggestion orders items products>` server-rendered em `/conta/pedidos`
+- **Sem dependência de Trigger.dev** — calcula tudo no SSR a cada visita:
+  - Agrupa items por `productName`, escolhe data mais antiga (primeira compra)
+  - Resolve `warrantyMonths` por nome de produto (lookup paralelo no SSR)
+  - Ciclo recomendado = `warrantyMonths × 30 × 0.85` (cliente compra antes da garantia expirar)
+  - Status `due_now` (cycle ≤ daysSinceFirst), `soon` (≤60d), descarta `far`
+  - Top 3 sugestões com mensagem contextual
+
+**Decisões técnicas:**
+
+- **FNV-1a vs MD5/SHA.** Justificativa (perf): A/B testing pode ser chamado em SSR de toda página. FNV-1a é ~5-10× mais rápido que SHA-256 e suficiente para distribuição uniforme em buckets de assignment (não-criptográfico).
+- **Persist assignment fire-and-forget no GET.** Nunca derrubar resposta storefront por falha de write — assignment perdida re-aparece na próxima visita pelo determinismo do hash. Tradeoff: idempotente mas eventualmente consistente.
+- **Variants em jsonb (não tabela normalizada).** Justificativa (CTO): variants raramente mudam após `status=active` (mudar variant durante experimento invalida amostragem). jsonb evita join + permite payload arbitrário (textos, classes CSS, IDs de imagem) sem schema migration.
+- **Lazy load UGC com 300px margin.** Pre-load começa antes do viewport para evitar pop-in visível. Tradeoff vs performance: 300px é safe para scroll médio (~600ms).
+- **Sugestão recompra ciclo = 0.85 × warranty.** Heurística: cliente que comprou há tempo da garantia provavelmente já está em "atrito de uso". 85% deixa margem psicológica antes de "preciso renovar".
+- **RebuySuggestion sem ML.** Justificativa (CFO): heurística simples com produto real. ML model exige >100 pedidos por cliente para treinar individualmente, ou >10k pedidos para coorte. Fase 1 não tem volume.
+
+**Validação UX prod pendente:**
+- `/experiments` (após deploy completar)
+- `<RebuySuggestion>` em `/conta/pedidos` (precisa de pedidos pagos primeiro)
+- `<UgcGallery>` skeleton/lazy load em PDP
+
+**Migrate prod aplicado:** experiments + assignments + events (3 novas tabelas + 6 indexes, total 23 ops idempotentes).
+
+**Bloqueadores Sprint 5/10/12 restantes:**
+- Email recompra automático — Resend + Trigger.dev
+- Aniversário cliente para sugestão de presente — schema cliente sem campo birthday v1, pode adicionar
+- Hreflang multi-idioma — Fase 1.2
+
+**18 commits, 56 testes globais verdes (db 7, engine 28), zero regressão.** Próximo ciclo sem bloqueador: 2FA enforcement no login admin, CSRF middleware, instruções contextuais (microcopy), schema RBAC fine-grained, frequentemente comprado junto (Sprint 11 sem Anthropic).
