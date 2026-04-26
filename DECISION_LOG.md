@@ -1593,3 +1593,51 @@ Antes de marcar promessas como concluídas, validei via Playwright nas URLs reai
 - `reference_design_sources.md` — URLs Anthropic + paths locais + screenshots PNG ground-truth como fontes oficiais
 
 **46 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão**. Próximo ciclo: refactor visual coordenado (sidebar+topbar+banner IA).
+
+---
+
+## 2026-04-26 — Iteração 7: Refactor visual admin (4 commits)
+
+**Objetivo:** Quitar débito visual identificado na auditoria — alinhar admin com `docs/design-system/project/screenshots/admin-dashboard.png` ground-truth.
+
+**Commits:**
+
+1. **d7de44a — Sidebar light + Topbar componente novo:**
+   - `apps/admin/src/components/layout/sidebar.tsx`: bg light `var(--bg-elevated)` + brand "lojeo" verde + mark cubo verde 24x24, navegação seccionada (Vendas / Catálogo / Atendimento / Análises / IA / Loja) via `lj-section-label` eyebrow uppercase, active state via `usePathname`
+   - `apps/admin/src/components/layout/topbar.tsx`: breadcrumb auto via ROUTE_LABELS map + search central placeholder com Cmd+K shortcut + bell icon + avatar circular verde com iniciais
+   - `globals.css`: novas classes `.lj-nav-item-active`, `.lj-section-label`, `.lj-topbar`, `.lj-search`, `.lj-icon-btn`, `.lj-avatar`, `.lj-breadcrumb`, `.lj-ai-banner`, `.lj-ai-eyebrow`, `.numeric`
+   - `layout.tsx` admin: server component carrega session, passa userName pra Topbar
+
+2. **f4558d7 — Dashboard alinhado:**
+   - Header "Tudo certo, [Nome] 👋" display-l 48px peso semibold
+   - 4 cards de métrica numeric tabular-nums + DeltaChip ▲/▼ verde/vermelho calculado vs 30d anteriores via SQL between60and30d
+   - Banner IA verde claro com chip "IA · INSIGHTS DE HOJE" + mensagem dinâmica conforme orderCount + delta receita
+   - Pendente: sparklines, "Últimos pedidos" tabela, "Saúde das integrações" card lateral
+
+3. **eaf3b57 — 8 pages markup ad-hoc → tokens:**
+   - recomendacoes/ctr (refactor full: numeric, eyebrow, table com bg-subtle)
+   - cupons + devolucoes (header com h1 token + body-s subtitle)
+   - experiments + experiments/[id]/results + chatbot + integracoes + garantias (container padronizado)
+
+4. **4e14752 — 13 pages restantes via subagent paralelo:**
+   - pedidos, products, clientes, ia-analyst, ia-uso, atribuicao, insights, avaliacoes, inventory, collections, tickets, ugc, settings
+   - Cada uma: container raiz com tokens + h1 com `--text-h1` peso semibold tight tracking
+   - Preservados: min-h-screen, layout especial ia-analyst (flex column 100vh)
+
+**Decisões:**
+
+- **Refactor incremental, não bigbang.** Container + h1 padronizado em 21 pages num único loop. Conteúdo interno (tabelas, formulários, cards específicos) fica para ciclos seguintes — não bloquear progresso por busca de perfeição visual em todos os detalhes.
+- **Subagent paralelo seguro** quando tarefa = N edits independentes em arquivos disjuntos com contrato simples (Read+Edit+typecheck) — terminou 13 pages em ~80s vs ~30min sequencial.
+- **Tokens CSS first**: `var(--container-max)`, `var(--space-8/12)`, `var(--text-h1)`, `var(--w-semibold)`, `var(--track-tight)`. Tailwind classes funcionais (`space-y-6`, `min-h-screen`) preservadas — não vamos lutar contra Tailwind, complementar.
+- **Sidebar nova** light bg via `lj-section-label` headings dá hierarquia visual sem bagunçar lista (de 21 itens flat para 7 grupos).
+- **Topbar com breadcrumb** dá "você está aqui" automático via usePathname; ROUTE_LABELS extensível.
+
+**Próximo ciclo (visual):**
+- Aplicar `.lj-ai-banner` em /experiments/[id]/results, /clientes/[id], /ia-analyst, /insights
+- Sparklines inline nos metric cards (reusar MiniLineChart)
+- Tabela "Últimos pedidos" + "Saúde das integrações" card no /dashboard
+- Pill filter chips pattern em /pedidos (Todos/Pendente/Pago)
+- /products redesign: card de produto com thumbnail + ações inline
+- Storefront jewelry-v1 audit (proximo, ainda não tocado neste ciclo)
+
+**50 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão**.
