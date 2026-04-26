@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCart } from '../../components/cart/cart-provider';
 import { Icon } from '../../components/ui/icon';
 import { useTracker } from '../../components/tracker-provider';
+import { FrequentlyBoughtTogetherCart } from '../../components/products/fbt-cart';
 import { useEffect } from 'react';
 
 const CURRENCY = 'BRL';
@@ -263,6 +264,9 @@ export default function CartPage() {
           </div>
         </div>
       </div>
+
+      {/* FBT carrinho — Sprint 11 v2 */}
+      <FrequentlyBoughtTogetherCart cartProductIds={items.map(i => i.productId)} />
     </div>
   );
 }
