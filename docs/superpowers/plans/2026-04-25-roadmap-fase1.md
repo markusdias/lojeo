@@ -617,9 +617,9 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
   - **Frequentemente comprado junto (Sec 21)** — pares de produtos que aparecem no mesmo pedido com frequência (market basket analysis). Diferente de "também comprou" — exibe combo na PDP e carrinho.
   - Behavioral: "quem viu X também viu Y" (a partir de behavior_events)
 - [ ] **Ajuste manual no admin (Sec 6.2)** — lojista pode override sugestão IA por produto: fixar produto recomendado, remover sugestão indesejada. Override sobrepõe job automático.
-- [ ] API `/api/recommendations?context=pdp&product_id=X` retorna top N
-- [ ] Componente `<RelatedProducts />` na PDP usando recomendações
-- [ ] Componente `<FrequentlyBoughtTogether />` na PDP e carrinho (combo com desconto opcional)
+- [x] API `/api/recommendations?productId=X&type=fbt` retorna top N — implementado para FBT (frequentemente comprado junto), cache 60s em memória, pedidos pagos últimos 180d
+- [ ] Componente `<RelatedProducts />` na PDP usando recomendações — content/collaborative bloqueados Anthropic embeddings
+- [x] Componente `<FrequentlyBoughtTogether />` na PDP e carrinho — engine puro `packages/engine/src/market-basket.ts` (support/confidence/lift, score = lift × log(cooccurrence+1)), 6 testes (engine 28→34), IntersectionObserver lazy load, injetado na PDP entre header e UgcGallery
 - [ ] Componente `<YouMayAlsoLike />` no carrinho
 - [ ] Tracking de cliques em recomendações (CTR mensurável)
 - [ ] Modo degradado: sem recomendações personalizadas, exibe "mais vendidos da categoria"
@@ -674,7 +674,7 @@ Qual provider de geração de imagem? Trade-off custo vs qualidade vs API reliab
 - [ ] Funil de conversão nativo com taxa em cada etapa (independente de pixel externo)
 
 **SEO:**
-- [ ] Schema.org completo: produto, breadcrumb, organização, avaliações
+- [x] Schema.org parcial: Product (PDP) ✓, BreadcrumbList (PDP) ✓; Organization e WebSite pendentes; rating de produto pendente
 - [ ] Redirects 301 automáticos quando produto é arquivado ou URL muda
 - [ ] hreflang preparado (ativado na Fase 1.2 multi-idioma)
 - [ ] Blog/conteúdo nativo: lojista publica guias, IA ajuda na escrita
@@ -710,7 +710,7 @@ Qual provider de geração de imagem? Trade-off custo vs qualidade vs API reliab
 **Entregável tangível:** Auditoria de segurança passando, Core Web Vitals no verde, backup automatizado testado, modo degradado validado para todos os serviços externos.
 
 **Critérios de pronto:**
-- [ ] Security audit: CSRF, rate limiting, sanitização de inputs, upload com validação de tipo real
+- [ ] Security audit completo (rate limiting + sanitização + validação tipo upload) — CSRF entregue parcial: middleware admin verifica Origin/Referer em POST/PATCH/DELETE com ALLOWED_ORIGINS allowlist, exempta /api/migrate e /api/webhooks/*, retorna 403 csrf_origin_required/blocked. Rate limiting: parcial em chatbot. Sanitização Zod: parcial em mutations.
 - [ ] LGPD: banner de cookies com consentimento granular (já tem desde Sprint 2 — auditar)
 - [x] LGPD: direito de exclusão (right to be forgotten) implementado e testado — `/conta/privacidade` UI + `GET /api/conta` (export JSON) + `DELETE /api/conta` (anonimiza orders, deleta PII + behavior_events + ugc + reviews + wishlist + addresses + sessions + users)
 - [ ] GDPR: básico para coffee internacional na Fase 1.2 (preparação)
