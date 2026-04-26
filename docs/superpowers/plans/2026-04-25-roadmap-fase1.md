@@ -351,7 +351,7 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 - [ ] Compra de gift card como produto especial no storefront
 - [ ] Email automático para destinatário com código + design branded
 - [ ] Aplicação no checkout como meio de pagamento (parcial ou total)
-- [ ] Painel no admin: emitidos, resgatados, saldo total, expiração
+- [x] Painel no admin: emitidos, resgatados, saldo total, expiração — `/wishlist` admin (tab gift-cards) com 4 metric cards summary (em circulação SUM(balance ativos), resgatados mês SUM(initial - balance), cards ativos count, expirando 30d count) + tabela últimos 50 cards com status inferido (active/partial/used/expired)
 
 **Back-in-stock:**
 - [x] Botão "Avise-me quando voltar" em variante esgotada — RestockButton com email capture + POST /api/restock-notify

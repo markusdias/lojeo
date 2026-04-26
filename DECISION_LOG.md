@@ -2495,3 +2495,47 @@ Refactor completo em commit **208d488**:
 - Itens bloqueados: Mercado Pago OAuth, Bling OAuth, Melhor Envio OAuth, Resend, Trigger.dev (jobs)
 
 **112 commits totais sessão**, **108 testes globais verdes** (+4 server tracking), **zero regressão** funcional.
+
+---
+
+## 2026-04-26 — Sprint 5 fechamento parcial: /wishlist admin (3 tabs match Wishlist.jsx)
+
+**Commit 2a98fce** — feat(admin): /wishlist 3 tabs (Wishlists/GiftCards/BackInStock)
+
+**Gap detectado via auditoria docs/design-system/ ui_kits/admin/:**
+- `Wishlist.jsx` tinha 3 tabs (Wishlists ativas / Gift cards / Back-in-stock)
+- Implementação tinha página /wishlist no STOREFRONT (cliente vê seus salvos), mas NENHUMA admin page consolidando os 3 sinais de demanda
+- Sprint 5 critério "Painel no admin: emitidos, resgatados, saldo total, expiração" estava aberto
+
+**Arquivos:**
+- `apps/admin/src/app/wishlist/page.tsx` NOVO — server component com 3 fetches paralelos:
+  - `fetchWishlists()`: GROUP BY product, COUNT(*) com LEFT JOIN inventory_stock SUM(qty) - SUM(reserved)
+  - `fetchGiftCards()`: top 50 cards + summary 4 metrics (em circulação, resgatados mês, ativos count, expirando 30d)
+  - `fetchRestock()`: GROUP BY product onde notifiedAt IS NULL, COUNT + max(createdAt)
+- `apps/admin/src/app/wishlist/tabs.tsx` NOVO — client component com 3 tabs, switch via useState, status inferido (gift card status pode ser active/partial/used/expired derivado de balance vs initial vs expiresAt)
+- `apps/admin/src/components/layout/sidebar.tsx` — novo item "Demanda" (icon star) na seção Loja → /wishlist
+
+**Decisões pontuais:**
+
+1. **3 tabs em 1 page > 3 pages separadas** — Wishlist.jsx oficial sinaliza esses 3 sinais como **mesmo problema** (clientes pedindo coisa que não tá disponível). Manter unificado evita context-switch.
+
+2. **AI insight no topo só quando faz sentido** — só renderiza banner "Pergunte ao IA →" quando topWishlist.stock <= count/8 (muita gente esperando, pouco estoque). Sem dados suficientes → sem banner. Match Wishlist.jsx.
+
+3. **Status gift card inferido (não armazenado)** — schema só tem `status` string. Function `inferStatus()` deriva de balance vs initial + expiresAt: balance=0 → used; balance<initial → partial; expired → expired; default → active. Evita backfill schema, mantém flex.
+
+4. **"Notificar todos" desabilitado** — botão visível mas disabled com title="Disparo via Trigger.dev quando inventário > 0 — Sprint 9". Honesto: UI pronta, integração ainda bloqueada.
+
+5. **Sidebar enxuto preservado** — em vez de 3 items separados (Wishlist/Gift cards/Back-in-stock), 1 item "Demanda". Mantém princípio "lojista MEI cognitive load baixo" (CLAUDE.md).
+
+**Tests:** admin 18/18 verde. Typecheck + lint OK.
+
+**Próximo ciclo (gaps remanescentes vs docs/design-system/):**
+
+Audit revelou outros gaps implementáveis sem bloqueador:
+- **Settings tabs Identidade/Pagamentos/Frete/Email/Fiscal/Pixels/IA** — Settings.jsx tem 8 sub-tabs específicas, implementação atual tem `/settings` como portal mas tabs internos podem não estar todos implementados (verificar)
+- **Queues unificado Reviews/Returns/Shipping** — Queues.jsx tem 3 tabs em 1 page; atualmente cada um vive separado (`/avaliacoes`, `/devolucoes`, `?` Shipping)
+- **Empty states branded** — Empty.jsx tem 4 (Orders/Products/Customers/Reviews); verificar se /pedidos /products /clientes /avaliacoes usam EmptyState próprio quando 0 rows
+
+User pediu **agregar features extras (insights funil, ia-analyst, etc), não jogar fora**. Confirmado: implementação tem várias pages que não estão no design-system (atribuição, cupons, garantias, ia-uso, recomendacoes/ctr, integrações). Nenhuma será removida — adiciono links contextuais quando fizer sentido em pages-pai.
+
+**113 commits totais sessão**, **108 testes globais verdes**, **zero regressão**. Sprint 5 mais perto de fechamento.
