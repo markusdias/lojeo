@@ -1,20 +1,11 @@
 import NextAuth, { type NextAuthResult } from 'next-auth';
-import Google from 'next-auth/providers/google';
 import Credentials from 'next-auth/providers/credentials';
 import { DrizzleAdapter } from '@auth/drizzle-adapter';
 import { db, users, accounts, sessions, verificationTokens } from '@lojeo/db';
 import { eq } from 'drizzle-orm';
+import { authConfig } from './auth.config';
 
-const providers = [];
-
-if (process.env.CUSTOMER_GOOGLE_CLIENT_ID && process.env.CUSTOMER_GOOGLE_CLIENT_SECRET) {
-  providers.push(
-    Google({
-      clientId: process.env.CUSTOMER_GOOGLE_CLIENT_ID,
-      clientSecret: process.env.CUSTOMER_GOOGLE_CLIENT_SECRET,
-    }),
-  );
-}
+const providers = [...authConfig.providers];
 
 if (process.env.NODE_ENV !== 'production') {
   providers.push(
@@ -25,7 +16,6 @@ if (process.env.NODE_ENV !== 'production') {
       async authorize(credentials) {
         const email = String(credentials?.email ?? '').toLowerCase().trim();
         if (!email) return null;
-        // Find or create user for dev login
         let user = await db.query.users.findFirst({ where: eq(users.email, email) });
         if (!user) {
           const [created] = await db.insert(users).values({
@@ -43,16 +33,14 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const result: NextAuthResult = NextAuth({
+  ...authConfig,
   adapter: DrizzleAdapter(db, {
     usersTable: users,
     accountsTable: accounts,
     sessionsTable: sessions,
     verificationTokensTable: verificationTokens,
   }),
-  session: { strategy: 'jwt' },
-  trustHost: true,
   providers,
-  pages: { signIn: '/entrar' },
 });
 
 type SignInFn = NextAuthResult['signIn'];

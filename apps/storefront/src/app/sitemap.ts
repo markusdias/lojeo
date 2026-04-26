@@ -2,6 +2,8 @@ import { MetadataRoute } from 'next';
 import { db, products } from '@lojeo/db';
 import { eq, and } from 'drizzle-orm';
 
+export const dynamic = 'force-dynamic';
+
 const BASE_URL = process.env.STOREFRONT_URL ?? 'https://joias.lojeo.com.br';
 const tenantId = () => process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useRef } from 'react';
-import { Tracker } from '@lojeo/tracking';
+import { Tracker } from '@lojeo/tracking/client';
 
 const TrackerCtx = createContext<Tracker | null>(null);
 

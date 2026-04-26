@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { NewsletterForm } from './newsletter-form';
 
 export function Footer({ storeName }: { storeName: string }) {
   return (
@@ -72,33 +73,7 @@ export function Footer({ storeName }: { storeName: string }) {
           <p style={{ fontSize: 13, color: 'var(--footer-muted)', lineHeight: 1.6, margin: '0 0 16px', maxWidth: '28ch' }}>
             Novas peças, promoções e histórias do ateliê.
           </p>
-          <form
-            action="/api/newsletter"
-            method="POST"
-            style={{ display: 'flex', gap: 8 }}
-            onSubmit={e => e.preventDefault()}
-          >
-            <input
-              type="email"
-              placeholder="seu@email.com"
-              required
-              style={{
-                flex: 1, padding: '10px 12px', fontSize: 13,
-                background: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.16)',
-                borderRadius: 6, color: 'var(--footer-text)',
-                outline: 'none',
-              }}
-            />
-            <button type="submit" style={{
-              padding: '10px 16px', fontSize: 13, fontWeight: 500,
-              background: 'var(--accent)', color: '#fff',
-              border: 'none', borderRadius: 6, cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}>
-              OK
-            </button>
-          </form>
+          <NewsletterForm />
         </div>
       </div>
 

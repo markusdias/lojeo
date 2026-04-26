@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 
-export default function EntrarPage() {
+function EntrarContent() {
   const router = useRouter();
   const params = useSearchParams();
   const callbackUrl = params.get('callbackUrl') ?? '/conta/pedidos';
@@ -34,9 +34,7 @@ export default function EntrarPage() {
   }
 
   return (
-    <div style={{
-      maxWidth: 400, margin: '80px auto', padding: '0 24px',
-    }}>
+    <div style={{ maxWidth: 400, margin: '80px auto', padding: '0 24px' }}>
       <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 500, marginBottom: 8 }}>
         Minha conta
       </h1>
@@ -44,7 +42,6 @@ export default function EntrarPage() {
         Acesse seus pedidos, endereços e preferências.
       </p>
 
-      {/* Google OAuth */}
       {!isDev && (
         <button
           onClick={handleGoogle}
@@ -67,7 +64,6 @@ export default function EntrarPage() {
         </button>
       )}
 
-      {/* Dev login */}
       {isDev && (
         <form onSubmit={handleDevLogin} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <p style={{ fontSize: 12, color: 'var(--accent)', background: 'var(--accent-soft)', padding: '8px 12px', borderRadius: 4 }}>
@@ -113,5 +109,13 @@ export default function EntrarPage() {
         {' '}e sua conta é criada automaticamente.
       </p>
     </div>
+  );
+}
+
+export default function EntrarPage() {
+  return (
+    <Suspense>
+      <EntrarContent />
+    </Suspense>
   );
 }

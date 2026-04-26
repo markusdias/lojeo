@@ -1,4 +1,6 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
+
+const hasRealDb = !!process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('placeholder');
 import {
   db,
   tenants,
@@ -106,7 +108,7 @@ function jsonReq(url: string, method: string, body?: unknown): Request {
 
 const params = <T>(p: T) => ({ params: Promise.resolve(p) });
 
-describe('dogfood — caso de uso completo', () => {
+describe.skipIf(!hasRealDb)('dogfood — caso de uso completo', () => {
   it('healthcheck OK', async () => {
     const res = await health();
     const json = await res.json();

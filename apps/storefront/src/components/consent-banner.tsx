@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { setConsent, getConsent } from '@lojeo/tracking';
+import { setConsent, getConsent } from '@lojeo/tracking/client';
 
 export function ConsentBanner() {
   const [visible, setVisible] = useState(false);

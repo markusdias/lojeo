@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { auth } from '../../auth';
-import { signOut } from '../../auth';
+import { SignOutButton } from '../../components/account/sign-out-button';
 
 const NAV = [
   { href: '/conta/pedidos', label: 'Meus pedidos' },
@@ -30,20 +30,9 @@ export default async function ContaLayout({ children }: { children: ReactNode })
             </Link>
           ))}
         </nav>
-        <form
-          action={async () => {
-            'use server';
-            await signOut({ redirectTo: '/' });
-          }}
-          style={{ marginTop: 24 }}
-        >
-          <button
-            type="submit"
-            style={{ fontSize: 13, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-          >
-            Sair
-          </button>
-        </form>
+        <div style={{ marginTop: 24 }}>
+          <SignOutButton />
+        </div>
       </aside>
 
       {/* Content */}
