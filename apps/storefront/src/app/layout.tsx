@@ -3,7 +3,7 @@ import { getActiveTemplate } from '../template';
 import { TrackerProvider } from '../components/tracker-provider';
 import { CartProvider } from '../components/cart/cart-provider';
 import { WishlistProvider } from '../components/wishlist/wishlist-provider';
-import { ConsentBanner } from '../components/consent-banner';
+import { CookieBanner } from '../components/marketing/cookie-banner';
 import { Header } from '../components/layout/header';
 import { Footer } from '../components/layout/footer';
 import { Pixels } from '../components/marketing/pixels';
@@ -88,7 +88,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             <Header storeName={tpl.name} />
             <main id="main-content">{children}</main>
             <Footer storeName={tpl.name} />
-            <ConsentBanner />
+            <CookieBanner />
           </TrackerProvider>
         </CartProvider>
         </WishlistProvider>
