@@ -8,6 +8,7 @@ import { useTracker } from '../../../components/tracker-provider';
 import { HeartButton } from '../../../components/wishlist/heart-button';
 import { useTrackRecentlyViewed } from '../../../components/products/recently-viewed';
 import { trackPixelEvent } from '../../../components/marketing/pixel-events';
+import { VariantPicker } from './variant-picker';
 
 type UrgencyKind = 'none' | 'viewing' | 'low-stock';
 
@@ -346,34 +347,15 @@ export function PDPClient({ product, variants, images, urgency, viewersNow, tota
           {/* Urgência — dados reais */}
           <UrgencyBadge urgency={urgency} viewersNow={viewersNow} totalStock={totalStock} />
 
-          {/* Variantes */}
+          {/* Variantes — chips por tipo de joia (anel/colar/brinco) ou select genérico */}
           {variants.length > 1 && (
-            <div style={{ marginTop: 32 }}>
-              <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>Opção</p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {variants.map(v => {
-                  const label = Object.values(v.optionValues).join(' / ') || v.sku;
-                  const selected = v.id === selectedVariantId;
-                  return (
-                    <button
-                      key={v.id}
-                      onClick={() => handleVariantSelect(v.id)}
-                      disabled={v.stockQty <= 0}
-                      style={{
-                        padding: '8px 16px', fontSize: 14, cursor: v.stockQty <= 0 ? 'not-allowed' : 'pointer',
-                        borderRadius: 4, border: `1px solid ${selected ? 'var(--text-primary)' : 'var(--divider)'}`,
-                        background: selected ? 'var(--text-primary)' : 'var(--surface)',
-                        color: selected ? 'var(--text-on-dark)' : v.stockQty <= 0 ? 'var(--text-muted)' : 'var(--text-primary)',
-                        opacity: v.stockQty <= 0 ? 0.5 : 1,
-                        textDecoration: v.stockQty <= 0 ? 'line-through' : 'none',
-                      }}
-                    >
-                      {String(label)}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <VariantPicker
+              productSlug={product.slug}
+              customFields={customFields}
+              variants={variants}
+              selectedVariantId={selectedVariantId}
+              onSelect={handleVariantSelect}
+            />
           )}
 
           {/* CTAs */}
