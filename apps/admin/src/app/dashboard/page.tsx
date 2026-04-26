@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
   let session = null;
-  try { session = await auth(); } catch {}
+  try { session = await auth(); } catch { /* auth falha sem cookie */ }
   const user = session?.user;
   const tenantId = process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
   const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
