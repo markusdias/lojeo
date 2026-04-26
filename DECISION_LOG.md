@@ -505,3 +505,58 @@ Decisões técnicas relevantes registradas com data e justificativa.
 
 5. **Tabs no admin como estado local React (não URL params).** Fila de moderação é ferramenta operacional de uso rápido — moderador navega entre tabs sem precisar de deep-link ou histórico. URL params adicionariam complexidade sem ROI.
 
+
+---
+
+## 2026-04-26 — Sprint 6 Bloco A/B + Fixes de build/CI
+
+### Sprint 6 Bloco A — Auth cliente storefront + área /conta
+
+**Entregáveis:**
+- Auth.js split config: `auth.config.ts` (Edge-safe, sem DB) + `auth.ts` (Node.js, DrizzleAdapter)
+- Middleware reescrito com `NextAuth(authConfig)` sem DrizzleAdapter — compatível com Edge Runtime
+- `/entrar`: login page com dev Credentials provider (NODE_ENV !== production) e Google OAuth
+- `/conta`: layout com sidebar + `<SignOutButton />` (Client Component) + proteção via middleware
+- `/conta/pedidos`: lista de pedidos por userId/customerEmail, com link para detalhe
+- `/conta/pedidos/[id]`: detalhe do pedido com itens, timeline de eventos, dados de frete
+- `/conta/enderecos`: lista de endereços salvos do cliente
+- `checkout/endereco`: captura email do cliente para link guest→conta
+
+**Decisões pontuais:**
+
+1. **Split config Auth.js (auth.config.ts + auth.ts).** Edge Runtime não suporta `postgres` (usa Node.js `net`/`tls`). Pattern oficial Auth.js v5: config sem DB no edge, config completa só em Server Components e API routes. Middleware = edge.
+
+2. **`SignOutButton` como Client Component.** Server Action inline em Server Component (`'use server'`) passa `onSubmit` via serialização — Next.js rejeita em prerender. Solução: Client Component com `signOut()` da `next-auth/react`.
+
+3. **Pedidos linkados por `customerEmail` (não só userId).** Permite mostrar pedidos de checkout anônimo para cliente que faz login depois. Email capturado no `checkout/endereco` e armazenado em `orders.customerEmail`.
+
+### Sprint 6 Bloco B — RFM engine + admin /clientes
+
+**Entregáveis:**
+- `packages/engine/src/rfm.ts`: `scoreCustomers()` puro (sem DB), quintis 1-5 por dimensão RFM
+  7 segmentos: champions, loyal, at_risk, lost, new, promising, other
+- `engine.test.ts`: +6 testes cobrindo champion, new customer, daysSinceLastOrder, empty list
+- `admin/app/clientes/page.tsx` (Server Component): SQL GROUP BY com SUM/MAX/MIN, chama scoreCustomers
+- `admin/app/clientes/clientes-table.tsx` (Client Component): filtro por segmento via useState
+- `admin/app/clientes/[email]/page.tsx`: perfil completo com scorecard visual (barras RFM), 10 pedidos recentes
+- `admin/api/customers/route.ts`: endpoint JSON dos perfis scored
+
+**Decisões pontuais:**
+
+1. **RFM em quintis locais (não PERCENT_RANK SQL).** Quintis calculados em memória após query — evita SQL complexo, testável com dados mockados, sem dependência de extensão PostgreSQL. Aceitável para até 10k clientes sem degradação perceptível.
+
+2. **clientes/page.tsx = Server Component + clientes-table.tsx = Client Component.** Client Component não pode importar @lojeo/engine (transitivamente importa @lojeo/db → postgres → Node.js built-ins). Separação Server/Client é obrigatória.
+
+3. **Limite de 500 clientes na query.** Para MVP é suficiente. Paginação/cursor com índice em `customerEmail` entra quando tenant tiver > 1000 clientes ativos.
+
+### Fixes de CI/Build
+
+1. **dogfood.test.ts: `describe.skipIf(!hasRealDb)`.** beforeAll tentava conectar DB (placeholder) mesmo com todos os testes marcados como skip. Fix: guardar o describe inteiro quando DATABASE_URL contém "placeholder".
+
+2. **`experimental.typedRoutes` removido do admin.** `RouteImpl<string>` rejeitava `string` literal em NAV array. Feature experimental sem ROI para o projeto atual.
+
+3. **`sitemap.ts: export const dynamic = 'force-dynamic'`.** Next.js tenta pre-renderizar sitemap em build time — conecta DB com credenciais placeholder e falha. Force-dynamic move para runtime.
+
+4. **`footer.tsx`: form newsletter extraído para `NewsletterForm` (Client Component).** `onSubmit` em Server Component causa "Event handlers cannot be passed to Client Component props" no prerender de `/_not-found`.
+
+5. **`entrar/page.tsx`: `useSearchParams` envolvido em `<Suspense>`.** Padrão obrigatório Next.js 15 para Client Components com `useSearchParams` — evita CSR bailout durante static generation.

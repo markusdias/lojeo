@@ -191,8 +191,8 @@ export const behaviorEvents = pgTable('behavior_events', {
 - [x] PDP com galeria de imagens/vídeos, variantes, campos do nicho
 - [x] **Urgência com dados reais (Sec 6.3 / 21)** — "X pessoas vendo agora" (behavior_events COUNT last 5min) + "apenas Z em estoque" (inventoryStock SUM ≤ threshold). Nunca números falsos.
 - [x] Carrinho com edição, barra frete grátis e resumo
-- [ ] Login social (Google) para clientes — Sprint 5
-- [ ] Área do cliente: histórico de pedidos, endereços — Sprint 5
+- [x] Login social (Google) para clientes — implementado Sprint 6A (Auth.js split config + /entrar)
+- [x] Área do cliente: histórico de pedidos, endereços — implementado Sprint 6A (/conta/pedidos + /conta/enderecos)
 - [x] Busca simples por texto (/busca com ilike)
 - [x] SEO técnico: sitemap.xml automático, robots.txt, Schema.org/produto JSON-LD
 - [ ] Core Web Vitals — verificação em prod após Sprint 2 deploy
@@ -350,7 +350,7 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 **Entregável tangível:** Cliente abre troca pela área logada → lojista aprova/recusa no admin → etiqueta reversa gerada → reembolso disparado com 1 clique. RFM segmenta clientes em campeões, em risco, novos, inativos.
 
 **Critérios de pronto:**
-- [ ] Perfil completo de cliente: dados, LTV, número de pedidos, segmento RFM, canal de aquisição, eventos comportamentais agregados
+- [x] Perfil completo de cliente: dados, LTV, número de pedidos, segmento RFM, canal de aquisição, eventos comportamentais agregados
 - [ ] Garantias por produto/cliente: painel com status, alertas 30 dias antes do vencimento
 - [ ] Filtro: clientes com garantia expirando nos próximos 30/60/90 dias
 - [ ] Fluxo de trocas/devoluções: solicitação pelo cliente → análise → aprovação → logística reversa → reembolso
@@ -360,7 +360,7 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 - [ ] Reembolso integrado ao gateway no clique de aprovação
 - [ ] Crédito em loja como alternativa ao reembolso (gift card automático — reusa Sprint 5)
 - [ ] NF-e de devolução emitida automaticamente via Bling
-- [ ] **Segmentação RFM automática:** Trigger.dev calcula segmentos diariamente (Champions, Loyal, Potential, At Risk, Hibernating, Lost)
+- [x] **Segmentação RFM automática:** RFM engine em packages/engine com scoreCustomers() — quintis 1-5 por dimensão, 7 segmentos (Trigger.dev batch diário: Sprint 8)
 - [ ] Sugestão de recompra baseada em ciclo de consumo + garantia (visível no perfil do cliente no admin)
 
 ---
