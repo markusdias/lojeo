@@ -45,3 +45,8 @@ npm-debug.log*
 
 # Vercel
 .vercel
+
+# Secrets locais
+.env.production.local
+secrets/
+*.token
