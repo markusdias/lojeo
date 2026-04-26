@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { db, products, productVariants, inventoryStock } from '@lojeo/db';
-import { eq, and, ilike } from 'drizzle-orm';
+import { db, products, productVariants, inventoryStock, chatbotSessions } from '@lojeo/db';
+import { eq, and, ilike, sql } from 'drizzle-orm';
 import { logger } from '@lojeo/logger';
 
 export const dynamic = 'force-dynamic';
@@ -276,6 +276,12 @@ export async function POST(req: NextRequest) {
 
     let finalText = '';
     let iterations = 0;
+    let totalTokensIn = 0;
+    let totalTokensOut = 0;
+    let toolCallCount = 0;
+    let escalated = false;
+    let escalatedReason: string | null = null;
+    const toolNamesUsed: string[] = [];
     const MAX_ITERATIONS = 5;
 
     while (iterations < MAX_ITERATIONS) {
@@ -288,6 +294,9 @@ export async function POST(req: NextRequest) {
         messages: anthropicMessages,
       });
 
+      totalTokensIn += res.usage?.input_tokens ?? 0;
+      totalTokensOut += res.usage?.output_tokens ?? 0;
+
       if (res.stop_reason === 'end_turn') {
         finalText = res.content
           .filter((b): b is Anthropic.TextBlock => b.type === 'text')
@@ -298,6 +307,14 @@ export async function POST(req: NextRequest) {
 
       if (res.stop_reason === 'tool_use') {
         const toolUses = res.content.filter((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
+        toolCallCount += toolUses.length;
+        for (const tu of toolUses) {
+          toolNamesUsed.push(tu.name);
+          if (tu.name === 'escalate_to_human') {
+            escalated = true;
+            escalatedReason = String((tu.input as Record<string, unknown>)['reason'] ?? '');
+          }
+        }
 
         // Add assistant message with tool uses
         anthropicMessages.push({ role: 'assistant', content: res.content });
@@ -326,6 +343,20 @@ export async function POST(req: NextRequest) {
       break;
     }
 
+    // Persist telemetry (upsert by sessionKey, never block response on failure)
+    void persistTelemetry({
+      sessionKey: sessionId,
+      productContextId: context.productId ?? null,
+      productContextName: context.productName ?? null,
+      msgCount: messages.length,
+      toolCallCount,
+      totalTokensIn,
+      totalTokensOut,
+      escalated,
+      escalatedReason,
+      topics: Array.from(new Set(toolNamesUsed)),
+    });
+
     if (!finalText) {
       return degradedResponse();
     }
@@ -334,5 +365,60 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     logger.error({ err }, 'chatbot: falha na chamada Claude API');
     return degradedResponse();
+  }
+}
+
+interface TelemetryInput {
+  sessionKey: string;
+  productContextId: string | null;
+  productContextName: string | null;
+  msgCount: number;
+  toolCallCount: number;
+  totalTokensIn: number;
+  totalTokensOut: number;
+  escalated: boolean;
+  escalatedReason: string | null;
+  topics: string[];
+}
+
+async function persistTelemetry(t: TelemetryInput): Promise<void> {
+  try {
+    const existing = await db
+      .select({ id: chatbotSessions.id })
+      .from(chatbotSessions)
+      .where(and(eq(chatbotSessions.tenantId, TENANT_ID), eq(chatbotSessions.sessionKey, t.sessionKey)))
+      .limit(1);
+
+    if (existing.length > 0) {
+      await db
+        .update(chatbotSessions)
+        .set({
+          msgCount: t.msgCount,
+          toolCallCount: sql`${chatbotSessions.toolCallCount} + ${t.toolCallCount}`,
+          totalTokensIn: sql`${chatbotSessions.totalTokensIn} + ${t.totalTokensIn}`,
+          totalTokensOut: sql`${chatbotSessions.totalTokensOut} + ${t.totalTokensOut}`,
+          escalated: t.escalated || sql`${chatbotSessions.escalated}`.mapWith(Boolean) as unknown as boolean,
+          escalatedReason: t.escalatedReason ?? sql`${chatbotSessions.escalatedReason}` as unknown as string,
+          topics: t.topics,
+          lastSeenAt: new Date(),
+        })
+        .where(eq(chatbotSessions.id, existing[0]!.id));
+    } else {
+      await db.insert(chatbotSessions).values({
+        tenantId: TENANT_ID,
+        sessionKey: t.sessionKey,
+        productContextId: t.productContextId,
+        productContextName: t.productContextName,
+        msgCount: t.msgCount,
+        toolCallCount: t.toolCallCount,
+        totalTokensIn: t.totalTokensIn,
+        totalTokensOut: t.totalTokensOut,
+        escalated: t.escalated,
+        escalatedReason: t.escalatedReason,
+        topics: t.topics,
+      });
+    }
+  } catch (err) {
+    logger.warn({ err }, 'chatbot: falha persistir telemetria (non-fatal)');
   }
 }

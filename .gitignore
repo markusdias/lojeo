@@ -22,6 +22,10 @@ coverage/
 playwright-report/
 test-results/
 .vitest-cache/
+.playwright-mcp/
+
+# Next.js generated env types
+apps/*/next-env.d.ts
 
 # Local storage adapter
 .local-storage/

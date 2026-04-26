@@ -460,15 +460,15 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 **Entregável tangível:** Pedido criado → cliente recebe confirmação no WhatsApp com Pix/QR → lojista recebe alerta no seu WhatsApp. Widget de chat no storefront responde dúvidas técnicas usando catálogo + FAQ.
 
 **🔬 Research-first (OBRIGATÓRIO):**
-- [ ] `docs/research/sprint-9-storefront-chatbot.md` — pesquisar:
+- [x] `docs/research/sprint-9-storefront-chatbot.md` — pesquisar:
   - Shopify Sidekick (storefront chatbot referência), Klaviyo AI, Tidio Lyro, Intercom Fin AI
   - Repos open source: `langchain-ai/customer-support-bot`, `e-commerce-bot` patterns, `chatwoot/chatwoot` (escalation flow)
   - Padrão **RAG híbrido**: catálogo via embeddings + FAQ estruturada via tool calls + busca semântica
   - Anthropic computer use + tool-use docs para chatbot agentic
   - Pesquisar guardrails: anti-jailbreak, escalação, rate limit por sessão
   - Benchmark Haiku vs Sonnet em chatbot e-commerce (custo × resolução)
-- [ ] Conexão FaqZap via OAuth 1-clique documentada (preparado se API permitir, fallback API key se não)
-- [ ] Documentar prompts de sistema, tools e fluxo de escalação em `packages/ai/prompts/chatbot/README.md`
+- [ ] Conexão FaqZap via OAuth 1-clique documentada (preparado se API permitir, fallback API key se não) — **BLOQUEADO: conta FaqZap**
+- [x] Documentar prompts de sistema, tools e fluxo de escalação em `packages/ai/prompts/chatbot/README.md`
 
 **Critérios de pronto:**
 
@@ -480,24 +480,24 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 - [ ] Recuperação de carrinho abandonado via email + WhatsApp (Trigger.dev: job agendado)
 
 **Sistema de tickets:**
-- [ ] Caixa com histórico, status, responsável, prioridade
-- [ ] Ticket vinculado ao pedido e ao cliente
-- [ ] Templates de resposta com variáveis (nome cliente, número pedido, produto)
-- [ ] SLA configurável com alerta visual
+- [x] Caixa com histórico, status, responsável, prioridade
+- [x] Ticket vinculado ao pedido e ao cliente
+- [ ] Templates de resposta com variáveis (nome cliente, número pedido, produto) — `ticket_templates` schema criado, UI pendente
+- [x] SLA configurável com alerta visual
 - [ ] **Atribuição automática ou manual de tickets (Sec 9.2)** — regras: round-robin por equipe, atribuição por palavra-chave, atribuição manual via drag-and-drop
-- [ ] **Notas internas** visíveis só pra equipe (não enviadas ao cliente)
-- [ ] Escalada do bot FaqZap → ticket no admin
+- [x] **Notas internas** visíveis só pra equipe (não enviadas ao cliente)
+- [ ] Escalada do bot FaqZap → ticket no admin — **BLOQUEADO: FaqZap**
 
 **Chatbot storefront (NOVO):**
-- [ ] Widget de chat na PDP, PLP e homepage (configurável)
-- [ ] **Contexto da página atual passado ao chatbot (Sec 17)** — quando cliente abre widget na PDP, o chatbot já sabe qual produto está sendo visto (entity_id + variant atual + items no carrinho). Chatbot abre com mensagem contextual: "vejo que está olhando o anel X, posso ajudar?"
-- [ ] Tool-calling pattern: Claude com ferramentas `search_products`, `get_product_details`, `check_stock`, `get_shipping_estimate`, `get_faq_answer`, `escalate_to_human`
-- [ ] Catálogo + FAQ injetados como contexto (cache de embeddings em pgvector)
-- [ ] Personalidade alinhada ao brand guide do template
-- [ ] Rate limit por sessão (anti-abuso): N mensagens/15min, M tokens/dia por sessão
-- [ ] Escalação para FaqZap WhatsApp quando bot não resolve
+- [ ] Widget de chat na PDP, PLP e homepage (configurável) — **BLOQUEADO: Design D**
+- [x] **Contexto da página atual passado ao chatbot (Sec 17)** — `context.productName` + `context.productId` no body da request
+- [x] Tool-calling pattern: Claude Haiku com ferramentas `search_products`, `get_product_details`, `check_stock`, `get_faq_answer`, `escalate_to_human`
+- [ ] Catálogo + FAQ injetados como contexto (cache de embeddings em pgvector) — parcial: FAQ estruturada pronta, embeddings pgvector pendente
+- [x] Personalidade alinhada ao brand guide do template (system prompt jewelry-v1)
+- [x] Rate limit por sessão (anti-abuso): 20 mensagens/15min por sessão
+- [ ] Escalação para FaqZap WhatsApp quando bot não resolve — **BLOQUEADO: FaqZap**
 - [ ] Telemetria: % resoluções pelo bot, % escalações, tópicos mais perguntados
-- [ ] Modo degradado: se Claude API cair, widget exibe FAQ estática + botão WhatsApp
+- [x] Modo degradado: se Claude API cair, widget exibe FAQ estática + botão WhatsApp
 
 **Bloqueadores externos:**
 - Conta FaqZap

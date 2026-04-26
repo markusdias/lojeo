@@ -8,3 +8,4 @@ export * from './orders';
 export * from './retention';
 export * from './reviews';
 export * from './support';
+export * from './chatbot';

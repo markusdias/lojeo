@@ -92,6 +92,33 @@ export async function POST(req: NextRequest) {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_orders_customer_email ON orders(tenant_id, customer_email)`);
     results.push('orders.customer_email: ok');
 
+    // Sprint 9 — chatbot telemetry sessions
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS chatbot_sessions (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL,
+        session_key varchar(200) NOT NULL,
+        product_context_id uuid,
+        product_context_name varchar(300),
+        msg_count integer DEFAULT 0 NOT NULL,
+        tool_call_count integer DEFAULT 0 NOT NULL,
+        total_tokens_in integer DEFAULT 0 NOT NULL,
+        total_tokens_out integer DEFAULT 0 NOT NULL,
+        resolved boolean DEFAULT false NOT NULL,
+        escalated boolean DEFAULT false NOT NULL,
+        escalated_reason text,
+        topics jsonb DEFAULT '[]'::jsonb NOT NULL,
+        created_at timestamptz DEFAULT now() NOT NULL,
+        last_seen_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    results.push('chatbot_sessions: ok');
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_chatbot_sessions_tenant_created ON chatbot_sessions(tenant_id, created_at)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_chatbot_sessions_tenant_resolved ON chatbot_sessions(tenant_id, resolved)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_chatbot_sessions_tenant_escalated ON chatbot_sessions(tenant_id, escalated)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_chatbot_sessions_session_key ON chatbot_sessions(tenant_id, session_key)`);
+    results.push('chatbot_sessions indexes: ok');
+
     return NextResponse.json({ ok: true, results });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
