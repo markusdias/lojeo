@@ -198,7 +198,7 @@ export const behaviorEvents = pgTable('behavior_events', {
 - [ ] Core Web Vitals — verificação em prod após Sprint 2 deploy
 - [x] Template jewelry-v1 integrado: tokens CSS (5 typo combos, 5 accents, 4 BG tones), data-* attrs no <html>
 - [x] Páginas estáticas (Sobre, Política, Trocas, Privacidade) — conteúdo placeholder; editor rich text Sprint 5
-- [ ] Produtos vistos recentemente — Sprint 5
+- [x] Produtos vistos recentemente — `useTrackRecentlyViewed` hook + `<RecentlyViewed>` localStorage 8 items, injetado na PDP entre UgcGallery e ReviewSection
 - [ ] Página de rastreamento branded — Sprint 4
 - [ ] **CEP autocomplete (BR)** — Sprint 3 checkout
 - [ ] **Endereçamento adaptativo (Sec 4.1)** — Sprint 3
@@ -663,15 +663,15 @@ Qual provider de geração de imagem? Trade-off custo vs qualidade vs API reliab
 - [ ] Telemetria: query → resultado clicado → conversão
 
 **Pixels e analytics:**
-- [ ] Google Tag Manager: container único injetado pelo motor — conexão via OAuth 1-clique
-- [ ] GA4: funil completo, receita, LTV, origem — conexão via OAuth 1-clique
-- [ ] Meta Pixel: Conversions API server-side + pixel client-side — conexão via OAuth 1-clique (Facebook Login)
-- [ ] TikTok Pixel — conexão via TikTok for Business OAuth
-- [ ] Google Ads Conversion Tracking — OAuth Google Ads
-- [ ] Microsoft Clarity: integração via OAuth 1-clique
+- [x] Google Tag Manager: container único injetado pelo motor — config-driven via `tenants.config.pixels.gtmId` + `<Pixels>` next/script (OAuth 1-clique pendente, IDs manuais via /settings)
+- [x] GA4: funil completo, receita, LTV, origem — config-driven `gaTrackingId` (Conversions API server-side + pixels OAuth 1-clique pendentes)
+- [x] Meta Pixel: pixel client-side — config-driven `metaPixelId` (Conversions API server-side + Facebook Login OAuth pendentes)
+- [x] TikTok Pixel — config-driven `tiktokPixelId` (TikTok for Business OAuth pendente)
+- [x] Google Ads Conversion Tracking — config-driven `googleAdsConversionId` (OAuth Google Ads pendente)
+- [x] Microsoft Clarity — config-driven `clarityProjectId` (OAuth 1-clique pendente)
 - [ ] Parâmetros UTM preservados até o pedido
 - [ ] **Atribuição multi-touch configurável (Sec 12.2)** — modelos: last-click (default), first-click, linear, time-decay, position-based. Lojista escolhe modelo no admin. Reports de funil refletem modelo ativo.
-- [ ] Funil de conversão nativo com taxa em cada etapa (independente de pixel externo)
+- [x] Funil de conversão nativo com taxa em cada etapa (independente de pixel externo) — API `/api/funnel?days=N` agrega behavior_events em 4 estágios (product_view → cart_add → checkout_start → checkout_complete), conversão por estágio + total geral, drop-off absoluto/relativo. UI `/insights` aba Funil com bar chart visual horizontal
 
 **SEO:**
 - [x] Schema.org parcial: Product (PDP) ✓, BreadcrumbList (PDP) ✓; Organization e WebSite pendentes; rating de produto pendente

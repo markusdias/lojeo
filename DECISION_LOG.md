@@ -1104,3 +1104,67 @@ Antes de marcar promessas como concluídas, validei via Playwright nas URLs reai
 - Trigger.dev para job overnight de pré-cálculo de FBT — atualmente cache 60s in-memory cobre
 
 **19 commits, 63 testes verdes (engine 28→34, db 7), zero regressão.** Próximo ciclo sem bloqueador: instruções contextuais (microcopy/UX), permissões granulares (read/write por entity em roles), Configurações via interface (faltam campos: pagamentos, frete, fiscal), Editor de aparência (já parcial), produtos vistos recentemente (Sprint 5 — sem bloqueador, localStorage + DB).
+
+---
+
+## 2026-04-26 — Sprint 5+12: Pixels storefront + Recently viewed + Funil de conversão
+
+**Pixels storefront config-driven (Sprint 12):**
+
+1. **Settings tenant ganha `config.pixels`** com 6 campos:
+   - `gtmId` (GTM-XXXXXX), `gaTrackingId` (G-XXXX), `metaPixelId`, `tiktokPixelId`, `clarityProjectId`, `googleAdsConversionId` (AW-XXX)
+   - UI `/settings` nova seção "Pixels e Analytics" — grid 6 inputs com placeholder/exemplo
+   - Sem schema migration (jsonb extensível)
+
+2. **Componente `<Pixels config>`** client-side:
+   - `next/script` com `strategy="afterInteractive"` para todos os scripts (não bloqueia render inicial)
+   - Lê consent LGPD do localStorage (`lojeo_consent`)
+   - Marketing=false → nenhum pixel dispara → loja continua funcionando
+   - Reage a CustomEvent `lojeo:consent-change` (disparado pelo `setConsent` em `@lojeo/tracking`) — habilita pixels após cliente aceitar sem reload
+   - 6 pixels embutidos: GTM head loader, GA4 gtag.js + config anonymize_ip, Meta fbq init+PageView, TikTok ttq init+page, Clarity loader, Google Ads conversion gtag
+
+3. **`@lojeo/tracking.setConsent`** ganha `window.dispatchEvent(new CustomEvent('lojeo:consent-change'))` — `<Pixels>` ouve e habilita scripts em tempo real.
+
+4. **OAuth 1-clique pendente** para todos os pixels — IDs manuais via /settings cobrem 100% dos casos atuais. OAuth flows entram em sprint dedicado (Stripe/MP/Google/Meta separadamente).
+
+**Recently viewed (Sprint 5):**
+
+1. **localStorage `lojeo_recently_viewed`** com `RecentItem` shape (productId, slug, name, priceCents, imageUrl, viewedAt). Max 8 items, dedup por productId, sort by viewedAt desc.
+
+2. **Hook `useTrackRecentlyViewed`** — registrar produto na montagem da PDP. Try/catch para localStorage cheio/bloqueado (modo privado).
+
+3. **Componente `<RecentlyViewed currentProductId>`** — server-rendered shell + client effect para ler localStorage. Filtra produto atual. Grid responsivo com img+nome+preço.
+
+4. **Sem persistência DB v1.** Justificativa (CFO): localStorage é grátis, persiste entre sessões no mesmo device. Sync com user_id ao login = Sprint 5 completo (deferido).
+
+**Funil de conversão nativo (Sprint 12):**
+
+1. **API `/api/funnel?days=N`** (max 90d):
+   - 4 estágios hardcoded: `product_view` → `cart_add` → `checkout_start | checkout_step_start` → `checkout_complete | order_created`
+   - Para cada estágio: `COUNT(DISTINCT anonymous_id)` em behavior_events filtrados por eventType ANY()
+   - Calcula `conversionFromPrevious` (rate vs estágio anterior) e `conversionFromTop` (rate vs primeiro estágio)
+   - Drop-off absoluto (sessões perdidas) entre estágios
+
+2. **UI `/insights` aba Funil:**
+   - Bar chart horizontal com largura proporcional ao top
+   - Cor: azul (topo), índigo (intermediários), verde (último)
+   - Drop-off side panel com seta ↓ e badge vermelho se conversão <30%
+   - Banner amber quando sem dados ainda
+
+**Decisões técnicas:**
+
+- **Pixels config-driven via jsonb sem schema migration.** Justificativa (Arquiteto): `tenants.config` é jsonb extensível. Adicionar campos pixels sem novas tabelas mantém schema enxuto. v2: dedicar tabela `marketing_integrations` quando OAuth flows complexos exigirem refresh tokens, scopes, etc.
+- **next/script com afterInteractive vs beforeInteractive.** afterInteractive é o padrão para pixels — não bloqueia render, dispara após hidratação. beforeInteractive seria necessário só para anti-flicker (não aplica aqui).
+- **CustomEvent vs polling do localStorage.** Justificativa (perf): polling consome CPU. CustomEvent zero-overhead, dispara só quando consent muda. Único requisito: `setConsent` deve disparar (já faz).
+- **Funil COUNT DISTINCT anonymous_id, não events.** Justificativa: cliente que recarrega PDP gera múltiplos product_view events mas é 1 sessão única. Distinct por anonymousId mede engajamento real.
+- **Sessões únicas vs orders no funil.** Conversão calculada sobre sessões. Sessions ≠ unique users (mesmo user pode ter múltiplos anonId). v2: aggregate por user_id quando logado.
+- **8 items max em recently viewed.** Suficiente para 1 carrossel sem scroll. localStorage limit ~5MB; 8 produtos × ~200 bytes = trivial.
+
+**Migrate prod aplicado:** sem novas tabelas (config jsonb, localStorage, agregação de behavior_events existente).
+
+**Bloqueadores Sprint 12 restantes:**
+- Conversions API server-side Meta/TikTok (privacy 2026) — exige tokens OAuth
+- Atribuição multi-touch configurável — Sprint 12 v2
+- hreflang multi-idioma — Fase 1.2
+
+**20 commits, 63 testes verdes, zero regressão.** Próximo ciclo sem bloqueador: pixel orchestration via `<Pixels>` ouvindo eventos de cart_add/purchase para chamar `fbq('track','AddToCart')`/`gtag('event','purchase')`, instruções contextuais admin, A/B test integration com homepage hero, sync recently_viewed → DB ao login, ampliar funil (search → product_view, attribution UTM).
