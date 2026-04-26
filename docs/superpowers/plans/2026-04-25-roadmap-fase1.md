@@ -302,12 +302,12 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 - [x] Fila de moderação de avaliações: preview, aprovar/rejeitar com 1 clique, resposta pública opcional
 - [ ] Configurações completas via interface (identidade, gateways, frete, email)
 - [ ] Editor de aparência dentro dos limites do template
-- [ ] Sistema de papéis (roles): Owner, Admin, Operador, Editor, Atendimento, Financeiro
-- [ ] 2FA obrigatório para todos os papéis
-- [ ] Logs de auditoria: quem fez o quê e quando
-- [ ] Convite de usuário por email com 1 clique
+- [x] Sistema de papéis (roles): Owner, Admin, Operador, Editor, Atendimento, Financeiro — schema `user_roles`, matriz `ROLE_PERMISSIONS` scope×permission, helpers `getCurrentRole()` + `requirePermission()`, API `/api/users` CRUD, UI `/settings/users` com convite + tabela
+- [ ] 2FA obrigatório para todos os papéis — Sprint 13 polimento
+- [x] Logs de auditoria: quem fez o quê e quando — schema `audit_logs` (action, entity, before/after), helper `recordAuditLog()`, integrado em order/ticket/ugc/role mutations, UI `/settings/audit` com filtros 7/30/90d e expand JSON
+- [ ] Convite de usuário por email com 1 clique — convite criado em DB, envio email BLOQUEADO Resend
 - [ ] Instruções contextuais em todas as telas (fator moleza)
-- [ ] **Robots.txt configurável** pelo admin (Sec 12.3)
+- [x] **Robots.txt configurável** pelo admin (Sec 12.3) — campo `config.robotsTxt` em settings + rota `/robots.ts` lê do DB com fallback default
 - [ ] **Relatórios programados por email** (Sec 13.2) — lojista define cron + filtros + destinatários, sistema dispara CSV/PDF
 - [ ] **A/B testing nativo integrado ao template** (Sec 12.2) — admin cria experimento (variante A/B), define audience, sistema rotaciona, mensura conversão. Base reusada para personalização de homepage no Sprint 12.
 - [x] **Feeds de catálogo automáticos** (Sec 6.2) — GET /api/feed/google (RSS XML) + GET /api/feed/meta (CSV), cache 1h/24h stale, pronto para colar no Google Merchant Center / Meta Commerce Manager.
@@ -722,7 +722,7 @@ Qual provider de geração de imagem? Trade-off custo vs qualidade vs API reliab
 - [ ] Backup automático diário no Neon (retenção 30 dias)
 - [ ] Procedimento de restore testado e documentado
 - [ ] Modo degradado validado em testes: IA fora, gateway secundário, serviço de email fora, FaqZap fora
-- [ ] Status page pública da loja
+- [x] Status page pública da loja — `/status` com 6 checks (DB, catálogo, IA Claude, storage, Resend, MP), badges operational/degraded/down, tempos de resposta, mensagens explicativas. API `/api/status` para integração externa
 - [ ] Testes E2E com Playwright: fluxo completo compra, troca, login, wishlist, gift card
 - [ ] Plano de contingência Black Friday documentado
 - [ ] Auditoria de custo IA: tabela com estimativa mensal por feature, alertas configurados

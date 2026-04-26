@@ -819,3 +819,100 @@ Antes de marcar promessas como concluídas, validei via Playwright nas URLs reai
 - 11 commits atômicos nesta sessão
 
 **Próximo ciclo de trabalho sem bloqueador:** continuar Sprint 13 (status page pública, lazy loading imagens UGC, robots.txt configurável Sprint 5, sistema de papéis admin Sprint 5, logs de auditoria Sprint 5), ou aprofundar Sprint 5 admin operacional. Sprint 11 (estúdio criativo + recomendações) e Sprint 12 (busca semântica + pixels) bloqueados por Anthropic key prod e decisões pendentes (provider de imagem, OAuth pixels).
+
+---
+
+## 2026-04-26 — Sprint 5 (roles + audit + robots) + Sprint 13 (status page)
+
+**Implementado autonomamente nesta iteração:**
+
+**Sistema de papéis (roles) v1:**
+
+1. **Schema `user_roles`** (`packages/db/src/schema/admin.ts`): tenant, userId, email (snapshot p/ convite antes do user logar), role, invitedByUserId, invitedAt, acceptedAt. 2 indexes (tenant+user, tenant+email).
+
+2. **Matriz de permissões** `ROLE_PERMISSIONS[role][scope] = 'none' | 'read' | 'write'`:
+   - `owner`: tudo + billing + users (proteção: tenant não pode ficar sem owner)
+   - `admin`: tudo exceto billing
+   - `operador`: orders/tickets write + leitura geral
+   - `editor`: products/ugc write + leitura insights
+   - `atendimento`: tickets write + leitura cliente
+   - `financeiro`: orders write + billing read + relatórios
+
+3. **Helpers em `apps/admin/src/lib/roles.ts`:**
+   - `getCurrentRole(session)` — bootstrap automático: primeiro user que loga vira owner via `INSERT ... ON CONFLICT DO NOTHING`
+   - `requirePermission(session, scope, action)` — throws se permissão ausente, retorna role no sucesso (para uso encadeado)
+   - `recordAuditLog({session, action, entity, before, after, metadata})` — try/catch interno; falha de audit nunca derruba operação de negócio
+
+4. **API CRUD `/api/users`:**
+   - GET (read users) — lista todos
+   - POST (write users) — convite por email + role; se email já existe atualiza role
+   - PATCH `/api/users/[id]` (write users) — muda role; bloqueia downgrade do último owner com `tenant_must_have_owner`
+   - DELETE — remove user; bloqueia delete do último owner
+
+5. **UI `/settings/users`:**
+   - Form de convite (email + select de role + descrição inline)
+   - Tabela com select de role inline (mudança imediata via PATCH)
+   - Status: "Aguardando login" (sem `acceptedAt`) vs "Ativo"
+   - Botão remover por linha
+   - Trata 403 (forbidden) e 400 (`tenant_must_have_owner`) com alert
+
+**Logs de auditoria:**
+
+1. **Schema `audit_logs`** generic append-only: tenant, userId (nullable=system/cron), userEmail (snapshot), action `'<entity>.<verb>'`, entityType, entityId, before/after jsonb, metadata, ipAddress, userAgent. 4 indexes (tenant+created, tenant+action, tenant+entity, user).
+
+2. **API `/api/audit?days=N&action=X`** — read protegido por role audit, max 90d, max 500 registros.
+
+3. **UI `/settings/audit`:**
+   - Filtros: dias (7/30/90), ação por grupo (order/ticket/ugc/role/settings/product)
+   - Lista cronológica com badge de ação, entityType:8charsId, userEmail (ou "sistema" itálico), ipAddress
+   - `<details>` expand de before/after JSON em pretty-print
+
+4. **Audit integrado em mutações existentes:**
+   - `PATCH /api/orders/[id]` → `order.status_change` com before/after.status + tracking
+   - `PATCH /api/tickets/[id]` → `ticket.update` com before/after de status/priority/assignedToUserId
+   - `PATCH /api/ugc/[id]` → `ugc.approve` / `ugc.reject` / `ugc.update` com after.productsTagged
+   - `DELETE /api/ugc/[id]` → `ugc.delete`
+   - `POST /api/users` → `role.invite` ou `role.update`
+   - `PATCH /api/users/[id]` → `role.update` com before.role
+   - `DELETE /api/users/[id]` → `role.remove` com before.email/role
+
+**robots.txt configurável (Sprint 5 — descoberta):**
+- Já estava implementado em `apps/storefront/src/app/robots.ts` lendo de `tenants.config.robotsTxt` jsonb. Confirmado funcional. Sem nova migration necessária — `config` é jsonb extensível.
+
+**Status page pública (Sprint 13):**
+
+1. **API `/api/status`** verifica 6 serviços:
+   - Banco de dados — `SELECT 1` + tempo de resposta (>1s = degraded)
+   - Catálogo — `COUNT(*)` em products
+   - IA Claude — degraded se `ANTHROPIC_API_KEY` ausente
+   - Storage — driver atual (local fallback se R2 sem env)
+   - Resend — degraded se `RESEND_API_KEY` ausente
+   - Mercado Pago — degraded se `MERCADO_PAGO_ACCESS_TOKEN` ausente
+   - Overall: down se qualquer down; degraded se qualquer degraded; senão operational
+
+2. **UI `/status`** server-rendered (`force-dynamic`):
+   - Header com emoji + label + chip de status
+   - Lista de serviços com badge colorido + mensagem + tempo de resposta
+   - Nota explicativa: "degradado significa fallback, loja continua funcionando"
+
+**Decisões técnicas:**
+
+- **Audit log fail-soft (try/catch interno + log warn).** Justificativa (CTO): observabilidade nunca pode derrubar negócio. Audit gap é detectável depois (alerta de gap em created_at), mutação perdida não é.
+- **Bootstrap silencioso de owner em getCurrentRole.** Antes deste sprint, qualquer user admin logado tinha acesso total implícito. Agora há tabela de roles, mas sistemas existentes (1 admin único) precisam funcionar sem migração manual. Solução: primeiro `getCurrentRole()` cria entry owner automaticamente.
+- **Email snapshot em audit_logs.userEmail.** Mesmo após `DELETE FROM users`, audit history precisa mostrar quem fez. userEmail snapshot resolve sem FK.
+- **Tenant must have owner.** Tenta downgrade do último owner = 400. Tenta delete = 400. Sem isso, sistema poderia ficar sem ninguém com acesso a settings/billing.
+
+**Validação UX pendente (próximo ciclo):**
+- `/settings/users` invite flow ponta-a-ponta
+- `/settings/audit` exibindo eventos reais após PATCH order/ticket
+- `/status` em URL real
+- Permissões: criar user "atendimento" e validar que tentativa de PATCH order retorna 403
+
+**Bloqueadores Sprint 5 restantes (todos com motivo externo):**
+- 2FA — Sprint 13 polimento (TOTP libs sem custo, mas exige UX dedicada)
+- Convite por email com 1 clique — bloqueado Resend API key
+- Instruções contextuais em todas as telas — trabalho de microcopy/UX, não bloqueador técnico
+- Relatórios programados por email — bloqueado Resend + Trigger.dev
+- A/B testing nativo — Sprint 12 (homepage personalizada)
+
+**14 commits, 56 testes verdes, zero regressão.** Próximo ciclo sem bloqueador: A/B testing nativo (Sprint 5+12 reusable), garantias por produto + alertas (Sprint 6), ou aprofundar Sprint 13 (CSRF, sanitização inputs, lazy loading UGC, auditoria custo IA já com base `ai_calls`).
