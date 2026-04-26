@@ -2135,3 +2135,68 @@ User mostrou 2 screenshots oficiais Claude Design da tela /aparencia. Implementa
 - /products/new editor rich
 
 **93 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão** funcional.
+
+---
+
+## 2026-04-26 — Iteração 18: README design-system + análise JSX prototypes
+
+**Trigger user:** "leia e aplique @docs/design-system/README.md"
+
+**Insight chave:** README diz `**Don't render these files in a browser or take screenshots unless the user asks you to.** Everything you need — dimensions, colors, layout rules — is spelled out in the source.` Estava usando Playwright além do necessário — info está nos JSX.
+
+**Bundle estrutura descoberta:**
+- `docs/design-system/chats/chat1.md` (954 linhas) — intent admin
+- `docs/design-system/project/ui_kits/admin/*.jsx` — 8 prototypes admin (Sidebar/Topbar/Dashboard/Customer/ABEditor/Tickets/Settings/Wishlist)
+- `docs/design-system/project/preview/*.html` (21 files) — componentes individuais
+- `docs/design-system-jewelry-v1/chats/chat1.md` (479 linhas) — intent storefront
+- `docs/design-system-jewelry-v1/project/ui_kits/storefront/*.jsx` — 12 prototypes (~2400 linhas)
+- `docs/design-system-jewelry-v1/project/ui_kits/storefront/HANDOFF.md` — 13 sprints status
+- `docs/design-system-jewelry-v1/project/preview/*.html` (21 files)
+
+**Decisões importantes do design (chat transcripts + HANDOFF):**
+
+1. **Microcopy IA com evidence inline** (`similaridade: 0,82 · n=12`, `aceite esperado: 57% ± 14pp`) + CTAs primary/secondary + footer custo+feedback. NÃO genérico.
+
+2. **Urgência sempre baseada em telemetria real** — nunca falsa, nunca "5 pessoas viram nas últimas 24h" sem dado por trás.
+
+3. **Pix 5% off configurável padrão ativado**, **Cartão até 6× sem juros** editável, **Garantia 1 ano** comunicada PDP/conta/emails/política, **Frete grátis acima R$ 500**.
+
+4. **VariantPicker por tipo:**
+   - Anel: 12-22 + link "como medir aro"
+   - Colar: 40-60cm
+   - Brinco: fecho tarraxa/argola/inglês
+
+5. **Slots IA marcados** com pill `Slot reservado · IA Core` em PDP (FBT, Related, UGC, Chatbot FAB) + Cart.
+
+6. **Tickets drawer 7 tipos mensagem:** system, cliente, order card inline, nota interna (tinta amarela dashed), equipe, anexo, IA bot (gradient border + tag confiança 92% + Aprovar/Editar/Descartar).
+
+7. **Customer 4 personas RFM** (Champion 5/5/4 / At Risk 2/4/4 / Lost 1/2/2 / New 5/1/3) cada com pitch + stats + tags + 3 AI suggestions específicas + tabs (Pedidos/Garantias/Tickets/Marketing/Notas).
+
+8. **A/B Editor rich:**
+   - Lista 6 experimentos com colunas: visitantes/conversão/lift/confiança/progresso
+   - Detalhe: banner veredito IA + 2 variantes lado-a-lado + gauge semicircular confiança + gráfico diário + segmentação mobile/desktop + lista cuidados (tamanho amostra, viés novidade, sazonalidade, Bonferroni)
+
+**Gap real vs implementação atual:**
+
+| Page | Prototype | Implementado | Gap |
+|---|---|---|---|
+| Customer.jsx | 468L com persona switcher + AI suggestions rich + 5 tabs | /clientes/[email] simples com IA banner único | tabs faltam, AI suggestions sem evidence/CTAs detalhados |
+| ABEditor.jsx | gauge + gráfico + segmentação + cuidados | /experiments/[id]/results básico | gauge confiança ausente, segmentação ausente, lista cuidados ausente |
+| Tickets.jsx | drawer 7 tipos mensagem + composer templates interp | /tickets/[id] simples | order card inline ausente, IA bot mensagem ausente, templates {nome}/{pedido} ausentes |
+| Storefront Account.jsx | 5 telas + Tracking branded + WishlistPro | /conta/* básico | Tracking branded com mapa SVG ausente, WishlistPro badges "voltou ao estoque" ausente |
+| Storefront Checkout.jsx | 4 steps + sticky resumo + Pix 5% | /checkout multi-step OK mas Pix 5% incentivo ausente | parcial |
+| Storefront Auth.jsx | login/signup/recover OAuth Google+Apple + LGPD | /entrar Google OAuth simples | Apple OAuth bloqueado (decisão CFO Sprint 0); LGPD link ausente |
+
+**Decisão de implementação:**
+- **Não tirar mais Playwright screenshots** quando JSX já especifica layout
+- **Ler JSX prototype antes de implementar/refatorar cada page** — eliminar "alucinação visual" do agente
+- **Microcopy IA enriquecida** = quick win paridade — todas as IA banners hoje são genéricas, prototype tem padrão detalhado com evidence/CTAs
+
+**Próximo ciclo (priorizado por ROI visual):**
+1. Customer profile rich: tabs + AI suggestions com evidence + warranty alerts (alto valor, dado parcial OK)
+2. AB Editor gauge + segmentação + cuidados (médio valor, dado real precisa exposições)
+3. Tickets drawer rich (médio valor, depende fluxo cliente real)
+4. Storefront Account WishlistPro badges (alto valor, dado parcial OK)
+5. Checkout Pix 5% incentivo visual (baixo esforço)
+
+**94 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão** funcional.
