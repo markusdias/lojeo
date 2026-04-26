@@ -8,6 +8,8 @@ export type EventType =
   | 'variant_selected'
   | 'cart_add'
   | 'cart_remove'
+  | 'cart_view'
+  | 'checkout_start'
   | 'checkout_step_start'
   | 'checkout_step_complete'
   | 'search_performed'
