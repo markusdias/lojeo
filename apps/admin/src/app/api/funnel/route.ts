@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { eq, and, gte, sql } from 'drizzle-orm';
+import { eq, and, gte, inArray, sql } from 'drizzle-orm';
 import { db, behaviorEvents } from '@lojeo/db';
 
 export const dynamic = 'force-dynamic';
@@ -21,20 +21,25 @@ export async function GET(req: NextRequest) {
 
   // Para cada estágio, count distinct anonymousId que tiveram pelo menos 1 evento daquele tipo
   const stages: Array<{ key: string; label: string; uniqueSessions: number }> = [];
-  for (const stage of STAGES) {
-    const [row] = await db
-      .select({ n: sql<number>`COUNT(DISTINCT anonymous_id)::int` })
-      .from(behaviorEvents)
-      .where(and(
-        eq(behaviorEvents.tenantId, tid),
-        gte(behaviorEvents.createdAt, since),
-        sql`${behaviorEvents.eventType} = ANY(${stage.eventTypes})`,
-      ));
-    stages.push({
-      key: stage.key,
-      label: stage.label,
-      uniqueSessions: Number(row?.n ?? 0),
-    });
+  try {
+    for (const stage of STAGES) {
+      const [row] = await db
+        .select({ n: sql<number>`COUNT(DISTINCT ${behaviorEvents.anonymousId})::int` })
+        .from(behaviorEvents)
+        .where(and(
+          eq(behaviorEvents.tenantId, tid),
+          gte(behaviorEvents.createdAt, since),
+          inArray(behaviorEvents.eventType, [...stage.eventTypes]),
+        ));
+      stages.push({
+        key: stage.key,
+        label: stage.label,
+        uniqueSessions: Number(row?.n ?? 0),
+      });
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: msg, stages: [], totalConversion: 0, windowDays: days }, { status: 500 });
   }
 
   // Calcular conversion rate cumulativo
