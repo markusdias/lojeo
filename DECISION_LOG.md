@@ -1641,3 +1641,37 @@ Antes de marcar promessas como concluídas, validei via Playwright nas URLs reai
 - Storefront jewelry-v1 audit (proximo, ainda não tocado neste ciclo)
 
 **50 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão**.
+
+---
+
+## 2026-04-26 — Iteração 8: Refactor visual + UX validation + modo degradado (5 commits)
+
+**Commits:**
+1. **c85f8e5** — fix: /recomendacoes index redirect → /recomendacoes/ctr (404 prefetch breadcrumb)
+2. **6f2866b** — refactor experiments/[id]/results + clientes/[email]: lj-ai-banner com chip "IA · ANÁLISE ESTATÍSTICA" e "IA · PRÓXIMAS OPORTUNIDADES" + interpretação dinâmica baseada em significantSampleSize/winner.lift e segmento RFM. Cliente profile inteira refatorada de dark hardcoded (`#111827`/`#f9fafb`/`#1f2937`/`#2563eb`) para tokens design system (`var(--bg-elevated)`/`var(--accent)`/`var(--border)`)
+3. **0992230** — feat sprint11 modo degradado: `fallbackBestsellers()` em /api/recommendations quando engine FBT empty → identifica coleções via product_collections → busca produtos das mesmas coleções → ranqueia por COUNT(orderItems) pagos últimos 90d → fallback final produtos mais recentes do tenant. Resposta inclui `reason: 'fallback_bestsellers'`. Excludes (override) respeitados em ambos paths
+
+**UX validation Playwright em prod (admin/storefront):**
+- Storefront homepage `/` — paleta jewelry creme/preto OK, hero "Peças que ficam." display serif OK, 0 console errors
+- Admin home `/` — sidebar light + topbar deployed, auto-login dev "admin@lojeo.dev" OK, 0 errors
+- `/dashboard` — "Tudo certo, Admin 👋" display-l 48px + 4 cards numeric tabular-nums + banner IA verde claro com mensagem dinâmica + 0 errors
+- `/recomendacoes/ctr` — header refatorado, cards eyebrow + numeric, tabela bg-subtle + badges benchmark, 1 error 404 prefetch corrigido em c85f8e5
+- `/cupons` — h1 36px display + form lj-input + botão verde primary, 0 errors
+- `/pedidos` — h1 + 6 cards status com bordas coloridas + filtros Período + tabela vazia "Nenhum pedido encontrado", 0 errors
+- `/experiments` — h1 "Experimentos A/B" + subtitle + "+ Novo experimento" verde, 0 errors
+- `/ia-analyst` — h1 + chips de sugestão com bg-subtle + textarea + botão Enviar verde, 0 errors
+
+**Decisões:**
+- **Modo degradado** documenta-se via `reason` no payload da API (storefront client pode mostrar "Mais vendidos" copy diferente quando `reason === 'fallback_bestsellers'` no futuro). Por enquanto cliente trata uniformemente.
+- **Refactor cliente/[email]** virou full rewrite porque page estava em dark mode hardcoded — não daria pra fazer "patch parcial" sem deixar 50% claro 50% escuro. Excepcionalmente migrou ~200 linhas em commit único.
+- **lj-ai-banner pattern** consolidado: ✦ ícone + chip eyebrow uppercase verde + body-s mensagem; vai entrar em /insights, /atribuicao próximos ciclos.
+
+**Próximo ciclo (continuação visual + features):**
+- /insights + /atribuicao + /ia-uso aplicar lj-ai-banner com analise dinâmica
+- Sparklines inline nos metric cards do dashboard (reusar MiniLineChart do mini-chart.tsx)
+- Tabela "Últimos pedidos" + card "Saúde das integrações" lateral no /dashboard
+- Pill filter chips pattern em /pedidos (Todos/Pendente/Pago) substituindo cards atuais
+- Storefront jewelry-v1 audit (PDP, PLP, /carrinho, /conta/* — não tocados neste refactor)
+- Sprint 13 backup automático Neon (script bash + docs)
+
+**55 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão**.
