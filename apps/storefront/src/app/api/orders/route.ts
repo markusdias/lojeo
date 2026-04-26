@@ -50,6 +50,7 @@ interface CreateOrderBody {
   paymentMethod: 'pix' | 'credit_card' | 'boleto';
   couponCode?: string;
   anonymousId?: string;
+  utm?: { source?: string | null; medium?: string | null; campaign?: string | null } | null;
 }
 
 export async function POST(req: Request) {
@@ -92,6 +93,9 @@ export async function POST(req: Request) {
       paymentMethod: body.paymentMethod,
       paymentGateway: 'mercadopago',
       couponDiscountCents: 0,
+      utmSource: body.utm?.source ?? null,
+      utmMedium: body.utm?.medium ?? null,
+      utmCampaign: body.utm?.campaign ?? null,
       metadata: { shippingLabel: body.shipping.label },
     }).returning({ id: orders.id, orderNumber: orders.orderNumber });
 

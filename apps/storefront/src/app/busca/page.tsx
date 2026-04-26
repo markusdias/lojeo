@@ -3,6 +3,7 @@ import { eq, and, ilike, or } from 'drizzle-orm';
 import type { Metadata } from 'next';
 import { getActiveTemplate } from '../../template';
 import { PLPFilters } from '../produtos/plp-filters';
+import { SearchTracker } from './search-tracker';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,6 +49,7 @@ export default async function BuscaPage({ searchParams }: BuscaProps) {
 
   return (
     <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '40px var(--container-pad) 80px' }}>
+      <SearchTracker query={q} resultsCount={results.length} />
       <div style={{ marginBottom: 40 }}>
         <p className="eyebrow" style={{ marginBottom: 8 }}>Resultados</p>
         <h1 style={{ margin: '0 0 8px' }}>

@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { ProductCard } from '../../components/ui/product-card';
+import { useTracker } from '../../components/tracker-provider';
 
 const MATERIALS = [
   { slug: 'ouro-18k',   label: 'Ouro 18k',   swatch: '#C9A85C' },
@@ -40,6 +41,7 @@ export function PLPFilters({ products, currency, initialSort = 'novidades', init
   const [sort, setSort] = useState(initialSort);
   const [q, setQ] = useState(initialQ ?? '');
   const [page, setPage] = useState(1);
+  const tracker = useTracker();
 
   const PAGE_SIZE = 24;
 
@@ -197,15 +199,19 @@ export function PLPFilters({ products, currency, initialSort = 'novidades', init
           <>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 32 }}>
               {pageItems.map(p => (
-                <ProductCard
+                <div
                   key={p.id}
-                  id={p.id}
-                  name={p.name}
-                  slug={p.slug}
-                  priceCents={p.priceCents}
-                  comparePriceCents={p.comparePriceCents}
-                  currency={currency}
-                />
+                  onClick={initialQ ? () => tracker?.track({ type: 'search_clicked', entityType: 'product', entityId: p.id, metadata: { query: initialQ, slug: p.slug } }) : undefined}
+                >
+                  <ProductCard
+                    id={p.id}
+                    name={p.name}
+                    slug={p.slug}
+                    priceCents={p.priceCents}
+                    comparePriceCents={p.comparePriceCents}
+                    currency={currency}
+                  />
+                </div>
               ))}
             </div>
 

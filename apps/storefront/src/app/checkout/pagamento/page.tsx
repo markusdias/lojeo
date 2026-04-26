@@ -69,6 +69,9 @@ export default function PagamentoPage() {
     setPaymentMethod(method);
 
     try {
+      const utmRaw = sessionStorage.getItem('lojeo_utm');
+      const utm = utmRaw ? JSON.parse(utmRaw) as { source?: string; medium?: string; campaign?: string } : null;
+
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -86,6 +89,7 @@ export default function PagamentoPage() {
           shippingAddress: state.address,
           shipping: state.shipping,
           paymentMethod: method,
+          utm,
         }),
       });
 

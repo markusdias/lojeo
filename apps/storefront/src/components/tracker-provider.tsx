@@ -30,9 +30,9 @@ export function TrackerProvider({ children, tenantId, endpoint }: TrackerProvide
     // Track external referrer once per session
     const ref = document.referrer;
     if (ref && new URL(ref).hostname !== window.location.hostname) {
-      const key = `lojeo_ext_ref_${tenantId}`;
-      if (!sessionStorage.getItem(key)) {
-        sessionStorage.setItem(key, '1');
+      const refKey = `lojeo_ext_ref_${tenantId}`;
+      if (!sessionStorage.getItem(refKey)) {
+        sessionStorage.setItem(refKey, '1');
         tracker.track({
           type: 'external_referrer',
           entityType: 'page',
@@ -40,6 +40,17 @@ export function TrackerProvider({ children, tenantId, endpoint }: TrackerProvide
           metadata: { referrer: ref },
         });
       }
+    }
+
+    // Capture UTM params from URL — persist for order attribution
+    const params = new URLSearchParams(window.location.search);
+    const utmSource = params.get('utm_source');
+    if (utmSource) {
+      sessionStorage.setItem('lojeo_utm', JSON.stringify({
+        source: utmSource,
+        medium: params.get('utm_medium'),
+        campaign: params.get('utm_campaign'),
+      }));
     }
   }, [tenantId]);
 
