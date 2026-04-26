@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Icon } from '../../../components/ui/icon';
 import { useCart } from '../../../components/cart/cart-provider';
 import { useTracker } from '../../../components/tracker-provider';
+import { HeartButton } from '../../../components/wishlist/heart-button';
 
 type UrgencyKind = 'none' | 'viewing' | 'low-stock';
 
@@ -82,6 +83,59 @@ function Stars({ value = 5 }: { value?: number }) {
         <Icon key={i} name={i <= value ? 'star-filled' : 'star'} size={14} style={{ color: 'var(--accent)' }} />
       ))}
     </div>
+  );
+}
+
+function RestockButton({ productId, variantId }: { productId: string; variantId: string }) {
+  const [email, setEmail] = useState('');
+  const [sent, setSent] = useState(false);
+  const tracker = useTracker();
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email) return;
+    await fetch('/api/restock-notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ productId, variantId, email }),
+    });
+    tracker?.track({ type: 'restock_notify', entityType: 'product', entityId: productId });
+    setSent(true);
+  }
+
+  if (sent) {
+    return (
+      <div style={{ flex: 1, padding: '14px 20px', fontSize: 14, textAlign: 'center', color: 'var(--accent)', border: '1px solid var(--divider)', borderRadius: 8 }}>
+        ✓ Avisaremos quando voltar ao estoque
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} style={{ flex: 1, display: 'flex', gap: 8 }}>
+      <input
+        type="email"
+        placeholder="Seu email para avisos"
+        value={email}
+        onChange={e => setEmail(e.target.value)}
+        required
+        style={{
+          flex: 1, padding: '14px 16px', fontSize: 14, borderRadius: 8,
+          border: '1px solid var(--divider)', background: 'var(--surface)',
+          color: 'var(--text-primary)',
+        }}
+      />
+      <button
+        type="submit"
+        style={{
+          padding: '14px 20px', fontSize: 14, fontWeight: 500,
+          background: 'transparent', color: 'var(--text-primary)',
+          border: '1px solid var(--text-primary)', borderRadius: 8, cursor: 'pointer', whiteSpace: 'nowrap',
+        }}
+      >
+        Avise-me
+      </button>
+    </form>
   );
 }
 
@@ -306,15 +360,9 @@ export function PDPClient({ product, variants, images, urgency, viewersNow, tota
           )}
 
           {/* CTAs */}
-          <div style={{ marginTop: 36, display: 'flex', gap: 10 }}>
+          <div style={{ marginTop: 36, display: 'flex', gap: 10, alignItems: 'center' }}>
             {isOutOfStock ? (
-              <button style={{
-                flex: 1, padding: '14px 28px', fontSize: 14, fontWeight: 500,
-                background: 'transparent', color: 'var(--text-primary)',
-                border: '1px solid var(--text-primary)', borderRadius: 8, cursor: 'pointer',
-              }}>
-                Avise-me quando voltar
-              </button>
+              <RestockButton productId={product.id} variantId={selectedVariantId} />
             ) : (
               <button
                 onClick={handleAddToCart}
@@ -328,6 +376,15 @@ export function PDPClient({ product, variants, images, urgency, viewersNow, tota
                 Adicionar à sacola
               </button>
             )}
+            <HeartButton
+              productId={product.id}
+              slug={product.slug}
+              name={product.name}
+              priceCents={effectivePrice}
+              imageUrl={images[0]?.url}
+              size={24}
+              style={{ padding: 10, border: '1px solid var(--divider)', borderRadius: 8 }}
+            />
           </div>
 
           {/* Campos do nicho */}

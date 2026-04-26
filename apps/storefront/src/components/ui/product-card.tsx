@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { HeartButton } from '../wishlist/heart-button';
 
 interface ProductCardProps {
   id: string;
@@ -12,7 +13,7 @@ interface ProductCardProps {
   currency?: string;
 }
 
-export function ProductCard({ name, slug, priceCents, comparePriceCents, imageUrl, currency = 'BRL' }: ProductCardProps) {
+export function ProductCard({ id, name, slug, priceCents, comparePriceCents, imageUrl, currency = 'BRL' }: ProductCardProps) {
   const price = (priceCents / 100).toLocaleString('pt-BR', { style: 'currency', currency });
   const compare = comparePriceCents
     ? (comparePriceCents / 100).toLocaleString('pt-BR', { style: 'currency', currency })
@@ -59,6 +60,17 @@ export function ProductCard({ name, slug, priceCents, comparePriceCents, imageUr
             -{discount}%
           </span>
         )}
+        <div style={{ position: 'absolute', top: 10, right: 10 }}>
+          <HeartButton
+            productId={id}
+            slug={slug}
+            name={name}
+            priceCents={priceCents}
+            imageUrl={imageUrl}
+            size={18}
+            style={{ background: 'rgba(255,255,255,0.85)', borderRadius: 999, padding: 5 }}
+          />
+        </div>
       </div>
 
       {/* Info */}

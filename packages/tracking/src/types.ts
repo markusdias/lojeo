@@ -14,7 +14,10 @@ export type EventType =
   | 'checkout_step_complete'
   | 'search_performed'
   | 'search_clicked'
-  | 'external_referrer';
+  | 'external_referrer'
+  | 'wishlist_add'
+  | 'wishlist_remove'
+  | 'restock_notify';
 
 export interface ConsentState {
   essential: true;

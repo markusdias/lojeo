@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { getActiveTemplate } from '../template';
 import { TrackerProvider } from '../components/tracker-provider';
 import { CartProvider } from '../components/cart/cart-provider';
+import { WishlistProvider } from '../components/wishlist/wishlist-provider';
 import { ConsentBanner } from '../components/consent-banner';
 import { Header } from '../components/layout/header';
 import { Footer } from '../components/layout/footer';
@@ -26,6 +27,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       data-type-scale="default"
     >
       <body>
+        <WishlistProvider>
         <CartProvider>
           <TrackerProvider tenantId={tenantId} endpoint="/api/track">
             <Header storeName={tpl.name} />
@@ -34,6 +36,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             <ConsentBanner />
           </TrackerProvider>
         </CartProvider>
+        </WishlistProvider>
       </body>
     </html>
   );
