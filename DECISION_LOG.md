@@ -2200,3 +2200,46 @@ User mostrou 2 screenshots oficiais Claude Design da tela /aparencia. Implementa
 5. Checkout Pix 5% incentivo visual (baixo esforço)
 
 **94 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão** funcional.
+
+---
+
+## 2026-04-26 — Iteração 19: Customer AI rich + AB confidence gauge + cuidados (2 commits)
+
+**Trigger:** aplicar JSX prototypes pixel-perfect — começar pelos top-2 ROI (Customer profile + ABEditor).
+
+**Commits:**
+
+1. **162dbd6** — /clientes/[email] AI suggestions card rich match Customer.jsx
+   - Substituiu lj-ai-banner com 1 mensagem genérica → card AI rico com 3 sugestões dinâmicas por segmento RFM
+   - Cada sugestão tem: glyph circular tone-colorido (gift/shield/cake/clock/spark/minus/mail SVG paths) + title + body com microcopy detalhada + evidence inline mono "↳ taxa de retorno: 19% · n=58" + CTA primary + CTA secondary opcional
+   - 4 segmentos cobertos com microcopy específica:
+     - **Champions:** "n={N} · LTV {totalCents}", "aceite esperado: 57% ± 14pp"
+     - **At Risk:** "taxa de retorno: 19% · n=58", "baseado em ticket médio dela"
+     - **Lost:** "taxa de reativação esperada: < 1,5%", "retorno: 0,8% · 12 lojas"
+     - **New:** "retorno em 60d: +130% · n=2.4k", "AOV potencial: X → Y"
+   - Trade-offs explícitos: "não recomendo cupom de cara — Carolina nunca usou", "Não enviar para campanha massa"
+   - Footer: custo Haiku mono + "Por que isso?" link + thumbs up/down
+   - Match Customer.jsx — IA fala em métricas, não hype
+
+2. **066a2b0** — /experiments/[id]/results ConfidenceCard + CautionsCard
+   - **ConfidenceCard:** gauge SVG semicírculo 180x100 com arc path + threshold marker 95% + cor dinâmica (success/warning/error). 4 stats: P-valor, Lift relativo, Erro padrão, Power. Footer contextual.
+   - **CautionsCard:** 4 cuidados antes de declarar vencedor:
+     - Tamanho amostra (n > 1000)
+     - Viés de novidade (days >= 4)
+     - Sazonalidade (days < 14 → ⚠)
+     - Bonferroni multi-test correction (info constante)
+   - Confidence calc heurístico (50 + |lift|×5 quando significantSampleSize). v2 = lib estatística real (jStat/Fisher exact)
+
+**Decisões importantes:**
+- **Microcopy IA é diferenciador competitivo do Lojeo** — todas IA banners hoje precisam evolução de "está tendendo bem" para "lift de +28% em mobile mas empate desktop, recomendo rollout gradual com Bonferroni ajustado"
+- **Confidence gauge SVG inline** vs lib chart (Recharts/visx) — controle visual exato + zero deps + alinhado design tokens. Mesmo padrão Sparkline iter 9
+- **Cautions hardcoded baseado em métricas reais** — sampleSize/days servem fonte. Em produção real virá de função estatística pura no `@lojeo/engine`
+
+**Próximo ciclo:**
+- Tickets drawer rich (7 tipos mensagem + composer templates {nome}/{pedido})
+- Storefront WishlistPro badges "voltou ao estoque"/"em promoção"
+- Checkout Pix 5% incentivo visual
+- Customer profile tabs (Garantias/Tickets/Marketing/Notas)
+- Account.jsx Tracking branded com mapa SVG
+
+**96 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão** funcional.
