@@ -351,3 +351,35 @@ Decisões técnicas relevantes registradas com data e justificativa.
 - Send time optimization + precificação dinâmica → Sprint 20 (Fase 1.2)
 
 **Justificativa:** Lacunas eram features de média/baixa complexidade que reforçam diferencial competitivo (OAuth 1-clique é destaque na tabela Sec 23). Sem elas, plano cobriria fluxo mas perderia o "fator moleza" e a sincronização inteligente que são pilares do posicionamento.
+
+---
+
+## 2026-04-26 — Sprint 1 concluído autonomamente
+
+**Decisão:** Sprint 1 executado de forma autônoma (Blocos A–F) com decisões PO / Arquiteto / CTO / CFO consolidadas.
+
+**Entregáveis:**
+
+| Bloco | Feature | APIs criadas |
+|---|---|---|
+| A | CRUD produtos completo | PUT/DELETE /products/[id], GET/POST variants, PUT/DELETE variants/[id], GET/POST/PUT/DELETE collections |
+| B | Inventário multi-warehouse | schema inventory_locations + inventory_stock + inventory_movements, GET/POST /inventory |
+| C | Upload imagens WebP | POST/GET /products/[id]/images — sharp, 3 thumbnails (sm/md/lg), AI alt text mock |
+| D | Tracking SDK storefront | TrackerProvider React client, ConsentBanner LGPD, injeção no layout.tsx |
+| E | CSV import produtos | POST /products/import — parser CSV próprio, Zod por linha, dry-run, relatório |
+
+**Métricas finais Sprint 1:**
+- 56 testes passando (11/11 packages), zero regressões
+- Bloco B: migration 0001 aplicada em produção (EasyPanel Postgres)
+- Deploy admin + storefront: webhook disparado (commit 1138a00+)
+- EasyPanel DB: expose temporário (porta 5433) para migrations + testes, fechado depois
+
+**Decisões autônomas pontuais:**
+
+1. **sharp sem GHCR — instalado direto como dep.** Alternativa considerada: worker separado para processamento de imagem. Decisão (CTO): `sharp` binário nativo é trivial no Node 20 Alpine (Dockerfile já instala dependências). Worker separado é over-engineering para Sprint 1.
+
+2. **CSV parser próprio sem deps (csvtojson/papaparse).** Alternativa: biblioteca. Decisão (Arquiteto): Parser de ~60 linhas cobre casos do MVP (quote escaping, CRLF). Deps externas adicionam surface de ataque. Pode ser substituído se CSV complexo vier em Sprint futuro.
+
+3. **ConsentBanner inline-styled sem tokens CSS.** Alternativa: usar CSS tokens do template. Decisão (UX): Banner é componente do motor (Lojeo), não do template jewelry-v1. Tokens visuais do template não devem vazar para componentes do motor. Banner usa CSS vars com fallback neutro.
+
+4. **`TrackerProvider` com `useRef` em vez de `useState`.** Justificativa (Arquiteto): `Tracker` é singleton stateful (buffer + timer). `useRef` garante uma única instância mesmo em Strict Mode (React 18+ monta componente duas vezes em dev). `useState(() => new Tracker())` teria o mesmo efeito mas `useRef` é mais idiomático para objetos mutáveis não-React.

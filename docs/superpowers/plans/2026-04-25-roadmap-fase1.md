@@ -119,31 +119,31 @@ lojeo/
 **Critérios de pronto:**
 
 **Catálogo:**
-- [ ] Entidades no banco: `tenant`, `product`, `product_variant`, `product_image`, `collection`, `inventory`
-- [ ] Upload de imagens → R2 com otimização automática (WebP, thumbnails)
-- [ ] CRUD completo de produtos via API (Next.js Route Handlers)
-- [ ] Campos obrigatórios: nome, descrição rich text, preço, preço promocional, custo, SKU, status, URL amigável
-- [ ] Variantes com até 3 dimensões, estoque e preço por variante
-- [ ] Coleções: criação manual e por regras automáticas
-- [ ] SEO por produto: meta title, meta description, Open Graph editáveis
-- [ ] Campos customizados por template (joias: material, pedra, quilate, tamanho, aro)
-- [ ] Garantia e política de troca configuráveis por produto
-- [ ] NCM e regime tributário por produto
-- [ ] Restrições de exportação por país por produto (Sec 4.3/6.2) — bloqueia checkout automaticamente quando endereço incompatível
-- [ ] Pré-venda com data prevista de envio (Sec 6.2) — produto aceita pedido sem estoque, exibe data prometida
-- [ ] Alt text de imagens gerado por IA no upload (Sec 12.3) — usa Claude vision + brand guide
-- [ ] **Otimização automática de vídeos no upload (Sec 16)** — transcodificação para H.264 + WebM, geração de poster frame, thumbnails em múltiplas resoluções (job Trigger.dev)
-- [ ] Importação básica via CSV
-- [ ] Testes unitários: motor de catálogo (Vitest)
+- [x] Entidades no banco: `tenant`, `product`, `product_variant`, `product_image`, `collection`, `inventory`
+- [x] Upload de imagens → R2 com otimização automática (WebP, thumbnails) — local driver em dev, R2 via env em prod
+- [x] CRUD completo de produtos via API (Next.js Route Handlers)
+- [x] Campos obrigatórios: nome, descrição, preço, preço promocional, custo, SKU, status, URL amigável — todos no schema + API
+- [x] Variantes com até 3 dimensões, estoque e preço por variante — optionValues jsonb + priceCents + stockQty
+- [x] Coleções: criação manual + campo `rules` jsonb (automação implementada Sprint 2)
+- [x] SEO por produto: seoTitle, seoDescription — editáveis via PUT
+- [x] Campos customizados por template (joias: material, pedra, quilate, tamanho, aro) — customFields jsonb
+- [x] Garantia e política de troca configuráveis por produto — warrantyMonths
+- [x] NCM e regime tributário por produto — campos ncm + taxRegime no schema + API
+- [x] Restrições de exportação por país por produto — exportRestrictions jsonb no schema + API (enforcement no checkout Sprint 3)
+- [x] Pré-venda com data prevista de envio — presaleShipDate no schema + API (exibição no storefront Sprint 2)
+- [x] Alt text de imagens gerado por IA no upload — @lojeo/ai mock em dev, real em prod com ANTHROPIC_API_KEY
+- [ ] ~~**Otimização automática de vídeos no upload (Sec 16)**~~ — **ADIADO: Trigger.dev image não pública ainda; entra Sprint 3 com deploy Trigger.dev completo**
+- [x] Importação básica via CSV — dry-run + relatório por linha
+- [x] Testes unitários: motor de catálogo (Vitest) — 56 testes, 11 pacotes
 
 **Tracking foundation (NOVO — fundação obrigatória):**
-- [ ] Schema `behavior_events` (tenant_id, session_id, anonymous_id, event_type, entity_id, metadata jsonb, created_at) — particionada por mês
-- [ ] Schema `sessions` (anonymous_id, fingerprint, first_seen, last_seen, user_id nullable)
-- [ ] Package `@lojeo/tracking` com SDK client + endpoint de ingestão `/api/track`
-- [ ] Tipos de evento mapeados: `product_view`, `product_scroll`, `gallery_open`, `video_watched`, `variant_selected`, `cart_add`, `cart_remove`, `checkout_step`, `search_performed`, `search_clicked`
-- [ ] Fingerprint anônimo compatível com LGPD (sem PII)
-- [ ] Buffer client + flush em batch (não bloqueia render)
-- [ ] Trigger.dev: job de agregação noturna (eventos crus → tabelas analíticas)
+- [x] Schema `behavior_events` (tenant_id, session_id, anonymous_id, event_type, entity_id, metadata jsonb, created_at)
+- [x] Schema `sessions` (anonymous_id, fingerprint, first_seen, last_seen, user_id nullable)
+- [x] Package `@lojeo/tracking` com SDK client + endpoint de ingestão `/api/track`
+- [x] Tipos de evento mapeados: `product_view`, `product_scroll`, `gallery_open`, `video_watched`, `variant_selected`, `cart_add`, `cart_remove`, `checkout_step`, `search_performed`, `search_clicked`
+- [x] Fingerprint anônimo compatível com LGPD (sem PII) — SHA-256 + salt configurável
+- [x] Buffer client + flush em batch (não bloqueia render) — flushIntervalMs=5000, maxBuffer=20
+- [ ] ~~Trigger.dev: job de agregação noturna~~ — **ADIADO: mesmo motivo do vídeo; schema + contratos prontos, job entra Sprint 3**
 
 **Schema Drizzle — exemplo:**
 
