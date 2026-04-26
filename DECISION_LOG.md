@@ -2075,3 +2075,63 @@ User mostrou 2 screenshots oficiais Claude Design da tela /aparencia. Implementa
 - Sprint 13 security audit script (subagent ainda rodando)
 
 **89 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão** funcional.
+
+---
+
+## 2026-04-26 — Iteração 17: UX validation /aparencia + trust signals + template switch real
+
+**Commits:**
+
+1. **49855c7** — Subagent Sprint 13 final: security audit script
+   - `scripts/security-audit.sh` 6 checagens (DSI sem sanitização, eval/Function, SQL injection, secrets, CORS overpermissivo, rate-limit faltante)
+   - Output colorido, flag `--ci` exit 1 se crit
+   - Patterns runtime-built (DSI_PATTERN, EVAL_PATTERN, FN_PATTERN) pra evitar self-flagging
+   - `docs/operations/security-audit.md` doc
+   - **Achados primeira execução:** 1 crit (2 usos legítimos JSON-LD PDP), 2 warns (32 SQL interpolations Drizzle cols, 48 handlers mutativos sem rate-limit), 3 ok
+
+2. **446fe2f** — Trust signals SVG storefront
+   - 4 ícones SVG lineares match `docs/design-system-jewelry-v1/project/preview/trust-signals.html`:
+     - Garantia 1 ano (shield) + descrição
+     - Frete grátis (truck/cart)
+     - Embalagem presente (gift box)
+     - Trocas em 30 dias (download arrow)
+   - Layout flex column + label fontSize 13 + desc fontSize 12 lineHeight 1.3 conforme spec
+   - Substitui glyphs Unicode `✦◈◉⬡` flagged pelo auditor componentes
+
+3. **5e37696** — fix CSP frame-ancestors storefront
+   - X-Frame-Options: SAMEORIGIN bloqueava iframe preview /aparencia (admin URL diferente)
+   - Substituído por Content-Security-Policy: frame-ancestors permitindo 'self' + admin EasyPanel + lojeo.com/app
+   - Mais granular que X-Frame-Options + suportado em todos browsers modernos
+
+4. **222bf30** — Trocar template real funcional
+   - `/api/settings` PATCH aceita campo `templateId`
+   - Valida contra `REGISTERED_TEMPLATES = new Set(['jewelry-v1'])`
+   - 400 `template_not_registered` quando coffee/fashion/beauty selecionados (placeholder UI futura)
+   - Modal `/aparencia` onApply async fetch + state update + flash feedback success/error
+
+**UX validation Playwright /aparencia em prod:**
+- Match design oficial Claude Design **~90% paridade visual** (page mais próxima do design entregue)
+- Header + Card TEMPLATE ATIVO + Hint card + Combinação tipográfica (3 cards Atelier Verde) + Cor de destaque + Brand Guide IA + Preview LIVE + Save bar — todos renderizados conforme screenshot oficial
+- Único console error: iframe X-Frame-Options (resolvido em 5e37696)
+
+**Decisões:**
+- **REGISTERED_TEMPLATES whitelist** > permitir qualquer string templateId — protege contra config inválida (storefront iria quebrar tentando carregar template inexistente)
+- **CSP frame-ancestors** > X-Frame-Options — granularidade por origem permite admin embedar storefront sem expor pra outros
+- **Trust signals com `desc` field novo** — design oficial tem 2 linhas (label + desc) por item; antes só label. Refactor TRUST_ITEMS estrutura
+
+**Sprint 13 progresso:**
+- [x] Backup automático + restore docs
+- [x] Rate limit chat/orders/coupons
+- [x] LGPD banner cookies (subagent)
+- [x] Zod sanitização coupons + experiments (subagent)
+- [x] Security audit script (subagent)
+
+**Próximo ciclo:**
+- Storefront preview reativo via postMessage broadcast (mudanças /aparencia atualizam iframe sem reload)
+- Components Toast/MetricCard/DataTable admin (gap auditor)
+- VariantChip + ReviewCard storefront jewelry-v1
+- Template switch resetar appearance config quando tipos diferentes
+- Sprint 13 fix flagged DSI usos legítimos (whitelist explícita JSON-LD)
+- /products/new editor rich
+
+**93 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão** funcional.
