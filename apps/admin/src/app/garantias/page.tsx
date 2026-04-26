@@ -53,19 +53,19 @@ export default function GarantiasPage() {
 
       {/* Cards summary */}
       <div className="grid grid-cols-4 gap-3">
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <div className="lj-card p-4">
           <p className="text-xs text-gray-500 uppercase tracking-wide">Ativas</p>
           <p className="text-2xl font-semibold text-green-700 mt-1">{counts.active ?? 0}</p>
         </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <div className="lj-card p-4">
           <p className="text-xs text-gray-500 uppercase tracking-wide">Expirando ≤30d</p>
           <p className="text-2xl font-semibold text-amber-700 mt-1">{counts.expiring_soon ?? 0}</p>
         </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <div className="lj-card p-4">
           <p className="text-xs text-gray-500 uppercase tracking-wide">Expiradas</p>
           <p className="text-2xl font-semibold text-red-700 mt-1">{counts.expired ?? 0}</p>
         </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <div className="lj-card p-4">
           <p className="text-xs text-gray-500 uppercase tracking-wide">Sem garantia</p>
           <p className="text-2xl font-semibold text-gray-500 mt-1">{counts.none ?? 0}</p>
         </div>
@@ -83,7 +83,8 @@ export default function GarantiasPage() {
           <button
             key={o.v}
             onClick={() => setFilter(o.v)}
-            className={`px-3 py-1.5 rounded text-sm border ${filter === o.v ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-300'}`}
+            className={filter === o.v ? 'lj-btn-primary' : 'lj-btn-secondary'}
+            style={{ padding: '6px 12px', fontSize: 14 }}
           >
             {o.label}
           </button>
@@ -98,7 +99,7 @@ export default function GarantiasPage() {
       ) : warranties.length === 0 ? (
         <p className="text-sm text-gray-500">Nenhuma garantia encontrada com este filtro.</p>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <div className="lj-card overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-xs uppercase text-gray-500">
               <tr>

@@ -95,7 +95,7 @@ export default function TicketTemplatesPage() {
       </div>
 
       {/* Create / Edit form */}
-      <div className="bg-white border border-gray-200 rounded-lg p-5">
+      <div className="lj-card p-5">
         <h2 className="text-sm font-semibold text-gray-700 mb-3">
           {editing ? `Editar: ${editing.name}` : 'Novo template'}
         </h2>
@@ -126,7 +126,7 @@ export default function TicketTemplatesPage() {
             <button
               type="submit"
               disabled={saving}
-              className="bg-indigo-600 text-white text-sm px-4 py-2 rounded hover:bg-indigo-700 disabled:opacity-50"
+              className="lj-btn-primary"
             >
               {saving ? 'Salvando...' : editing ? 'Salvar alterações' : 'Criar template'}
             </button>
@@ -153,7 +153,7 @@ export default function TicketTemplatesPage() {
       ) : (
         <div className="space-y-3">
           {templates.map(t => (
-            <div key={t.id} className="bg-white border border-gray-200 rounded-lg p-4">
+            <div key={t.id} className="lj-card p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm text-gray-900">{t.name}</p>
