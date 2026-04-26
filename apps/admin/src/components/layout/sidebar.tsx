@@ -49,6 +49,10 @@ const I = {
   inbox: 'M3 13h6l1 3h4l1-3h6M3 13V7l3-4h12l3 4v6M3 13v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7',
 };
 
+// Sidebar enxuto conforme design oficial Claude Design (10 itens em 3 sections).
+// Pages secundárias (Devoluções/Cupons/Avaliações/Garantias/Estoque/Coleções/Tickets/Chatbot/
+// Atribuição/Experimentos/CTR/Uso IA/Integrações) seguem acessíveis por URL direta e serão
+// expostas via breadcrumbs e sub-navs internas das pages principais.
 const SECTIONS: NavSection[] = [
   {
     items: [
@@ -60,44 +64,16 @@ const SECTIONS: NavSection[] = [
     ],
   },
   {
-    title: 'Vendas',
-    items: [
-      { href: '/devolucoes', label: 'Devoluções', icon: <Icon d={I.return} />, badgeKey: 'devolucoes' },
-      { href: '/cupons', label: 'Cupons', icon: <Icon d={I.coupon} /> },
-      { href: '/avaliacoes', label: 'Avaliações', icon: <Icon d={I.star} /> },
-      { href: '/garantias', label: 'Garantias', icon: <Icon d={I.shield} /> },
-    ],
-  },
-  {
-    title: 'Catálogo & Loja',
-    items: [
-      { href: '/inventory', label: 'Estoque', icon: <Icon d={I.squares} /> },
-      { href: '/collections', label: 'Coleções', icon: <Icon d={I.gallery} /> },
-      { href: '/atribuicao', label: 'Atribuição', icon: <Icon d={I.link} /> },
-      { href: '/experiments', label: 'Experimentos', icon: <Icon d={I.flask} /> },
-      { href: '/recomendacoes/ctr', label: 'CTR Recomendações', icon: <Icon d={I.chart} /> },
-    ],
-  },
-  {
-    title: 'Atendimento',
-    items: [
-      { href: '/tickets', label: 'Suporte', icon: <Icon d={I.inbox} />, badgeKey: 'tickets' },
-      { href: '/chatbot', label: 'Chatbot', icon: <Icon d={I.bot} /> },
-      { href: '/ugc', label: 'Moderação UGC', icon: <Icon d={I.gallery} />, badgeKey: 'ugc' },
-    ],
-  },
-  {
     title: 'IA & Conteúdo',
     items: [
       { href: '/ia-analyst', label: 'IA Analyst', icon: <Icon d={I.sparkles} /> },
-      { href: '/ia-uso', label: 'Uso de IA', icon: <Icon d={I.sparkles} /> },
+      { href: '/ugc', label: 'Moderação UGC', icon: <Icon d={I.gallery} />, badgeKey: 'ugc' },
     ],
   },
   {
     title: 'Loja',
     items: [
       { href: '/aparencia', label: 'Aparência', icon: <Icon d={I.palette} /> },
-      { href: '/integracoes', label: 'Integrações', icon: <Icon d={I.globe} /> },
       { href: '/settings', label: 'Configurações', icon: <Icon d={I.gear} /> },
     ],
   },
