@@ -2317,3 +2317,52 @@ User mostrou 2 screenshots oficiais Claude Design da tela /aparencia. Implementa
 - Account.jsx Tracking branded com mapa SVG
 
 **99 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão** funcional. 2 subagents rodando paralelos.
+
+---
+
+## 2026-04-26 — Iteração 22: 2 subagents finalizados + Customer 2-col rewrite
+
+**Subagents results:**
+
+1. **a74f477d (jewelry-v1) DONE** — 3 commits (fec9640, 8acc303, 0ae3237):
+   - `apps/storefront/src/app/produtos/[slug]/variant-picker.tsx` + 7 testes — detecta tipo de joia via customFields.tipo|kind|category|categoria|type → prefixo slug (anel-/colar-/brinco-/alianca-) → fallback genérico. Render: Anel (chips 12-22 + link "como medir aro?" modal), Colar (40-60cm), Brinco (Tarraxa/Argola/Inglês)
+   - PDP UrgencyBadge **telemetria real**: countDistinct anonymousId em behavior_events.product_view 60min ≥5 (viewing) + SUM(qty-reserved) restrito variantIds ≤3 (low-stock). Grace null quando empty
+   - Checkout pagamento Pix com card destacado: borda var(--success), pill "+5% OFF", preço riscado, valor com desconto
+   - `apps/storefront/src/lib/checkout-config.ts` + 6 testes — getPixDiscountPct configurável NEXT_PUBLIC_PIX_DISCOUNT_PCT clamp 0-50
+   - 14/14 storefront tests green
+
+2. **aa00912f (admin components) DONE** — 3 commits (8acc303 conjugado, ee749f8, 1b6c2d9):
+   - `toast.tsx` Provider + useToast hook + 4 variants + bottom-right stack + auto-dismiss 4s
+   - `metric-card.tsx` reutilizável aplicado em /dashboard, /insights, /recomendacoes/ctr (eliminando duplicação MetricCard inline)
+   - `data-table.tsx` genérica com sort client-side asc→desc→off via aria-sort + emptyState
+   - Demo `/_dev/data-table-demo` com 4 cols
+   - 9 admin tests green
+   - **Caveat colaboração:** race entre subagents fez Toast commit sair junto com PDP commit (msg não reflete conteúdo). Lição registrada: futuramente isolar subagents em git worktrees ou branches distintas
+
+**Main thread (/clientes/[email] rewrite full):**
+
+User reclamou layout — minha implementação anterior empilhava sections vertical em vez de 2 colunas com tabs como Customer.jsx prototype.
+
+Refactor completo em commit **208d488**:
+- Layout 2 colunas (300px aside + 1fr main)
+- ASIDE: avatar gradient 96x96 por segmento RFM (7 gradients), h2 nome, email muted, badge "♦ {segmentLabel} · RFM r/f/m", pitch text contextual, stats grid 2x2 (LTV/Pedidos/Ticket médio/Recência), CONTATO eyebrow + telefone numeric + endereço extraído último pedido com shippingAddress, TAGS chips dinâmicas
+- MAIN: AI suggestions card rich (preservado iter 19) + `<CustomerTabs>` client component novo com 5 tabs (Pedidos · N / Garantias · N / Tickets · N / Marketing / Notas)
+- Tab strip border-bottom + active 2px indicator, content condicional
+- Server fetches: customerOrdersFull (50), warrantyItems JOIN orderItems+productVariants+products + computeWarrantyBatch, supportTickets schema
+
+**Decisões importantes:**
+- **Worktrees pra subagents paralelos** — race condition ocorrida com Toast commit absorvido por PDP commit. Lição: usar `isolation: "worktree"` quando 2+ subagents tocam apps sobrepostos
+- **Layout 2-col fiel ao prototype** — empilhar tudo vertical perdeu contexto visual; design tem hierarquia clara aside-perfil + main-tabs
+- **Customer name extraído do email** com title-case dos segmentos `[._-]` — sem campo `customer_name` populado nos pedidos seed, fallback usa email split
+- **Gradients por segmento** — 7 gradient strings hardcoded (champions verde, at_risk laranja, lost cinza, new roxo, etc) match Customer.jsx visual
+
+**Métricas finais:** 95 testes globais verdes (engine 44 + storefront 14 + admin 9 + db 7 + ai 7 + outros 14), **101 commits sessão**, **22 migrações em prod**, **zero regressão**.
+
+**Próximo ciclo:**
+- UX validation /clientes/[email] em prod — confirmar paridade visual Customer.jsx
+- Storefront PDP VariantPicker (subagent feature) deploy + UX validate
+- Toast usage substitui alerts inline em pages mutations
+- /aparencia preview reativo postMessage broadcast quando appearance muda
+- Account.jsx Tracking branded com mapa SVG storefront
+
+**101 commits totais sessão**, **95 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão** funcional.
