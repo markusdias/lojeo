@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, isNull } from 'drizzle-orm';
 import { db, behaviorEvents, sessionsBehavior } from '@lojeo/db';
 import { logger } from '@lojeo/logger';
 import type { TrackPayload } from './types';
@@ -63,4 +63,46 @@ export async function ingest(
   }
 
   return { accepted: rows.length, sessionId: session.id };
+}
+
+/**
+ * Link anonymous tracking trail to authenticated user.
+ *
+ * Called when client logs in: backfills userId em behavior_sessions e behavior_events
+ * matching anonymousId+tenantId where userId IS NULL. Idempotente.
+ */
+export async function linkIdentity(args: {
+  tenantId: string;
+  anonymousId: string;
+  userId: string;
+}): Promise<{ sessionsUpdated: number; eventsUpdated: number }> {
+  const { tenantId, anonymousId, userId } = args;
+  if (!tenantId || !anonymousId || !userId) {
+    return { sessionsUpdated: 0, eventsUpdated: 0 };
+  }
+
+  const sessionRows = await db
+    .update(sessionsBehavior)
+    .set({ userId, lastSeen: new Date() })
+    .where(
+      and(
+        eq(sessionsBehavior.tenantId, tenantId),
+        eq(sessionsBehavior.anonymousId, anonymousId),
+      ),
+    )
+    .returning({ id: sessionsBehavior.id });
+
+  const eventRows = await db
+    .update(behaviorEvents)
+    .set({ userId })
+    .where(
+      and(
+        eq(behaviorEvents.tenantId, tenantId),
+        eq(behaviorEvents.anonymousId, anonymousId),
+        isNull(behaviorEvents.userId),
+      ),
+    )
+    .returning({ id: behaviorEvents.id });
+
+  return { sessionsUpdated: sessionRows.length, eventsUpdated: eventRows.length };
 }

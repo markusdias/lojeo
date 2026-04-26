@@ -10,6 +10,7 @@ import { Pixels } from '../components/marketing/pixels';
 import { ServiceWorkerRegister } from '../components/pwa/sw-register';
 import { db, tenants } from '@lojeo/db';
 import { eq } from 'drizzle-orm';
+import { auth } from '../auth';
 import './globals.css';
 import '@lojeo/template-jewelry-v1/tokens.css';
 
@@ -61,6 +62,8 @@ async function getTenantRuntimeConfig(tenantId: string): Promise<TenantRuntimeCo
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const tpl = await getActiveTemplate();
   const tenantId = process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
+  const session = await auth();
+  const userId = session?.user?.id ?? null;
   const { pixels: pixelConfig, appearance } = await getTenantRuntimeConfig(tenantId);
   const typo = appearance.typo ?? 'a';
   const accent = appearance.accent ?? 'champagne';
@@ -84,7 +87,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <ServiceWorkerRegister />
         <WishlistProvider>
         <CartProvider>
-          <TrackerProvider tenantId={tenantId} endpoint="/api/track">
+          <TrackerProvider tenantId={tenantId} endpoint="/api/track" userId={userId}>
             <Header storeName={tpl.name} />
             <main id="main-content">{children}</main>
             <Footer storeName={tpl.name} />

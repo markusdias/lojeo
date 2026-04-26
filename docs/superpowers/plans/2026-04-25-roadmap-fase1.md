@@ -236,7 +236,7 @@ export const behaviorEvents = pgTable('behavior_events', {
 - [x] UTM preservado da landing até o pedido — TrackerProvider → sessionStorage → /api/orders
 - [x] Banner de cookies LGPD com consentimento granular (essencial / analytics / marketing)
 - [x] Tracking respeita consentimento (consent-aware no SDK desde Sprint 1)
-- [ ] Identidade anônima → identificada quando cliente faz login — Sprint 5
+- [x] Identidade anônima → identificada quando cliente faz login — `linkIdentity()` em `@lojeo/tracking/server` faz UPDATE atômico em `behavior_sessions` (set userId) + backfill `behavior_events` (WHERE userId IS NULL). Storefront layout passa `auth().user.id` ao `TrackerProvider`; client dispara POST `/api/track/identify` idempotente via flag localStorage `lojeo_identity_linked_{tenantId}_{userId}`. `/api/track` agora também passa userId ao ingest (sessão atualizada a cada flush). 4 testes vitest cobrindo args missing, update success, idempotência, ingest com userId.
 - [x] Dashboard básico no admin: GET /api/events (eventos por dia + por tipo)
 
 **Ponto crítico de arquitetura — como templates plugam:**

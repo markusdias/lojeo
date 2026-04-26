@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ingest } from '@lojeo/tracking/server';
+import { auth } from '../../../auth';
 
 function getClientIp(req: Request): string | undefined {
   return (
@@ -14,11 +15,12 @@ export async function POST(req: Request) {
   const payload = await req.json();
   const userAgent = req.headers.get('user-agent') ?? undefined;
   const ipAddress = getClientIp(req);
+  const session = await auth();
+  const userId = session?.user?.id;
   try {
-    const r = await ingest(payload, { userAgent, ipAddress });
+    const r = await ingest(payload, { userAgent, ipAddress, userId });
     return NextResponse.json(r, { status: 202 });
   } catch {
-    // Tracking failures must never surface to client — fire-and-forget semantics
     return NextResponse.json({ accepted: 0 }, { status: 202 });
   }
 }

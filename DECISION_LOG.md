@@ -2455,3 +2455,43 @@ Refactor completo em commit **208d488**:
 - Emails.jsx 4 templates table-based
 
 **110 commits totais sessão**, **104 testes globais verdes** (engine 44 + storefront 14 + admin 18 + db 7 + ai 7 + ui+logger+storage+email+tracking+template-jewelry-v1=14), **22 migrações idempotentes em prod**, **zero regressão** funcional.
+
+---
+
+## 2026-04-26 — Sprint 2 fechamento: Identity link anonymousId↔userId pós-login
+
+**Commit (a vir):** feat(tracking): identity link anonymousId↔userId pós-login
+
+**Arquivos:**
+- `packages/tracking/src/server.ts` — nova função `linkIdentity({tenantId, anonymousId, userId})`: faz UPDATE atômico em `behavior_sessions` (set userId+lastSeen) + backfill `behavior_events` (WHERE userId IS NULL → set userId). Retorna `{sessionsUpdated, eventsUpdated}`. Idempotente.
+- `packages/tracking/src/server.test.ts` NOVO — 4 testes mockando `@lojeo/db` + `drizzle-orm`: args missing → 0/0; success path; idempotency; ingest passa userId quando opts fornecido.
+- `apps/storefront/src/app/api/track/route.ts` — agora chama `auth()`, passa `userId` ao `ingest()` (cada flush atualiza session.userId via update existente em server.ts:39)
+- `apps/storefront/src/app/api/track/identify/route.ts` NOVO — POST autenticado, valida session.user.id, chama `linkIdentity()` com tenantId+anonymousId do body
+- `apps/storefront/src/app/layout.tsx` — `await auth()` server-side, passa `userId` ao TrackerProvider
+- `apps/storefront/src/components/tracker-provider.tsx` — prop opcional `userId`, useEffect dispara fetch `/api/track/identify` quando userId presente, idempotência via flag localStorage `lojeo_identity_linked_{tenantId}_{userId}` (set apenas em response 2xx)
+
+**Decisões pontuais:**
+
+1. **Backfill imediato no login (não diferido via job)** — escala razoável pra Fase 1 (single-tenant per deploy). Operação UPDATE com WHERE indexado por `(tenant_id, anonymous_id)` é O(events_da_sessão_anon), ~100-1000 rows típico. Trigger.dev fica para fase de scale (multi-tenant SaaS).
+
+2. **Flag localStorage idempotente** — evita POST repetido a cada page navigate. Limpa só quando user logout (Fase 1.2 logout flow). Edge case: 2 devices = 2 flags, não conflita pois server-side é UPSERT-safe.
+
+3. **`/api/track/identify` separado de `/api/track`** — semântica diferente: identify é login-time (raro), track é high-frequency (every page). Compor errado vazaria latência ou abriria race condition no flush + identify simultâneos.
+
+4. **userId em `/api/track` automático** — não precisa client passar; route lê session do cookie httpOnly. Cliente só pré-existe `anonymousId` em localStorage. Server cuida do resto.
+
+**Testes:**
+- `@lojeo/tracking`: 7/7 (3 client + 4 server NOVOS) ✓
+- Suite global: 11/11 packages verdes, sem regressão.
+
+**Critério Sprint 2 fechado:**
+- [x] Identidade anônima → identificada quando cliente faz login
+
+**Próximo ciclo:**
+- Próximos itens implementáveis sem bloqueador:
+  - Painel admin gift cards (Sprint 5) — schema `gift_cards` existe, falta CRUD UI
+  - Crédito em loja como alternativa ao reembolso (Sprint 6) — reusa gift_cards
+  - Toggle "É um presente" no checkout + mensagem personalizada (Sprint 5)
+- Itens bloqueados: Mercado Pago OAuth, Bling OAuth, Melhor Envio OAuth, Resend, Trigger.dev (jobs)
+
+**112 commits totais sessão**, **108 testes globais verdes** (+4 server tracking), **zero regressão** funcional.
