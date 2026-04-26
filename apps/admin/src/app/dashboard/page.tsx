@@ -1,13 +1,22 @@
+import Link from 'next/link';
 import { auth, signOut } from '../../auth';
-import { db, products, tenants } from '@lojeo/db';
-import { eq } from 'drizzle-orm';
+import { db, products, tenants, orders } from '@lojeo/db';
+import { eq, and, gte, sql } from 'drizzle-orm';
 
 export default async function DashboardPage() {
   const session = await auth();
   const user = session?.user;
   const tenantId = process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
-  const tenant = await db.query.tenants.findFirst({ where: eq(tenants.id, tenantId) });
-  const productCount = (await db.select().from(products).where(eq(products.tenantId, tenantId))).length;
+  const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const [tenant, productCount, orderSummary] = await Promise.all([
+    db.query.tenants.findFirst({ where: eq(tenants.id, tenantId) }),
+    db.select({ c: sql<number>`COUNT(*)` }).from(products).where(eq(products.tenantId, tenantId)).then(r => Number(r[0]?.c ?? 0)),
+    db.select({
+      count: sql<number>`COUNT(*)`,
+      revenue: sql<number>`COALESCE(SUM(total_cents), 0)`,
+      pending: sql<number>`COUNT(*) FILTER (WHERE status = 'pending')`,
+    }).from(orders).where(and(eq(orders.tenantId, tenantId), gte(orders.createdAt, since30d))).then(r => r[0]),
+  ]);
 
   return (
     <main className="min-h-screen p-8 max-w-5xl mx-auto space-y-6">
@@ -34,18 +43,24 @@ export default async function DashboardPage() {
         </form>
       </header>
 
-      <section className="grid grid-cols-3 gap-4">
+      <section className="grid grid-cols-4 gap-4">
         <div className="bg-white rounded-lg shadow p-6">
           <p className="text-xs uppercase tracking-wide text-neutral-500">Produtos</p>
           <p className="text-3xl font-semibold mt-2">{productCount}</p>
         </div>
+        <Link href="/pedidos" className="bg-white rounded-lg shadow p-6 block hover:shadow-md transition-shadow">
+          <p className="text-xs uppercase tracking-wide text-neutral-500">Pedidos (30d)</p>
+          <p className="text-3xl font-semibold mt-2">{Number(orderSummary?.count ?? 0)}</p>
+        </Link>
+        <Link href="/pedidos?status=pending" className="bg-white rounded-lg shadow p-6 block hover:shadow-md transition-shadow">
+          <p className="text-xs uppercase tracking-wide text-amber-600">Aguardando pagamento</p>
+          <p className="text-3xl font-semibold mt-2 text-amber-700">{Number(orderSummary?.pending ?? 0)}</p>
+        </Link>
         <div className="bg-white rounded-lg shadow p-6">
-          <p className="text-xs uppercase tracking-wide text-neutral-500">Pedidos</p>
-          <p className="text-3xl font-semibold mt-2">0</p>
-        </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <p className="text-xs uppercase tracking-wide text-neutral-500">Receita (BRL)</p>
-          <p className="text-3xl font-semibold mt-2">R$ 0,00</p>
+          <p className="text-xs uppercase tracking-wide text-neutral-500">Receita (30d)</p>
+          <p className="text-3xl font-semibold mt-2">
+            {(Number(orderSummary?.revenue ?? 0) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+          </p>
         </div>
       </section>
 
