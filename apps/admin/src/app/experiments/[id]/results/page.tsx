@@ -69,33 +69,53 @@ export default function ExperimentResultsPage({ params }: { params: Promise<{ id
       <header className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <a href="/experiments" className="text-xs" style={{ color: 'var(--fg-secondary)' }}>← Experimentos</a>
-          <h1 className="text-2xl font-semibold mt-1">Resultados: {exp.name}</h1>
-          <p className="text-sm font-mono" style={{ color: 'var(--fg-muted)' }}>{exp.key}</p>
+          <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginTop: 'var(--space-1)' }}>
+            Resultados: {exp.name}
+          </h1>
+          <p className="mono caption">{exp.key}</p>
         </div>
         <span className="lj-badge lj-badge-accent" style={{ padding: '4px 10px' }}>
           {exp.status}
         </span>
       </header>
 
+      <div className="lj-ai-banner">
+        <span aria-hidden style={{ fontSize: 18, color: 'var(--accent)' }}>✦</span>
+        <div>
+          <p className="lj-ai-eyebrow">IA · ANÁLISE ESTATÍSTICA</p>
+          <p className="body-s" style={{ color: 'var(--fg)', marginTop: 4 }}>
+            {!summary.significantSampleSize
+              ? `Amostra de ${summary.totalExposures.toLocaleString('pt-BR')} exposições é insuficiente — recomenda-se ≥1.000 por variante para inferência confiável. Continue rodando ou amplie tráfego.`
+              : winner && variants.length > 1 && winner.conversionRate > variants.reduce((m, v) => v !== winner && v.conversionRate > m ? v.conversionRate : m, 0) * 1.1
+                ? `Variante ${winner.variantKey} lidera com ${(winner.conversionRate * 100).toFixed(2)}% de conversão · lift de ${winner.liftVsControl >= 0 ? '+' : ''}${winner.liftVsControl.toFixed(1)}% sobre controle. Sample size suficiente — considere declarar vencedor.`
+                : `Diferença entre variantes não atinge significância prática (>10%). Considere ampliar amostra ou ajustar variações.`}
+          </p>
+        </div>
+      </div>
+
       {/* Summary cards */}
       <div className="grid grid-cols-4 gap-3">
-        <div className="lj-card p-4">
-          <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--fg-secondary)' }}>Exposições</p>
-          <p className="text-2xl font-semibold mt-1">{summary.totalExposures.toLocaleString('pt-BR')}</p>
+        <div className="lj-card" style={{ padding: 'var(--space-5)' }}>
+          <p className="eyebrow" style={{ marginBottom: 'var(--space-2)' }}>Exposições</p>
+          <p className="numeric" style={{ fontSize: 'var(--text-h2)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)' }}>
+            {summary.totalExposures.toLocaleString('pt-BR')}
+          </p>
         </div>
-        <div className="lj-card p-4">
-          <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--fg-secondary)' }}>Conversões</p>
-          <p className="text-2xl font-semibold mt-1">{summary.totalConversions.toLocaleString('pt-BR')}</p>
+        <div className="lj-card" style={{ padding: 'var(--space-5)' }}>
+          <p className="eyebrow" style={{ marginBottom: 'var(--space-2)' }}>Conversões</p>
+          <p className="numeric" style={{ fontSize: 'var(--text-h2)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)' }}>
+            {summary.totalConversions.toLocaleString('pt-BR')}
+          </p>
         </div>
-        <div className="lj-card p-4">
-          <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--fg-secondary)' }}>Taxa geral</p>
-          <p className="text-2xl font-semibold mt-1" style={{ color: 'var(--accent)' }}>
+        <div className="lj-card" style={{ padding: 'var(--space-5)' }}>
+          <p className="eyebrow" style={{ marginBottom: 'var(--space-2)' }}>Taxa geral</p>
+          <p className="numeric" style={{ fontSize: 'var(--text-h2)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', color: 'var(--accent)' }}>
             {(summary.overallRate * 100).toFixed(2)}%
           </p>
         </div>
-        <div className="lj-card p-4">
-          <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--fg-secondary)' }}>Sample size</p>
-          <p className="text-sm font-medium mt-1" style={{ color: summary.significantSampleSize ? 'var(--success)' : 'var(--warning)' }}>
+        <div className="lj-card" style={{ padding: 'var(--space-5)' }}>
+          <p className="eyebrow" style={{ marginBottom: 'var(--space-2)' }}>Sample size</p>
+          <p className="body-s" style={{ marginTop: 4, fontWeight: 'var(--w-medium)', color: summary.significantSampleSize ? 'var(--success)' : 'var(--warning)' }}>
             {summary.significantSampleSize ? '✓ Significante' : '⚠ Insuficiente (<1k)'}
           </p>
         </div>

@@ -19,7 +19,6 @@ export default async function ClienteProfilePage({
   const { email: encodedEmail } = await params;
   const email = decodeURIComponent(encodedEmail).toLowerCase();
 
-  // Aggregate stats
   const [agg] = await db
     .select({
       orderCount: sql<number>`cast(count(*) as int)`,
@@ -51,7 +50,6 @@ export default async function ClienteProfilePage({
   const profile = profiles[0];
   if (!profile) notFound();
 
-  // Recent orders
   const recentOrders = await db
     .select({
       id: orders.id,
@@ -66,7 +64,6 @@ export default async function ClienteProfilePage({
     .orderBy(desc(orders.createdAt))
     .limit(10);
 
-  // LTV (todos os pedidos não-cancelados)
   const ltvRows = await db
     .select({
       customerEmail: orders.customerEmail,
@@ -93,57 +90,73 @@ export default async function ClienteProfilePage({
     shipped: 'Enviado', delivered: 'Entregue', cancelled: 'Cancelado', refunded: 'Reembolsado',
   };
 
+  const segmentLabel = SEGMENT_LABELS[profile.segment];
+  const aiMessage = profile.segment === 'champions'
+    ? `Cliente Champion (RFM 5/5/4+) — alto LTV ${fmt(profile.totalCents)}, comprou há ${profile.daysSinceLastOrder}d. Considere oferta exclusiva ou programa de fidelidade.`
+    : profile.segment === 'at_risk'
+      ? `Cliente em risco — última compra há ${profile.daysSinceLastOrder}d, era recorrente (${profile.orderCount} pedidos). Acionar campanha de reativação com cupom -10%.`
+      : profile.segment === 'lost'
+        ? `Cliente perdido — sem compra há ${profile.daysSinceLastOrder}d. Considere remover de fluxos ativos ou tentar reconquista única.`
+        : profile.segment === 'new'
+          ? `Cliente novo — primeira compra há ${profile.daysSinceLastOrder}d. Cadência de onboarding + cross-sell ainda válidos.`
+          : `Cliente com ${profile.orderCount} pedidos · ${segmentLabel}. Ticket médio ${fmt(ltv?.avgOrderCents ?? 0)}.`;
+
   return (
-    <div style={{ padding: '32px 40px', maxWidth: 900 }}>
-      <Link href="/clientes" style={{ fontSize: 13, color: '#6b7280', textDecoration: 'none' }}>
+    <div style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }} className="space-y-6">
+      <Link href="/clientes" style={{ fontSize: 'var(--text-caption)', color: 'var(--fg-secondary)', textDecoration: 'none' }}>
         ← Clientes
       </Link>
 
-      <div style={{ marginTop: 24, marginBottom: 32 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 600, color: '#f9fafb', marginBottom: 4 }}>{email}</h1>
-        <p style={{ fontSize: 13, color: '#6b7280' }}>
-          Cliente desde {new Date(agg.firstOrderAt).toLocaleDateString('pt-BR')}
+      <header>
+        <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginBottom: 'var(--space-1)' }}>
+          {email}
+        </h1>
+        <p className="body-s">
+          Cliente desde {new Date(agg.firstOrderAt).toLocaleDateString('pt-BR')} · <span className="lj-badge lj-badge-accent">{segmentLabel}</span>
         </p>
+      </header>
+
+      <div className="lj-ai-banner">
+        <span aria-hidden style={{ fontSize: 18, color: 'var(--accent)' }}>✦</span>
+        <div>
+          <p className="lj-ai-eyebrow">IA · PRÓXIMAS OPORTUNIDADES</p>
+          <p className="body-s" style={{ color: 'var(--fg)', marginTop: 4 }}>{aiMessage}</p>
+        </div>
       </div>
 
-      {/* RFM summary */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 'var(--space-4)' }}>
         {[
-          { label: 'Segmento', value: SEGMENT_LABELS[profile.segment] },
+          { label: 'Segmento', value: segmentLabel },
           { label: 'LTV', value: fmt(profile.totalCents) },
           { label: 'Pedidos', value: String(profile.orderCount) },
           { label: 'Último pedido', value: `${profile.daysSinceLastOrder}d atrás` },
         ].map(card => (
-          <div key={card.label} style={{
-            background: '#111827', border: '1px solid #1f2937',
-            borderRadius: 8, padding: '16px 20px',
-          }}>
-            <p style={{ fontSize: 11, color: '#6b7280', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-              {card.label}
+          <div key={card.label} className="lj-card" style={{ padding: 'var(--space-5)' }}>
+            <p className="eyebrow" style={{ marginBottom: 'var(--space-2)' }}>{card.label}</p>
+            <p className="numeric" style={{ fontSize: 'var(--text-h3)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)' }}>
+              {card.value}
             </p>
-            <p style={{ fontSize: 18, fontWeight: 600, color: '#f9fafb' }}>{card.value}</p>
           </div>
         ))}
       </div>
 
-      {/* RFM scores */}
-      <div style={{ marginBottom: 32, background: '#111827', border: '1px solid #1f2937', borderRadius: 8, padding: '16px 20px' }}>
-        <p style={{ fontSize: 12, color: '#6b7280', marginBottom: 12 }}>Score RFM (1–5)</p>
-        <div style={{ display: 'flex', gap: 24 }}>
+      <div className="lj-card" style={{ padding: 'var(--space-5)' }}>
+        <p className="eyebrow" style={{ marginBottom: 'var(--space-3)' }}>Score RFM (1–5)</p>
+        <div style={{ display: 'flex', gap: 'var(--space-6)', flexWrap: 'wrap' }}>
           {[
             { label: 'Recência', value: profile.rfm.recency },
             { label: 'Frequência', value: profile.rfm.frequency },
             { label: 'Monetário', value: profile.rfm.monetary },
           ].map(s => (
             <div key={s.label}>
-              <p style={{ fontSize: 11, color: '#9ca3af', marginBottom: 4 }}>{s.label}</p>
+              <p className="caption" style={{ marginBottom: 4 }}>{s.label}</p>
               <div style={{ display: 'flex', gap: 4 }}>
                 {[1, 2, 3, 4, 5].map(n => (
                   <div
                     key={n}
                     style={{
                       width: 20, height: 20, borderRadius: 4,
-                      background: n <= s.value ? '#2563eb' : '#1f2937',
+                      background: n <= s.value ? 'var(--accent)' : 'var(--neutral-100)',
                     }}
                   />
                 ))}
@@ -153,11 +166,10 @@ export default async function ClienteProfilePage({
         </div>
       </div>
 
-      {/* LTV / CLV */}
       {ltv && (
-        <div style={{ marginBottom: 32, background: '#111827', border: '1px solid #1f2937', borderRadius: 8, padding: '16px 20px' }}>
-          <p style={{ fontSize: 12, color: '#6b7280', marginBottom: 12 }}>LTV / Customer Lifetime Value</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16 }}>
+        <div className="lj-card" style={{ padding: 'var(--space-5)' }}>
+          <p className="eyebrow" style={{ marginBottom: 'var(--space-3)' }}>LTV · Customer Lifetime Value</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 'var(--space-4)' }}>
             {[
               { label: 'Total gasto', value: fmt(ltv.totalCents) },
               { label: 'Pedidos', value: String(ltv.orderCount) },
@@ -166,47 +178,59 @@ export default async function ClienteProfilePage({
               { label: 'Tempo ativo', value: `${ltv.expectedLifetimeMonths}m` },
             ].map(s => (
               <div key={s.label}>
-                <p style={{ fontSize: 11, color: '#9ca3af', marginBottom: 4 }}>{s.label}</p>
-                <p style={{ fontSize: 15, fontWeight: 600, color: '#f9fafb' }}>{s.value}</p>
+                <p className="caption" style={{ marginBottom: 4 }}>{s.label}</p>
+                <p className="numeric" style={{ fontSize: 'var(--text-body-l)', fontWeight: 'var(--w-semibold)', color: 'var(--fg)' }}>
+                  {s.value}
+                </p>
               </div>
             ))}
           </div>
-          <p style={{ fontSize: 11, color: '#6b7280', marginTop: 12 }}>
+          <p className="caption" style={{ marginTop: 'var(--space-3)' }}>
             LTV em USD: ${ltv.ltvUsd.toLocaleString('en-US', { minimumFractionDigits: 2 })} · Janela ativa: {ltv.daysActive} dias
           </p>
         </div>
       )}
 
-      {/* Orders */}
-      <h2 style={{ fontSize: 15, fontWeight: 600, color: '#e5e7eb', marginBottom: 12 }}>Pedidos</h2>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-        <thead>
-          <tr style={{ borderBottom: '1px solid #1f2937' }}>
-            {['Nº', 'Data', 'Status', 'Total', 'Pagamento'].map(h => (
-              <th key={h} style={{ textAlign: 'left', padding: '8px 12px', color: '#6b7280', fontWeight: 500 }}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {recentOrders.map(o => (
-            <tr key={o.id} style={{ borderBottom: '1px solid #111827' }}>
-              <td style={{ padding: '10px 12px' }}>
-                <Link href={`/pedidos/${o.id}`} style={{ color: '#60a5fa', textDecoration: 'none' }}>
-                  {o.orderNumber}
-                </Link>
-              </td>
-              <td style={{ padding: '10px 12px', color: '#9ca3af' }}>
-                {new Date(o.createdAt).toLocaleDateString('pt-BR')}
-              </td>
-              <td style={{ padding: '10px 12px', color: '#d1d5db' }}>
-                {STATUS_LABELS[o.status] ?? o.status}
-              </td>
-              <td style={{ padding: '10px 12px', color: '#d1d5db' }}>{fmt(o.totalCents)}</td>
-              <td style={{ padding: '10px 12px', color: '#9ca3af' }}>{o.paymentMethod ?? '—'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div>
+        <h2 style={{ fontSize: 'var(--text-h4)', fontWeight: 'var(--w-medium)', marginBottom: 'var(--space-3)' }}>Pedidos recentes</h2>
+        <div className="lj-card" style={{ overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-body-s)' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-subtle)' }}>
+                {['Nº', 'Data', 'Status', 'Total', 'Pagamento'].map(h => (
+                  <th key={h} style={{ textAlign: 'left', padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)', fontWeight: 'var(--w-medium)' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {recentOrders.map(o => (
+                <tr key={o.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
+                    <Link href={`/pedidos/${o.id}`} style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 'var(--w-medium)' }}>
+                      {o.orderNumber}
+                    </Link>
+                  </td>
+                  <td className="numeric" style={{ padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)' }}>
+                    {new Date(o.createdAt).toLocaleDateString('pt-BR')}
+                  </td>
+                  <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
+                    {STATUS_LABELS[o.status] ?? o.status}
+                  </td>
+                  <td className="numeric" style={{ padding: 'var(--space-3) var(--space-4)' }}>{fmt(o.totalCents)}</td>
+                  <td style={{ padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)' }}>{o.paymentMethod ?? '—'}</td>
+                </tr>
+              ))}
+              {recentOrders.length === 0 && (
+                <tr>
+                  <td colSpan={5} style={{ padding: 'var(--space-6)', textAlign: 'center', color: 'var(--fg-secondary)' }}>
+                    Nenhum pedido encontrado.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
