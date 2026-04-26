@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { db, products, tenants, orders, aiCalls } from '@lojeo/db';
 import { eq, and, gte, sql, desc, count } from 'drizzle-orm';
 import { auth } from '../../auth';
-import { Sparkline } from '../../components/ui/mini-chart';
+import { MetricCard } from '../../components/ui/metric-card';
 
 export const dynamic = 'force-dynamic';
 
@@ -242,68 +242,3 @@ export default async function DashboardPage() {
   );
 }
 
-function DeltaChip({ delta }: { delta: { text: string; up: boolean | null } }) {
-  if (delta.up === null) return null;
-  const color = delta.up ? 'var(--success)' : 'var(--error)';
-  const arrow = delta.up ? '▲' : '▼';
-  return (
-    <span className="numeric" style={{ fontSize: 'var(--text-caption)', color, fontWeight: 'var(--w-medium)' }}>
-      {arrow} {delta.text}
-    </span>
-  );
-}
-
-function MetricCard({
-  label,
-  value,
-  delta,
-  sparkData,
-  accent,
-  warning,
-  href,
-}: {
-  label: string;
-  value: string;
-  delta?: { text: string; up: boolean | null };
-  sparkData?: number[];
-  accent?: boolean;
-  warning?: boolean;
-  href?: string;
-}) {
-  const inner = (
-    <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-2)' }}>
-        <p className="eyebrow" style={warning ? { color: 'var(--warning)' } : undefined}>{label}</p>
-        {delta && <DeltaChip delta={delta} />}
-      </div>
-      <p className="numeric" style={{
-        fontSize: 'var(--text-h2)',
-        fontWeight: 'var(--w-semibold)',
-        letterSpacing: 'var(--track-tight)',
-        color: warning ? 'var(--warning)' : accent ? 'var(--fg)' : 'var(--fg)',
-      }}>
-        {value}
-      </p>
-      {sparkData && (
-        <div style={{ marginTop: 'var(--space-2)' }}>
-          <Sparkline
-            values={sparkData.some(v => v > 0) ? sparkData : new Array(sparkData.length).fill(1)}
-            width={220}
-            height={28}
-            color={warning ? 'var(--warning)' : sparkData.some(v => v > 0) ? 'var(--accent)' : 'var(--neutral-100)'}
-            fill={accent && sparkData.some(v => v > 0) ? 'rgba(0, 85, 61, 0.08)' : undefined}
-          />
-        </div>
-      )}
-    </>
-  );
-
-  if (href) {
-    return (
-      <Link href={href} className="lj-card" style={{ padding: 'var(--space-5)', display: 'block', textDecoration: 'none', color: 'inherit' }}>
-        {inner}
-      </Link>
-    );
-  }
-  return <div className="lj-card" style={{ padding: 'var(--space-5)' }}>{inner}</div>;
-}

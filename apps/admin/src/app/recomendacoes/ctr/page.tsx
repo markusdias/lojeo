@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { MetricCard } from '../../../components/ui/metric-card';
 
 interface SourceStats {
   source: string;
@@ -83,24 +84,9 @@ export default function RecomendacoesCtrPage() {
       {data && (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
-            <div className="lj-card" style={{ padding: 'var(--space-5)' }}>
-              <p className="eyebrow" style={{ marginBottom: 'var(--space-2)' }}>Impressões</p>
-              <p className="numeric" style={{ fontSize: 'var(--text-h2)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)' }}>
-                {fmtNum(data.total.impressions)}
-              </p>
-            </div>
-            <div className="lj-card" style={{ padding: 'var(--space-5)' }}>
-              <p className="eyebrow" style={{ marginBottom: 'var(--space-2)' }}>Cliques</p>
-              <p className="numeric" style={{ fontSize: 'var(--text-h2)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)' }}>
-                {fmtNum(data.total.clicks)}
-              </p>
-            </div>
-            <div className="lj-card" style={{ padding: 'var(--space-5)' }}>
-              <p className="eyebrow" style={{ marginBottom: 'var(--space-2)' }}>CTR Total</p>
-              <p className="numeric" style={{ fontSize: 'var(--text-h2)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', color: 'var(--accent)' }}>
-                {fmtPct(data.total.ctr)}
-              </p>
-            </div>
+            <MetricCard label="Impressões" value={fmtNum(data.total.impressions)} />
+            <MetricCard label="Cliques" value={fmtNum(data.total.clicks)} />
+            <MetricCard label="CTR Total" value={fmtPct(data.total.ctr)} accent />
           </div>
 
           <div className="lj-card" style={{ overflow: 'hidden' }}>

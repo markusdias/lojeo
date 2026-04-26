@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { InfoTooltip } from '../../components/ui/info-tooltip';
+import { MetricCard } from '../../components/ui/metric-card';
 
 interface ChurnData {
   total: number;
@@ -109,19 +110,10 @@ export default function InsightsPage() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 'var(--space-3)' }}>
-        {[
-          { label: 'Clientes críticos', value: churn?.critical ?? '—', tone: 'error' as const },
-          { label: 'Clientes risco alto', value: churn?.high ?? '—', tone: 'warning' as const },
-          { label: 'Produtos críticos', value: forecast?.critical ?? '—', tone: 'error' as const },
-          { label: 'Produtos em alerta', value: forecast?.warning ?? '—', tone: 'warning' as const },
-        ].map(c => (
-          <div key={c.label} className="lj-card" style={{ padding: 'var(--space-5)' }}>
-            <p className="eyebrow" style={{ marginBottom: 'var(--space-2)', color: c.tone === 'error' ? 'var(--error)' : 'var(--warning)' }}>{c.label}</p>
-            <p className="numeric" style={{ fontSize: 'var(--text-h2)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', color: c.tone === 'error' ? 'var(--error)' : 'var(--warning)' }}>
-              {String(c.value)}
-            </p>
-          </div>
-        ))}
+        <MetricCard label="Clientes críticos" value={String(churn?.critical ?? '—')} danger />
+        <MetricCard label="Clientes risco alto" value={String(churn?.high ?? '—')} warning />
+        <MetricCard label="Produtos críticos" value={String(forecast?.critical ?? '—')} danger />
+        <MetricCard label="Produtos em alerta" value={String(forecast?.warning ?? '—')} warning />
       </div>
 
       {/* Tabs */}
