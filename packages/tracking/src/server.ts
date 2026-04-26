@@ -1,9 +1,19 @@
+import { createHash } from 'node:crypto';
 import { eq, and } from 'drizzle-orm';
 import { db, behaviorEvents, sessionsBehavior } from '@lojeo/db';
 import { logger } from '@lojeo/logger';
 import type { TrackPayload } from './types';
 
-export async function ingest(payload: TrackPayload, opts?: { userAgent?: string; userId?: string }) {
+const IP_SALT = process.env.TRACKING_IP_SALT ?? 'lojeo-default-salt-rotate-me';
+
+function hashIp(ip: string): string {
+  return createHash('sha256').update(ip + IP_SALT).digest('hex').slice(0, 16);
+}
+
+export async function ingest(
+  payload: TrackPayload,
+  opts?: { userAgent?: string; userId?: string; ipAddress?: string },
+) {
   const { tenantId, anonymousId, events, consent } = payload;
   if (!events?.length) return { accepted: 0 };
 
@@ -38,7 +48,11 @@ export async function ingest(payload: TrackPayload, opts?: { userAgent?: string;
     eventType: e.type,
     entityType: e.entityType,
     entityId: e.entityId as `${string}-${string}-${string}-${string}-${string}` | undefined,
-    metadata: { ...e.metadata, ts: e.ts },
+    metadata: {
+      ...e.metadata,
+      ts: e.ts,
+      ...(opts?.ipAddress ? { ipHash: hashIp(opts.ipAddress) } : {}),
+    },
   }));
 
   try {
