@@ -1675,3 +1675,47 @@ Antes de marcar promessas como concluídas, validei via Playwright nas URLs reai
 - Sprint 13 backup automático Neon (script bash + docs)
 
 **55 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão**.
+
+---
+
+## 2026-04-26 — Iteração 9: Dashboard avançado + IA banner spread + backup + pill chips (4 commits)
+
+**Commits:**
+1. **a1f6bba** — Dashboard sparklines + cards laterais; IA banner em insights/atribuicao/ia-uso
+   - `mini-chart.tsx`: novo `Sparkline` component (24px line + optional fill area, sem axes/labels)
+   - Dashboard: 4 cards via `MetricCard` helper com eyebrow + DeltaChip + numeric h2 + Sparkline 30d
+   - Layout grid 2:1: "Últimos pedidos" tabela (5 últimos) + "Saúde das integrações" lateral (5 integrações com bullet+pill)
+   - Status integrações lê `tenants.config.integrations.*.connected`
+   - `lj-ai-banner` aplicado em `/insights` (alertas churn+forecast), `/atribuicao` (modelos), `/ia-uso` (cache rate analysis)
+2. **54001d1** — Sprint 13 backup automático
+   - `scripts/backup-db.sh`: pg_dump --no-owner | gzip -9 → ./backups/backup-TIMESTAMP.sql.gz, retenção configurável, R2 upload opcional via rclone
+   - `docs/operations/backup-strategy.md`: setup VPS + cron + restore + custo <$0.01/mês
+   - Roadmap [x] backup automático e procedimento de restore
+3. **313c9fb** — `/pedidos` pill filter chips + tokens
+   - Substitui 6 cards de status por pill chips inline (padrão design oficial)
+   - Active state: bg neutral-900 dark + fg surface
+   - Filtros período no header right-aligned com lj-btn-primary/secondary
+   - Tabela com bg-subtle header + col mono no orderNumber + status badge pill + bullet colorido
+   - Pagination com lj-btn-secondary
+
+**UX validation Playwright em prod:**
+- `/dashboard` — display-l "Tudo certo, Admin 👋" + 4 cards eyebrow+numeric + banner IA verde claro + grid 2:1 com "Últimos pedidos" e "Saúde das integrações" lateral (5 integrações com badges Pendente). 1 error 404 favicon.ico (cosmético, ignorar)
+- `/pedidos` — pill chips "Todos 0 / Aguardando pagamento 0 / Pago 0 / ..." com bullet colorido + filtros 7d/14d/30d/90d active verde + tabela bg-subtle. Zero errors.
+- Storefront `/produtos?categoria=aneis` — PLP jewelry-v1: breadcrumb + display serif "Anéis" + filtros Material com bullets + slider preço + chips Aro + grid 3-col cards + footer 4-col + sort. Match design-system-jewelry-v1. Zero errors.
+- Storefront `/carrinho` — empty state com logo diamante decorativo + display serif "Sua sacola está vazia" + CTA "Ver coleção". Zero errors.
+
+**Decisões:**
+- **Sparklines não renderizam quando todos zeros** (guarda `sparkData.some(v => v > 0)`) — evita poluição visual com produto novo sem histórico
+- **MetricCard helper** consolida pattern para reuso em outras pages (insights, atribuicao podem migrar pra ele em ciclos futuros)
+- **Backup script local + R2 opcional** — não força custo extra na fase 1 (single-tenant); cron na VPS depende SSH EasyPanel (pendente)
+- **Storefront jewelry-v1 está alinhado** — não precisa refactor visual neste ciclo. Briefing template B foi bem aplicado desde o início.
+
+**Próximo ciclo:**
+- Cron de backup instalado na VPS produção (precisa SSH EasyPanel)
+- favicon.ico admin (criar /public/favicon.ico apontando pra svg)
+- /clientes (lista) + /products (lista) refactor com tokens/eyebrow/numeric
+- IA banner em /atribuicao topo (estava abaixo do form)
+- Validação restore mensal automatizado em sandbox (`docs/operations/backup-strategy.md` TODO)
+- Sparklines com dados sintéticos quando real é zero (mock para visualização durante onboarding)
+
+**59 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão**.
