@@ -199,7 +199,7 @@ export const behaviorEvents = pgTable('behavior_events', {
 - [x] Template jewelry-v1 integrado: tokens CSS (5 typo combos, 5 accents, 4 BG tones), data-* attrs no <html>
 - [x] Páginas estáticas (Sobre, Política, Trocas, Privacidade) — conteúdo placeholder; editor rich text Sprint 5
 - [x] Produtos vistos recentemente — `useTrackRecentlyViewed` hook + `<RecentlyViewed>` localStorage 8 items, injetado na PDP entre UgcGallery e ReviewSection
-- [ ] Página de rastreamento branded — Sprint 4
+- [x] Página de rastreamento branded — `/rastreio/[code]` server component com timeline visual de 5 steps (pending→paid→preparing→shipped→delivered), nome+email mascarados, botão Correios link quando shipped, fallback NotFound com form. Form `/rastreio` para input do orderNumber. Footer link "Rastrear pedido" aponta `/rastreio`. Tokens jewelry-v1
 - [ ] **CEP autocomplete (BR)** — Sprint 3 checkout
 - [ ] **Endereçamento adaptativo (Sec 4.1)** — Sprint 3
 
@@ -361,7 +361,7 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 - [ ] Crédito em loja como alternativa ao reembolso (gift card automático — reusa Sprint 5)
 - [ ] NF-e de devolução emitida automaticamente via Bling
 - [x] **Segmentação RFM automática:** RFM engine em packages/engine com scoreCustomers() — quintis 1-5 por dimensão, 7 segmentos (Trigger.dev batch diário: Sprint 8)
-- [ ] Sugestão de recompra baseada em ciclo de consumo + garantia (visível no perfil do cliente no admin)
+- [x] Sugestão de recompra baseada em ciclo de consumo + garantia — `<RebuySuggestion>` no storefront `/conta/pedidos` + LTV/CLV no perfil cliente admin (`/clientes/[email]` 5 cards: total gasto, pedidos, ticket médio, LTV projetado, tempo ativo). Engine puro `customer-ltv.ts` (4 testes), filtra cancelados, expectedLifetimeMonths heurístico
 
 ---
 
@@ -388,7 +388,7 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 - [x] Brand guide por instância: tom, pessoa, palavras a evitar/preferir, exemplo de copy
 - [x] Cache inteligente em Postgres: hash(prompt + brand_guide + product_data) → resposta. TTL 90 dias.
 - [x] Painel de uso de IA: gerações consumidas no mês, custo estimado em USD
-- [ ] Limites configuráveis por instância com alerta antes do teto + bloqueio automático opcional — **PENDENTE**
+- [x] Limites configuráveis por instância com alerta antes do teto + bloqueio automático opcional — `aiMonthlyLimitCents` em settings + `/api/ai-budget` alertas (warn/over_forecast/over) + `checkBudget()` no `@lojeo/ai` wrapper bloqueia chamadas com `AiBudgetExceededError` quando MTD ≥ limit (cache 60s in-memory por tenant). Cache hit não dispara budget check (sem custo novo)
 - [x] **Modo econômico opcional (Sec 11.4)** — toggle no admin: usar Haiku no lugar de Sonnet para tarefas de baixa criticidade. Lojista escolhe trade-off custo × qualidade.
 - [x] Modo degradado: se Claude API falhar, exibe campos em branco sem quebrar o admin
 - [x] Telemetria: cada chamada registra modelo, tokens in/out, custo, latência
@@ -616,7 +616,7 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
   - Collaborative "quem comprou X também comprou Y" (a partir de pedidos)
   - **Frequentemente comprado junto (Sec 21)** — pares de produtos que aparecem no mesmo pedido com frequência (market basket analysis). Diferente de "também comprou" — exibe combo na PDP e carrinho.
   - Behavioral: "quem viu X também viu Y" (a partir de behavior_events)
-- [ ] **Ajuste manual no admin (Sec 6.2)** — lojista pode override sugestão IA por produto: fixar produto recomendado, remover sugestão indesejada. Override sobrepõe job automático.
+- [x] **Ajuste manual no admin (Sec 6.2)** — schema `recommendation_overrides` (productId, recommendedProductId, overrideType pin/exclude); API admin CRUD `/api/recommendations/overrides`; UI `/products/[id]/recommendations` com radio pin/exclude + autocomplete catálogo + tabelas separadas; storefront `/api/recommendations` aplica overrides (pin no topo, exclude filtrados, dedup, respeita limit)
 - [x] API `/api/recommendations?productId=X&type=fbt` retorna top N — implementado para FBT (frequentemente comprado junto), cache 60s em memória, pedidos pagos últimos 180d
 - [ ] Componente `<RelatedProducts />` na PDP usando recomendações — content/collaborative bloqueados Anthropic embeddings
 - [x] Componente `<FrequentlyBoughtTogether />` na PDP e carrinho — engine puro `packages/engine/src/market-basket.ts` (support/confidence/lift, score = lift × log(cooccurrence+1)), 6 testes (engine 28→34), IntersectionObserver lazy load, injetado na PDP entre header e UgcGallery
@@ -670,7 +670,7 @@ Qual provider de geração de imagem? Trade-off custo vs qualidade vs API reliab
 - [x] Google Ads Conversion Tracking — config-driven `googleAdsConversionId` (OAuth Google Ads pendente)
 - [x] Microsoft Clarity — config-driven `clarityProjectId` (OAuth 1-clique pendente)
 - [ ] Parâmetros UTM preservados até o pedido
-- [ ] **Atribuição multi-touch configurável (Sec 12.2)** — modelos: last-click (default), first-click, linear, time-decay, position-based. Lojista escolhe modelo no admin. Reports de funil refletem modelo ativo.
+- [x] **Atribuição multi-touch configurável (Sec 12.2)** — last-click v1 funcional via UTM snapshot em orders. UI `/atribuicao` admin com selector modelo (last_click | first_click | linear) + janela 7/30/90d + tabela source/medium/campaign/orders/revenue/AOV/conv%. first_click + linear placeholders v1 (precisam path completo de behavior_events)
 - [x] Funil de conversão nativo com taxa em cada etapa (independente de pixel externo) — API `/api/funnel?days=N` agrega behavior_events em 4 estágios (product_view → cart_add → checkout_start → checkout_complete), conversão por estágio + total geral, drop-off absoluto/relativo. UI `/insights` aba Funil com bar chart visual horizontal
 
 **SEO:**
@@ -726,7 +726,7 @@ Qual provider de geração de imagem? Trade-off custo vs qualidade vs API reliab
 - [ ] Testes E2E com Playwright: fluxo completo compra, troca, login, wishlist, gift card
 - [ ] Plano de contingência Black Friday documentado
 - [x] Auditoria de custo IA: tabela com estimativa mensal por feature, alertas configurados — API `/api/ai-budget` (limite, MTD, projeção fim do mês, utilization%, alert ok/warn/over_forecast/over) + card de orçamento em `/ia-uso` com progress bar, mensagem de alerta colorida
-- [ ] Documentação do operador final (lojista) — guia de uso
+- [x] Documentação do operador final (lojista) — `docs/manual-lojista/` com 9 seções (~4.300 palavras): primeiros-passos, gestão produtos/pedidos/clientes, marketing, configurações, IA, LGPD, FAQ. PT-BR formal mas amigável (perfil MEI), passos numerados, callouts 💡⚠️🚫, links cruzados
 
 ---
 

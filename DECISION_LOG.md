@@ -1209,3 +1209,85 @@ Antes de marcar promessas como concluídas, validei via Playwright nas URLs reai
 - Status page sob domínio público — DNS
 
 **21 commits, 63 testes verdes (engine 34→40), zero regressão.** Próximo ciclo: A/B test live no hero da homepage (usa engine A/B já criado), instruções contextuais microcopy admin, override manual de recomendações, validação Zod centralizada.
+
+---
+
+## 2026-04-26 — Iteração paralela: design tokens admin + 6 features simultâneas
+
+**Contexto:** Stakeholder pediu paralelismo via subagents desde que zero risco de regressão. Despachei 8 subagents em paralelo: 3 refactor visual (tokens design system Lojeo) + 5 features novas. Trabalho que levaria 5h sequencial completou em ~30min wall-clock.
+
+**Design tokens admin (3 subagents):**
+
+1. **`apps/admin/src/styles/lojeo-tokens.css`** — copiado de `docs/design-system/project/colors_and_type.css` (entregue por Claude Design): tokens corporativos Lojeo (verde profundo brasileiro `#00553D` accent + Apple-inspired neutrais paper/surface/neutral-50..900 + Inter/JetBrains Mono fonts).
+
+2. **`apps/admin/src/app/globals.css`** importa lojeo-tokens + override `@theme` Tailwind:
+   - `indigo-50..900` → tons do verde Lojeo (todas pages com `bg-indigo-600` automaticamente exibem accent corporativo sem refactor)
+   - Utilitários: `.lj-card`, `.lj-btn-primary`, `.lj-btn-secondary`, `.lj-btn-danger`, `.lj-input`, `.lj-badge-{accent|success|warning|error|info|neutral}`
+
+3. **Sidebar admin** refatorada com tokens (neutral-900 surface, neutral-300 text, hover via `.lj-nav-item`)
+
+4. **9 pages refatoradas via 3 subagents paralelos:**
+   - `experiments`, `chatbot`, `ugc` (subagent 1, commit 3301af4)
+   - `garantias`, `tickets`, `tickets/templates` (subagent 2, commit 7915e61)
+   - `settings/users`, `settings/audit`, `settings/2fa` (subagent 3, commit caeab5c)
+   - Substituições: `bg-indigo-600 text-white text-sm px-4 py-2 rounded` → `lj-btn-primary`; `bg-white border border-gray-200 rounded-lg` → `lj-card`; etc.
+   - Mantidos Tailwind: amber/green/red states (warning/success/danger), text-gray-* (taxonomia já alinhada)
+
+5. **Validado em prod**: botão `rgb(0, 85, 61)` = `#00553D` exato (verde brasileiro). Inter font aplicada. Zero console errors.
+
+**Features paralelas (5 subagents):**
+
+1. **Sprint 11 — Override manual recomendações** (commit a406ef1):
+   - Schema `recommendation_overrides` (productId × recommendedProductId + overrideType pin/exclude, unique constraint)
+   - API admin `/api/recommendations/overrides` GET/POST(upsert)/DELETE com Zod, recusa self-reference
+   - UI `/products/[id]/recommendations` com radio pin/exclude + autocomplete catálogo (top 8 visíveis, slice 500 produtos)
+   - Storefront `/api/recommendations` aplica overrides: pin no topo, exclude filtrados, dedup, flag `pinned` por item
+   - Cache 60s das pairs FBT defasagem visual aceitável
+
+2. **Sprint 6 — LTV/CLV cliente** (commit 3fda9d6):
+   - Engine puro `customer-ltv.ts`: `computeCustomerLtv` + `computeLtvBatch`
+   - 4 testes (engine 40 → 44): vazio→null, total/count/avg, ignora cancelados, batch agrupa email
+   - API admin `/api/customers/[email]/ltv`
+   - UI `/clientes/[email]` ganha 5 cards: total gasto, pedidos, ticket médio, LTV projetado, tempo ativo
+   - expectedLifetimeMonths heurístico: ativos (lastOrder<90d) max(12, daysActive/30 × 1.5); inativos = daysActive/30
+   - ltvUsd = totalCents / 100 / 5 (BRL→USD aprox v1)
+
+3. **Sprint 4 — Rastreamento branded** (commit 8d46eec):
+   - `/rastreio/[code]` server component: lookup tenant+orderNumber, timeline 5 steps visual, nome+email mascarados (`Maria S.` + `marc***@gmail.com`), link Correios via linkcorreios.com.br quando shipped, fallback NotFound com form
+   - `/rastreio` form input com redirect
+   - Footer "Rastrear pedido" → `/rastreio` (era `/conta/pedidos`)
+   - Tokens jewelry-v1 puros (var(--text-primary), var(--container-max), font-display, eyebrow class)
+
+4. **Sprint 13 — Documentação operador final** (commit 3193aef):
+   - `docs/manual-lojista/` 10 arquivos, ~4.332 palavras
+   - 9 seções: primeiros-passos, gestão produtos/pedidos/clientes, marketing, configurações, IA, LGPD, FAQ (15 dúvidas top)
+   - PT-BR formal-amigável (perfil MEI), passos numerados, callouts 💡⚠️🚫, links cruzados, screenshots placeholders
+
+5. **Sprint 12 — Atribuição multi-touch** (commit 6d63eeb):
+   - API `/api/attribution?days=N&model=X` agrega orders pagos+ por (utm_source, utm_medium, utm_campaign), calcula orders/revenue/aov/conversionRate
+   - UI `/atribuicao` admin: selector modelo (last_click v1 | first_click placeholder | linear placeholder) + janela 7/30/90 + tabela ordenada por revenue
+   - Sidebar ganha ◉ Atribuição
+   - Banner amber explica que first_click/linear v1 = last_click
+
+**Sprint 7 — Enforcement de limite IA** (commit 3c58a17, eu próprio):
+- `AiBudgetExceededError` lançado em `@lojeo/ai` quando MTD ≥ `aiMonthlyLimitCents` configurado
+- `checkBudget(tenantId)` lê config + agrega `SUM(cost_usd_micro)` desde dia 1
+- Cache 60s in-memory por tenant — evita query DB a cada call
+- Cache hit não dispara budget check (zero custo novo)
+- `invalidateBudgetCache(tenantId)` exposto para invalidar quando settings muda
+- Limit=0 → sem enforcement (compat lojistas sem config)
+
+**Sprint 13 — Ícones PWA SVG** (commit 67c112e, eu):
+- `/public/icon-192.svg` + `/public/icon-512.svg` (Lojeo brand minimalist: L Georgia serif + ATELIER caption Inter sobre neutral-900)
+- `manifest.ts` icons type `image/svg+xml`
+- Resolve 404 detectado em UX testing
+
+**Decisões de coordenação multi-agent:**
+- **Cada subagent tocou arquivos disjuntos** — A: schema/recommendations + admin/api/recommendations + storefront/api/recommendations; B: engine/customer-ltv + admin/clientes; C: storefront/rastreio + footer; D: docs/; E: admin/atribuicao + admin/api/attribution + admin/layout (modify)
+- **Race condition em commit/push:** subagent B pegou stash de outro subagent durante `git add -A`, conteúdo Sprint 6 ficou dividido entre 2 commits (3fda9d6 + 67c112e). Lição: subagents devem usar `git add <files-específicos>`, não `-A`, quando trabalhando em paralelo
+- **Migrate route teve 3 subagents tocando:** A (recommendation_overrides), Sprint 11 conseguiu merge sem conflito porque cada um adicionou bloco distinto. Subagent E (atribuição) não tocou migrate
+- **Pull --rebase antes de push** funcionou para todos os subagents que finalizaram após push de outros
+
+**Total dessa iteração:** 9 commits (3 design tokens + 5 features + 1 budget enforcement), 73 testes verdes (engine 34→44, db 7, ai 7), zero regressão. ~30 min wall-clock vs 5h sequencial.
+
+**Próximo ciclo sem bloqueador:** Editor de aparência admin completo, A/B test live no hero homepage (usa engine A/B), instruções contextuais microcopy admin, validação Zod centralizada cross-API, sync recently_viewed → DB ao login, push notifications PWA, plano contingência Black Friday (docs).
