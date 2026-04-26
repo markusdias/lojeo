@@ -115,6 +115,7 @@ export default function SettingsPage() {
         </p>
         <nav className="flex gap-3 text-sm mt-3">
           <a href="/settings/users" className="text-indigo-600 hover:underline">👥 Usuários e papéis</a>
+          <a href="/settings/2fa" className="text-indigo-600 hover:underline">🔐 2FA</a>
           <a href="/settings/audit" className="text-indigo-600 hover:underline">🔍 Logs de auditoria</a>
         </nav>
       </header>

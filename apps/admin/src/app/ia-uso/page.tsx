@@ -11,6 +11,25 @@ interface UsageData {
   daily: { day: string; calls: number; costUsd: number }[];
 }
 
+interface BudgetData {
+  monthlyLimitUsd: number;
+  monthToDateUsd: number;
+  forecastEndOfMonthUsd: number;
+  utilizationPercent: number;
+  forecastUtilizationPercent: number;
+  daysIntoMonth: number;
+  daysInMonth: number;
+  alert: 'ok' | 'warn' | 'over_forecast' | 'over';
+  alertMessage: string;
+}
+
+const ALERT_STYLES: Record<BudgetData['alert'], { bg: string; border: string; text: string }> = {
+  ok:            { bg: '#F0FDF4', border: '#86EFAC', text: '#166534' },
+  warn:          { bg: '#FFF7ED', border: '#FED7AA', text: '#9A3412' },
+  over_forecast: { bg: '#FEF3C7', border: '#FCD34D', text: '#92400E' },
+  over:          { bg: '#FEF2F2', border: '#FCA5A5', text: '#991B1B' },
+};
+
 const FEATURE_LABELS: Record<string, string> = {
   'product-copy': 'Descrição de produto',
   'seo-generation': 'SEO automático',
@@ -25,9 +44,11 @@ function fmt(n: number) {
 
 export default function IaUsoPage() {
   const [data, setData] = useState<UsageData | null>(null);
+  const [budget, setBudget] = useState<BudgetData | null>(null);
 
   useEffect(() => {
     fetch('/api/ia-usage').then(r => r.json()).then(setData);
+    fetch('/api/ai-budget').then(r => r.json()).then(setBudget).catch(() => null);
   }, []);
 
   if (!data) return <main className="p-8"><p className="text-neutral-500">Carregando…</p></main>;
@@ -41,6 +62,58 @@ export default function IaUsoPage() {
         <h1 className="text-2xl font-semibold">Uso de IA</h1>
         <p className="text-sm text-neutral-500 mt-1">Mês atual: {data.month}</p>
       </header>
+
+      {/* Orçamento mensal */}
+      {budget && budget.monthlyLimitUsd > 0 && (
+        <section
+          style={{
+            background: ALERT_STYLES[budget.alert].bg,
+            border: `1px solid ${ALERT_STYLES[budget.alert].border}`,
+            color: ALERT_STYLES[budget.alert].text,
+          }}
+          className="rounded-lg p-5"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold text-sm">Orçamento mensal de IA</h2>
+            <span className="text-xs">
+              Dia {budget.daysIntoMonth} de {budget.daysInMonth}
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-4 text-sm">
+            <div>
+              <p className="text-xs uppercase tracking-wide opacity-70">Limite</p>
+              <p className="text-lg font-semibold">${budget.monthlyLimitUsd.toFixed(2)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide opacity-70">Gasto até hoje</p>
+              <p className="text-lg font-semibold">
+                ${budget.monthToDateUsd.toFixed(2)} <span className="text-xs opacity-70">({budget.utilizationPercent.toFixed(0)}%)</span>
+              </p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide opacity-70">Projeção fim do mês</p>
+              <p className="text-lg font-semibold">
+                ${budget.forecastEndOfMonthUsd.toFixed(2)} <span className="text-xs opacity-70">({budget.forecastUtilizationPercent.toFixed(0)}%)</span>
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 h-2 bg-white/40 rounded overflow-hidden">
+            <div
+              className="h-full transition-all"
+              style={{
+                width: `${Math.min(100, budget.utilizationPercent)}%`,
+                background: budget.alert === 'over' ? '#DC2626' : budget.alert === 'over_forecast' ? '#D97706' : budget.alert === 'warn' ? '#EA580C' : '#16A34A',
+              }}
+            />
+          </div>
+          <p className="text-xs mt-2">{budget.alertMessage}</p>
+        </section>
+      )}
+      {budget && budget.monthlyLimitUsd === 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded p-3 text-sm text-amber-800">
+          Sem limite mensal de IA configurado. Defina em <a href="/settings" className="underline">Configurações</a> para ativar alertas.
+        </div>
+      )}
 
       {/* Cards de resumo */}
       <div className="grid grid-cols-3 gap-4">

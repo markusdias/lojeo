@@ -16,6 +16,7 @@ const NAV = [
   { href: '/tickets', label: 'Suporte', icon: '💬' },
   { href: '/chatbot', label: 'Chatbot', icon: '🤖' },
   { href: '/ugc', label: 'Galeria UGC', icon: '📷' },
+  { href: '/garantias', label: 'Garantias', icon: '🛡' },
   { href: '/avaliacoes', label: 'Avaliações', icon: '★' },
   { href: '/clientes', label: 'Clientes', icon: '◉' },
   { href: '/insights', label: 'Insights', icon: '◬' },

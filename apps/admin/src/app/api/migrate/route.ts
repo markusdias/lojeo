@@ -305,6 +305,21 @@ export async function POST(req: NextRequest) {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_logs(user_id)`);
     results.push('audit_logs: ok');
 
+    // Sprint 5+13 — 2FA TOTP
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS user_two_factor (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        user_id uuid NOT NULL UNIQUE,
+        secret text NOT NULL,
+        enabled text DEFAULT 'false' NOT NULL,
+        recovery_codes_hash jsonb DEFAULT '[]'::jsonb NOT NULL,
+        enabled_at timestamptz,
+        last_used_at timestamptz,
+        created_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    results.push('user_two_factor: ok');
+
     return NextResponse.json({ ok: true, results });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

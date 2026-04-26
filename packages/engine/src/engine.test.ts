@@ -199,3 +199,61 @@ describe('inventory forecast', () => {
     expect(result[0]?.alert).toBe('critical');
   });
 });
+
+import { computeWarranty, computeWarrantyBatch, expiringWithinDays } from './warranty';
+
+describe('warranty engine', () => {
+  const now = new Date('2026-04-26T12:00:00Z');
+
+  it('returns none for product without warrantyMonths', () => {
+    const r = computeWarranty({
+      orderId: 'o1', orderItemId: 'oi1', productId: 'p1',
+      productName: 'Anel', warrantyMonths: 0,
+      startsAt: new Date('2026-01-01'),
+    }, now);
+    expect(r.status).toBe('none');
+    expect(r.expiresAt).toBeNull();
+  });
+
+  it('returns active when far from expiry', () => {
+    const startsAt = new Date('2026-04-01');
+    const r = computeWarranty({
+      orderId: 'o1', orderItemId: 'oi1', productId: 'p1',
+      productName: 'Anel', warrantyMonths: 12,
+      startsAt,
+    }, now);
+    expect(r.status).toBe('active');
+    expect(r.daysRemaining).toBeGreaterThan(30);
+  });
+
+  it('returns expiring_soon when <= 30 days remain', () => {
+    const startsAt = new Date('2025-05-10'); // ~12mo - some weeks
+    const r = computeWarranty({
+      orderId: 'o1', orderItemId: 'oi1', productId: 'p1',
+      productName: 'Anel', warrantyMonths: 12,
+      startsAt,
+    }, now);
+    expect(r.status).toBe('expiring_soon');
+  });
+
+  it('returns expired when past expiry', () => {
+    const r = computeWarranty({
+      orderId: 'o1', orderItemId: 'oi1', productId: 'p1',
+      productName: 'Anel', warrantyMonths: 12,
+      startsAt: new Date('2024-01-01'),
+    }, now);
+    expect(r.status).toBe('expired');
+    expect(r.daysRemaining).toBeLessThan(0);
+  });
+
+  it('expiringWithinDays filters non-expired in window', () => {
+    const inputs = [
+      { orderId: 'a', orderItemId: 'a', productId: 'a', productName: 'A', warrantyMonths: 12, startsAt: new Date('2025-05-15') }, // expira ~2026-05-10 (~14d)
+      { orderId: 'b', orderItemId: 'b', productId: 'b', productName: 'B', warrantyMonths: 12, startsAt: new Date('2026-04-01') }, // active (~360d)
+      { orderId: 'c', orderItemId: 'c', productId: 'c', productName: 'C', warrantyMonths: 12, startsAt: new Date('2024-01-01') }, // expired
+    ];
+    const results = computeWarrantyBatch(inputs, now);
+    const filtered = expiringWithinDays(results, 60, now);
+    expect(filtered.map(r => r.orderId).sort()).toEqual(['a']);
+  });
+});

@@ -6,3 +6,4 @@ export * from './inventory';
 export * from './rfm';
 export * from './churn';
 export * from './inventory-forecast';
+export * from './warranty';

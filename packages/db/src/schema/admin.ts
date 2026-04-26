@@ -70,8 +70,28 @@ export const auditLogs = pgTable(
   ],
 );
 
+// ── 2FA TOTP ──────────────────────────────────────────────────────────────────
+//
+// Per-user TOTP secret + recovery codes. Habilitado por user (não tenant).
+
+export const userTwoFactor = pgTable(
+  'user_two_factor',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').notNull().unique(),
+    // Secret base32 — armazenado como texto (sensível, mas isolado por userId)
+    secret: text('secret').notNull(),
+    enabled: text('enabled').default('false').notNull(), // 'true' | 'false' (string p/ idempotência)
+    recoveryCodesHash: jsonb('recovery_codes_hash').default([]).notNull(),
+    enabledAt: timestamp('enabled_at', { withTimezone: true }),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+);
+
 export type UserRole = typeof userRoles.$inferSelect;
 export type AuditLog = typeof auditLogs.$inferSelect;
+export type UserTwoFactor = typeof userTwoFactor.$inferSelect;
 
 // ── Permissões por papel (escopo coarse-grained v1) ───────────────────────────
 
