@@ -2366,3 +2366,54 @@ Refactor completo em commit **208d488**:
 - Account.jsx Tracking branded com mapa SVG storefront
 
 **101 commits totais sessão**, **95 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão** funcional.
+
+---
+
+## 2026-04-26 — Iteração 23: User screenshots oficiais + 3 subagents pixel-perfect
+
+**Trigger:** user mostrou 3 screenshots oficiais Claude Design (image 5 dashboard, image 6 dashboard scroll, image 7 pedido detail) exigindo paridade exata.
+
+### Subagents paralelos despachados (3)
+
+1. **adc9df3a (sidebar+topbar) DONE** — 2 commits (ace4538, bcfc5c2):
+   - Sidebar 21 itens / 7 sections → **10 itens / 3 sections** (Section anônima Dashboard/Pedidos/Produtos/Clientes/Análises + IA & Conteúdo + Loja). Pages órfãs (Devoluções/Cupons/Avaliações/Garantias/Estoque/Coleções/Tickets/Chatbot/Atribuição/Experimentos/CTR/Uso IA/Integrações) seguem por URL direta — virão por sub-nav interna no futuro
+   - Topbar breadcrumb hierárquico path completo: "Loja" raiz fixa muted (sem link) + " / " separator muted + segmentos intermediários link `--fg-secondary` + último current `--fg` `--w-medium`
+   - Fallback "Início" rota raiz
+
+2. **af973e9e (dashboard pixel-perfect)** — rodando ainda
+   - Labels métricas curtas ("Receita hoje" vs "RECEITA · 30D")
+   - Card "Receita · últimos 7 dias" big chart área verde + linha tracejada cinza
+   - Tabela "Últimos pedidos" com tempo relativo "há 4 min"
+   - "Insights de hoje" card 3 bullets dinâmicos baseado em DB real
+
+3. **ab1b5ac3 (pedido detail) DONE** — 1 commit (8315a48):
+   - Match image #7 pixel-perfect:
+   - Header eyebrow "Pedido" + h1 mono "#PED-XXXXX" + 3 botões right (Imprimir etiqueta secondary, Reembolsar secondary, Marcar como entregue primary)
+   - Linha do tempo HORIZONTAL 5 etapas (Pago/Em separação/Enviado/Em trânsito/Entregue) com circles + connecting line + datetime "previsto X"
+   - Card "Cliente" com avatar gradient verde (segment-based 7 gradients), stats LTV/Ticket médio/RFM, badge VIP quando champions — fetch agg orders no server component sem chamada client
+   - Card "Itens" compacto + resumo Subtotal/Frete/Cupom (chip mono red)/Total
+   - Card "Pagamento & frete" com Gateway/Método/NF-e/Transportadora/Rastreio
+   - Server action `updateStatus` revalidatePath preservada
+
+### Main thread paralelo
+
+- 970faa2: /sobre + /trocas storefront match Static.jsx PageAbout/PageReturns
+  - Hero gradient #E8DDC9 → #D4C5A8 + h1 clamp 40-72px display
+  - 3 ContentSections grid 200px+1fr Materiais/Processo/Garantia
+  - Gallery 3-col aspectRatio 4/5+3/4+4/5
+  - CTA card surface centralizado
+  - Tabela "Prazos por situação" 4 rows (Troca/Defeito/Arrependimento/Sob medida)
+
+**Decisões importantes:**
+- **Sidebar enxuto** > "todas pages no sidebar" — usuário lojista tem cognitive load menor com 10 itens (descobertos via uso) vs 21 itens hierárquicos. Pages secundárias acessíveis via sub-nav nas pages-pai
+- **Cliente RFM no /pedidos/[id]** server-side — uma query SQL agregada compartilhada com /clientes/[email]/page.tsx. Sem chamada client, sem flash de loading, gradient determinístico por segment
+- **3 subagents simultâneos sem worktrees** — risco de race aceito porque escopos são disjuntos (sidebar + dashboard + pedidos/[id]). Funcionou ok desta vez mas continua cuidado pra futuro
+
+**Próximo ciclo:**
+- Receber subagent dashboard pixel-perfect af973e9e
+- UX validation Playwright dashboard + pedidos/[id] + sidebar nova em prod
+- /clientes/[email] já tem layout 2-col iter 22 — confirmar paridade
+- /aparencia preview reativo postMessage broadcast
+- Account.jsx storefront 5 telas refactor
+
+**108 commits totais sessão**, **95 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão** funcional. 1 subagent rodando (af973e9e dashboard).
