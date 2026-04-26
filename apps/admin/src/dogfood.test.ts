@@ -42,6 +42,7 @@ import {
   POST as uploadImage,
   GET as listImages,
 } from './app/api/products/[id]/images/route';
+import { POST as importProducts } from './app/api/products/import/route';
 import { POST as track } from './app/api/track/route';
 import { GET as health } from './app/api/health/route';
 
@@ -283,6 +284,48 @@ describe('dogfood — caso de uso completo', () => {
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.images.some((img: { id: string }) => img.id === imageId)).toBe(true);
+  });
+
+  it('CSV import dry-run valida sem inserir', async () => {
+    const csv = [
+      'name,sku,price_cents,status',
+      `Colar Ouro 18k ${RUN_ID},COLAR-DRY-${RUN_ID},189000,active`,
+      `Pulseira Prata ${RUN_ID},PULSO-DRY-${RUN_ID},99000,draft`,
+    ].join('\n');
+    const res = await importProducts(
+      new Request('http://t/api/products/import?dry=true', {
+        method: 'POST',
+        headers: { 'x-tenant-id': TENANT_ID, 'content-type': 'text/csv' },
+        body: csv,
+      }),
+    );
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.dryRun).toBe(true);
+    expect(json.inserted).toBe(2);
+    expect(json.errors).toBe(0);
+  });
+
+  it('CSV import insere produtos válidos e reporta erros', async () => {
+    const csv = [
+      'name,sku,price_cents,status',
+      `Colar Diamante ${RUN_ID},COLAR-IMP-${RUN_ID},299000,active`,
+      'x,,abc,invalid_status', // linha inválida (name curto + preço inválido)
+    ].join('\n');
+    const res = await importProducts(
+      new Request('http://t/api/products/import', {
+        method: 'POST',
+        headers: { 'x-tenant-id': TENANT_ID, 'content-type': 'text/csv' },
+        body: csv,
+      }),
+    );
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.dryRun).toBe(false);
+    expect(json.inserted).toBe(1);
+    expect(json.errors).toBe(1);
+    expect(json.results.find((r: { row: number; status: string }) => r.row === 3)?.status).toBe('error');
+    // Cleanup: imported product will be cascade-deleted when tenant is cleaned up
   });
 
   it('tracking ingest grava evento', async () => {
