@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { auth } from '../../auth';
 import { SignOutButton } from '../../components/account/sign-out-button';
 
@@ -11,6 +12,7 @@ const NAV = [
 
 export default async function ContaLayout({ children }: { children: ReactNode }) {
   const session = await auth();
+  if (!session?.user) redirect('/entrar?next=/conta/pedidos');
   const name = session?.user?.name ?? session?.user?.email ?? 'Cliente';
 
   return (
