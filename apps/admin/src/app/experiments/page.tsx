@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { InfoTooltip } from '../../components/ui/info-tooltip';
+import { EmptyState } from '../../components/ui/empty-state';
 
 interface Variant {
   key: string;
@@ -201,11 +202,18 @@ export default function ExperimentsPage() {
       )}
 
       {loading ? (
-        <p className="text-sm text-gray-500">Carregando...</p>
+        <p className="body-s">Carregando...</p>
       ) : error ? (
-        <div className="bg-amber-50 border border-amber-200 rounded p-3 text-sm text-amber-800">{error}</div>
+        <div className="lj-card" style={{ padding: 'var(--space-3) var(--space-4)', background: 'var(--warning-soft)', borderColor: 'var(--warning)' }}>
+          <p className="body-s" style={{ color: 'var(--warning)' }}>{error}</p>
+        </div>
       ) : list.length === 0 ? (
-        <p className="text-sm text-gray-500">Nenhum experimento cadastrado ainda.</p>
+        <EmptyState
+          icon="🧪"
+          title="Nenhum experimento ainda"
+          description="Crie seu primeiro teste A/B para validar variações de hero, CTA, layout e medir conversão real."
+          action={{ label: '+ Novo experimento', href: '#' }}
+        />
       ) : (
         <div className="space-y-3">
           {list.map(exp => {

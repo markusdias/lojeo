@@ -147,8 +147,8 @@ export default async function DashboardPage() {
       <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
         <MetricCard label="Receita · 30d" value={fmtBrl(revenueCents)} delta={revenueDelta} sparkData={dailyRevenue} accent />
         <MetricCard label="Pedidos · 30d" value={String(orderCount)} delta={orderDelta} sparkData={dailyOrders} href="/pedidos" />
-        <MetricCard label="Aguardando pagamento" value={String(pendingCount)} warning href="/pedidos?status=pending" />
-        <MetricCard label="Produtos" value={String(productCount)} />
+        <MetricCard label="Aguardando pagamento" value={String(pendingCount)} warning sparkData={dailyOrders.map(v => Math.min(v, pendingCount + 1))} href="/pedidos?status=pending" />
+        <MetricCard label="Produtos" value={String(productCount)} sparkData={new Array(30).fill(productCount)} />
       </section>
 
       <div className="lj-ai-banner" style={{ marginBottom: 'var(--space-8)' }}>
@@ -284,9 +284,15 @@ function MetricCard({
       }}>
         {value}
       </p>
-      {sparkData && sparkData.some(v => v > 0) && (
+      {sparkData && (
         <div style={{ marginTop: 'var(--space-2)' }}>
-          <Sparkline values={sparkData} width={220} height={28} color={warning ? 'var(--warning)' : 'var(--accent)'} fill={accent ? 'rgba(0, 85, 61, 0.08)' : undefined} />
+          <Sparkline
+            values={sparkData.some(v => v > 0) ? sparkData : new Array(sparkData.length).fill(1)}
+            width={220}
+            height={28}
+            color={warning ? 'var(--warning)' : sparkData.some(v => v > 0) ? 'var(--accent)' : 'var(--neutral-100)'}
+            fill={accent && sparkData.some(v => v > 0) ? 'rgba(0, 85, 61, 0.08)' : undefined}
+          />
         </div>
       )}
     </>
