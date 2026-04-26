@@ -560,3 +560,25 @@ Decisões técnicas relevantes registradas com data e justificativa.
 4. **`footer.tsx`: form newsletter extraído para `NewsletterForm` (Client Component).** `onSubmit` em Server Component causa "Event handlers cannot be passed to Client Component props" no prerender de `/_not-found`.
 
 5. **`entrar/page.tsx`: `useSearchParams` envolvido em `<Suspense>`.** Padrão obrigatório Next.js 15 para Client Components com `useSearchParams` — evita CSR bailout durante static generation.
+
+---
+
+## 2026-04-26 — Sprint 7 (IA backoffice básica — geração de copy)
+
+**Objetivo:** Lojista gera descrições e SEO com IA sem sair do admin.
+
+**Decisões:**
+
+1. **`@lojeo/ai` wrapper obrigatório (já existia).** Toda chamada Claude passa por `ai()` — garante cache em Postgres (TTL 90 dias para copy), `ai_calls` audit, mock sem `ANTHROPIC_API_KEY`, e modo degradado (throw → 503 ao cliente, não quebra admin).
+
+2. **Prompt como código em `packages/ai/src/prompts/product-copy.ts`.** Prompts versionados, testáveis, importáveis. Separados do runtime para facilitar benchmark e atualização sem afetar roteador.
+
+3. **Modelo padrão: Sonnet. Modo econômico: Haiku (toggle no admin).** Sonnet = qualidade ótima para copy de joias premium. Haiku = rascunho rápido quando lojista quer iterar. Lojista decide o trade-off.
+
+4. **Output JSON estrito.** Prompt exige `{ short_description, long_description, seo_title, seo_description, keywords_used }`. Parse com regex fallback para casos onde modelo emite texto antes do JSON.
+
+5. **Geração NÃO publica automaticamente.** Sempre passa por revisão humana no formulário antes de salvar. Previne copy inadequada em produção.
+
+6. **`login/page.tsx: force-dynamic`.** Página era gerada estaticamente no build — `process.env.ADMIN_DEV_LOGIN` não existia no build environment do EasyPanel. Com `force-dynamic`, variável é lida em runtime e formulário dev aparece corretamente.
+
+7. **Research-first cumprido.** `docs/research/sprint-7-product-copy-prompts.md` documentado antes de escrever qualquer prompt. Fontes: Anthropic docs, Shopify Magic patterns, Tashvi AI jewelry copy, Hypotenuse AI.
