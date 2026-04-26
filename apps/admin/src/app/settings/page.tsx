@@ -2,6 +2,15 @@
 
 import { useEffect, useState, type FormEvent } from 'react';
 
+interface BrandGuide {
+  brandName?: string;
+  tonePersonality?: string;
+  vocabPreferred?: string; // comma-separated
+  vocabAvoid?: string;     // comma-separated
+  examples?: string;       // newline-separated
+  aiMonthlyLimitCents?: number; // limit in USD cents (0 = unlimited)
+}
+
 interface TenantConfig {
   contactEmail?: string;
   freeShippingThresholdCents?: number;
@@ -14,6 +23,7 @@ interface TenantConfig {
     accent?: string;
     bgTone?: string;
   };
+  brandGuide?: BrandGuide;
 }
 
 interface Settings {
@@ -81,6 +91,13 @@ export default function SettingsPage() {
     setSettings(prev => prev ? {
       ...prev,
       config: { ...prev.config, appearance: { ...prev.config.appearance, ...patch } }
+    } : prev);
+  }
+
+  function setBrandGuide(patch: Partial<BrandGuide>) {
+    setSettings(prev => prev ? {
+      ...prev,
+      config: { ...prev.config, brandGuide: { ...prev.config.brandGuide, ...patch } }
     } : prev);
   }
 
@@ -212,6 +229,83 @@ export default function SettingsPage() {
                 className="w-full border rounded px-3 py-2 text-sm"
               />
             </div>
+          </div>
+        </section>
+
+        {/* Brand Guide IA */}
+        <section className="bg-white rounded-lg shadow p-6 space-y-4">
+          <div>
+            <h2 className="font-semibold text-lg">Brand Guide para IA</h2>
+            <p className="text-xs text-neutral-500 mt-1">
+              Controla o tom e vocabulário quando IA gera descrições e SEO de produtos.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">Nome da marca (usado nos prompts)</label>
+              <input
+                type="text"
+                value={settings.config.brandGuide?.brandName ?? ''}
+                onChange={e => setBrandGuide({ brandName: e.target.value })}
+                placeholder="Atelier Joias"
+                className="w-full border rounded px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">Limite mensal IA (USD — 0 = ilimitado)</label>
+              <input
+                type="number"
+                min={0}
+                step={1}
+                value={(settings.config.brandGuide?.aiMonthlyLimitCents ?? 0) / 100}
+                onChange={e => setBrandGuide({ aiMonthlyLimitCents: Math.round(parseFloat(e.target.value || '0') * 100) })}
+                placeholder="50"
+                className="w-full border rounded px-3 py-2 text-sm"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-1">Tom e personalidade</label>
+            <textarea
+              rows={3}
+              value={settings.config.brandGuide?.tonePersonality ?? ''}
+              onChange={e => setBrandGuide({ tonePersonality: e.target.value })}
+              placeholder="Luxo sem pretensão. Premium mas acessível. Storytelling com fatos de material. Voz ativa. Sem emoji."
+              className="w-full border rounded px-3 py-2 text-sm"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">Vocabulário preferido (vírgula)</label>
+              <input
+                type="text"
+                value={settings.config.brandGuide?.vocabPreferred ?? ''}
+                onChange={e => setBrandGuide({ vocabPreferred: e.target.value })}
+                placeholder="artesanal, certificado, atemporal"
+                className="w-full border rounded px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">Vocabulário a evitar (vírgula)</label>
+              <input
+                type="text"
+                value={settings.config.brandGuide?.vocabAvoid ?? ''}
+                onChange={e => setBrandGuide({ vocabAvoid: e.target.value })}
+                placeholder="exclusivo, viral, trending"
+                className="w-full border rounded px-3 py-2 text-sm"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-1">Exemplos de copy aprovada (1 por linha)</label>
+            <textarea
+              rows={4}
+              value={settings.config.brandGuide?.examples ?? ''}
+              onChange={e => setBrandGuide({ examples: e.target.value })}
+              placeholder={'Quartzo rosa garimpado individualmente, cada peça única em sua jornada.\nOuro 18k certificado, com 8 horas de trabalho artesanal por peça.'}
+              className="w-full border rounded px-3 py-2 text-sm font-mono text-xs"
+            />
+            <p className="text-xs text-neutral-400 mt-1">3–5 exemplos de alto desempenho melhoram muito a qualidade da geração.</p>
           </div>
         </section>
 

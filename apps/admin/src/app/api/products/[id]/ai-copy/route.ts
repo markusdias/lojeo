@@ -39,7 +39,27 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .then((r) => r[0]);
 
   const config = (tenant?.config ?? {}) as Record<string, unknown>;
-  const brandGuide = (config.brandGuide as BrandGuide | undefined) ?? undefined;
+
+  // Brand guide stored in settings as flat strings — convert to prompt builder format
+  interface StoredBrandGuide {
+    brandName?: string;
+    tonePersonality?: string;
+    vocabPreferred?: string;
+    vocabAvoid?: string;
+    examples?: string;
+  }
+  const stored = (config.brandGuide as StoredBrandGuide | undefined);
+  const brandGuide: BrandGuide | undefined = stored
+    ? {
+        brandName: stored.brandName ?? 'Atelier',
+        tonePersonality: stored.tonePersonality,
+        vocabulary: {
+          preferred: stored.vocabPreferred?.split(',').map(s => s.trim()).filter(Boolean),
+          avoid: stored.vocabAvoid?.split(',').map(s => s.trim()).filter(Boolean),
+        },
+        examples: stored.examples?.split('\n').map(s => s.trim()).filter(Boolean),
+      }
+    : undefined;
 
   const system = buildProductCopySystemPrompt(brandGuide);
   const userMessage = buildProductCopyUserMessage({
