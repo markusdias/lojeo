@@ -307,11 +307,7 @@ export function PDPClient({ product, variants, images, urgency, viewersNow, tota
           <p className="eyebrow" style={{ marginBottom: 8 }}>Joias Atelier</p>
           <h1 style={{ margin: '0 0 16px', lineHeight: 1.05 }}>{product.name}</h1>
 
-          {/* Avaliações placeholder */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 28 }}>
-            <Stars value={5} />
-            <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>4.9 · 0 avaliações</span>
-          </div>
+          {/* Avaliações — só exibe quando houver reviews reais */}
 
           {/* Preço */}
           <div style={{ marginBottom: 4 }}>
