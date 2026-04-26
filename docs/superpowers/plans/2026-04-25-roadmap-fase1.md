@@ -624,7 +624,7 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 - [x] Componente `<FrequentlyBoughtTogether />` na PDP e carrinho — engine puro `packages/engine/src/market-basket.ts` (support/confidence/lift, score = lift × log(cooccurrence+1)), 6 testes (engine 28→34), IntersectionObserver lazy load, injetado PDP + `<FrequentlyBoughtTogetherCart>` em /carrinho (anchor primeiro item, filtra cart items)
 - [ ] Componente `<YouMayAlsoLike />` no carrinho
 - [x] Tracking de cliques em recomendações (CTR mensurável) — eventos `recommendation_impression`/`recommendation_click` em behavior_events.metadata.source ∈ {fbt_pdp, fbt_cart, related_pdp}, instrumentado em FBT PDP/Carrinho + RelatedProducts via useTracker(); endpoint admin `/api/recommendations/ctr?days=7|30|90` agrega impressions+clicks+ctr por fonte; UI `/recomendacoes/ctr` cards summary + tabela com badges por benchmark (alto ≥5%, médio ≥2%, baixo <2%)
-- [ ] Modo degradado: sem recomendações personalizadas, exibe "mais vendidos da categoria"
+- [x] Modo degradado: sem recomendações personalizadas, exibe "mais vendidos da categoria" — quando `topPairsForProduct` retorna empty, fallback `fallbackBestsellers()`: identifica coleções via product_collections → busca produtos das mesmas coleções → ranqueia por count de orderItems pagos últimos 90d (pedidos paid/preparing/shipped/delivered) → resposta com `reason: 'fallback_bestsellers'`. Sem coleção: produtos mais recentes do tenant. Excludes (override) respeitados em ambos paths
 
 **Decisão estratégica necessária antes deste sprint:**
 Qual provider de geração de imagem? Trade-off custo vs qualidade vs API reliability. Stakeholder decide.

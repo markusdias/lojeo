@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { eq, and, gte, inArray } from 'drizzle-orm';
+import { eq, and, gte, inArray, ne, sql, desc } from 'drizzle-orm';
 import {
   db,
   orders,
   orderItems,
   productVariants,
   products,
+  productCollections,
   recommendationOverrides,
 } from '@lojeo/db';
 import { computeFrequentPairs, topPairsForProduct, type Order } from '@lojeo/engine';
@@ -126,6 +127,11 @@ export async function GET(req: NextRequest) {
   }
 
   if (orderedIds.length === 0) {
+    // Modo degradado: bestsellers da(s) mesma(s) coleção(ões) últimos 90d
+    const fallback = await fallbackBestsellers(productId, limit, excludedIds);
+    if (fallback.length > 0) {
+      return NextResponse.json({ products: fallback, reason: 'fallback_bestsellers' });
+    }
     return NextResponse.json({ products: [], reason: 'insufficient_data' });
   }
 
@@ -167,4 +173,118 @@ export async function GET(req: NextRequest) {
     .filter(Boolean);
 
   return NextResponse.json({ products: enriched });
+}
+
+/**
+ * Fallback "mais vendidos da coleção" — usado quando engine FBT não tem
+ * dados suficientes (poucos pedidos, produto novo, sem co-occurrências).
+ *
+ * Estratégia:
+ * 1. Identifica coleções do produto referência via product_collections
+ * 2. Busca produtos das mesmas coleções (excl. próprio + excluídos por override)
+ * 3. Ranqueia por count de orderItems pagos últimos 90d
+ * 4. Fallback final: produtos mais recentes do tenant
+ */
+async function fallbackBestsellers(
+  productId: string,
+  limit: number,
+  excludedIds: Set<string>,
+): Promise<Array<{ productId: string; name: string; slug: string; priceCents: number; cooccurrence: 0; confidence: 0; lift: 0; pinned: false; fallback: true }>> {
+  const collections = await db
+    .select({ collectionId: productCollections.collectionId })
+    .from(productCollections)
+    .where(eq(productCollections.productId, productId));
+
+  let candidateIds: string[] = [];
+  if (collections.length > 0) {
+    const collectionIds = collections.map(c => c.collectionId);
+    const candidatesRows = await db
+      .select({ productId: productCollections.productId })
+      .from(productCollections)
+      .where(inArray(productCollections.collectionId, collectionIds));
+    candidateIds = Array.from(new Set(
+      candidatesRows
+        .map(r => r.productId)
+        .filter(id => id !== productId && !excludedIds.has(id)),
+    ));
+  }
+
+  // Sem coleção: pegar produtos ativos do tenant ordenados por created_at
+  if (candidateIds.length === 0) {
+    const recent = await db
+      .select({ id: products.id, name: products.name, slug: products.slug, priceCents: products.priceCents })
+      .from(products)
+      .where(and(
+        eq(products.tenantId, TENANT_ID),
+        eq(products.status, 'active'),
+        ne(products.id, productId),
+      ))
+      .orderBy(desc(products.createdAt))
+      .limit(limit);
+    return recent
+      .filter(p => !excludedIds.has(p.id))
+      .slice(0, limit)
+      .map(p => ({
+        productId: p.id,
+        name: p.name,
+        slug: p.slug,
+        priceCents: p.priceCents,
+        cooccurrence: 0 as const,
+        confidence: 0 as const,
+        lift: 0 as const,
+        pinned: false as const,
+        fallback: true as const,
+      }));
+  }
+
+  const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+
+  const salesCounts = await db
+    .select({
+      productId: productVariants.productId,
+      n: sql<number>`COUNT(*)::int`,
+    })
+    .from(orderItems)
+    .innerJoin(productVariants, eq(orderItems.variantId, productVariants.id))
+    .innerJoin(orders, eq(orderItems.orderId, orders.id))
+    .where(and(
+      eq(orders.tenantId, TENANT_ID),
+      inArray(orders.status, ['paid', 'preparing', 'shipped', 'delivered']),
+      gte(orders.createdAt, since),
+      inArray(productVariants.productId, candidateIds),
+    ))
+    .groupBy(productVariants.productId);
+
+  const countsById = new Map(salesCounts.map(s => [s.productId, Number(s.n)]));
+  const sortedIds = candidateIds
+    .filter((id): id is string => id !== null)
+    .sort((a, b) => (countsById.get(b) ?? 0) - (countsById.get(a) ?? 0))
+    .slice(0, limit);
+
+  if (sortedIds.length === 0) return [];
+
+  const productRows = await db
+    .select({ id: products.id, name: products.name, slug: products.slug, priceCents: products.priceCents })
+    .from(products)
+    .where(and(
+      eq(products.tenantId, TENANT_ID),
+      eq(products.status, 'active'),
+      inArray(products.id, sortedIds),
+    ));
+
+  const byId = new Map(productRows.map(p => [p.id, p]));
+  return sortedIds
+    .map(id => byId.get(id))
+    .filter((p): p is { id: string; name: string; slug: string; priceCents: number } => Boolean(p))
+    .map(p => ({
+      productId: p.id,
+      name: p.name,
+      slug: p.slug,
+      priceCents: p.priceCents,
+      cooccurrence: 0 as const,
+      confidence: 0 as const,
+      lift: 0 as const,
+      pinned: false as const,
+      fallback: true as const,
+    }));
 }
