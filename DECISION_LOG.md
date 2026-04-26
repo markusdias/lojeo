@@ -1810,3 +1810,70 @@ Antes de marcar promessas como concluídas, validei via Playwright nas URLs reai
 - /atribuicao mover lj-ai-banner pra antes do form (atualmente abaixo)
 
 **67 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão**.
+
+---
+
+## 2026-04-26 — Iteração 12: Cliente anônimo recorrente afinidade + /products/[id] tokens
+
+**Commit 9283524 — feat sprint12 anon affinity + refactor /products/[id]:**
+
+### Cliente anônimo recorrente — fingerprint via behavior_events
+
+**`apps/storefront/src/app/api/recommendations/affinity/route.ts`** (NOVO):
+- GET com query `anonymousId` + `limit`
+- Validação UUID via regex `/^[0-9a-f-]{8,64}$/i`
+- Agrega `behavior_events` eventType=product_view últimos 30d via SQL groupBy
+- Threshold engajamento: produto com count >= 2 (visualizou + voltou)
+- Resolve coleções via `product_collections` desses produtos
+- Top N produtos das mesmas coleções (excl. já vistos) ordenados desc por created_at
+- 7 reasons distintos: anon_affinity, no_history, no_collections, no_candidates, no_active_candidates, invalid_anon, error
+
+**`apps/storefront/src/components/products/anon-affinity-section.tsx`** (NOVO):
+- Client component, lê anonymousId via `getAnonId()` localStorage
+- Fetch fire-and-forget no mount
+- Render "Você gostou destas / Continue explorando" apenas quando engajamento real
+- Null silencioso quando empty (visitante novo, single view, ou erro)
+
+**Layout homepage** (`apps/storefront/src/app/page.tsx`):
+- 3 níveis de personalização sequencial:
+  1. RecommendedForYouSection (cliente logado com pedidos)
+  2. AnonAffinitySection (anônimo com 2+ views do mesmo produto)
+  3. "Recém-criadas" default (sempre)
+- Cada bloco renderiza `null` quando não aplicável — homepage adapta sem blank space
+
+### Refactor `/products/[id]` editor
+
+**page.tsx**: container tokens, breadcrumb caption, h1 token, product.id mono
+
+**product-edit-client.tsx** (refactor pesado, ~205 linhas):
+- Card básico read-only: lj-card + lj-badge accent para status
+- Gerador IA: lj-ai-banner verde claro com chip "✦ IA · GERADOR DE COPY", lj-input em keyword/select, lj-btn-primary botão gerar
+- Custo IA exibido com tokens .caption/.mono/.numeric
+- Labels uppercase eyebrow-style com letterSpacing
+- Inputs SEO com border var(--error) quando exceder limite
+- Mensagem feedback usa lj-card + tokens success-soft/error-soft
+- Migra ~15 cores hex hardcoded (#E5E7EB/#374151/#2563EB/#9CA3AF/#111827/#F9FAFB/#DBEAFE/#EFF6FF/#1E40AF/#93C5FD/#F0FDF4/#FEF2F2/#166534/#991B1B/#BBF7D0/#FECACA) para tokens
+
+**Decisões:**
+- **Threshold count >= 2** para anon recorrente — single view não é sinal forte; voltar ao mesmo produto sim
+- **3 níveis cascateados sequenciais** vs. priorização condicional — mais código mas comunica claramente identidade do visitante (logado / anônimo recorrente / novo)
+- **anonymousId via localStorage no client** vs cookie no server — server component não pode ler localStorage; client hydration aceita atraso de ~200ms para personalização (visitante já carregou hero/categorias)
+- **/products/[id] editor full refactor** — markup ad-hoc com gradientes azuis #1E40AF/#EFF6FF antigos não combinava com identidade verde Lojeo; banner IA agora alinha com /experiments/[id]/results e /clientes/[email]
+
+**Sprint 12 status:** ~80% completo
+- [x] Cliente identificado homepage histórico
+- [x] Cliente anônimo recorrente fingerprint (este commit)
+- [x] Cliente novo fallback novidades
+- [x] PersonalizedHero por segmento RFM (iter 11)
+- [x] Modo degradado motor cair
+- [ ] A/B test personalizada vs default (config manual via /experiments admin OK; tracking uplift conversão precisa janela de produção)
+
+**Próximo ciclo:**
+- /ugc galeria moderação refactor + tokens
+- /atribuicao mover lj-ai-banner pra topo
+- /tickets/[id] detail refactor
+- /pedidos/[id] detail refactor
+- /settings sub-pages refactor (2fa, audit, users, appearance)
+- Cron backup VPS produção (precisa SSH)
+
+**68 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão**.
