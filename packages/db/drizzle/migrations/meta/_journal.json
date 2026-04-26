@@ -50,6 +50,13 @@
       "when": 1777214010437,
       "tag": "0006_charming_sugar_man",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1777221918584,
+      "tag": "0007_awesome_gorgon",
+      "breakpoints": true
     }
   ]
 }
