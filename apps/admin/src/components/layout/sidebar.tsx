@@ -96,6 +96,7 @@ const SECTIONS: NavSection[] = [
   {
     title: 'Loja',
     items: [
+      { href: '/aparencia', label: 'Aparência', icon: <Icon d={I.palette} /> },
       { href: '/integracoes', label: 'Integrações', icon: <Icon d={I.globe} /> },
       { href: '/settings', label: 'Configurações', icon: <Icon d={I.gear} /> },
     ],
