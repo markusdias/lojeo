@@ -10,6 +10,7 @@ export const metadata = {
 const NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: '◈' },
   { href: '/pedidos', label: 'Pedidos', icon: '📦' },
+  { href: '/devolucoes', label: 'Devoluções', icon: '↩' },
   { href: '/cupons', label: 'Cupons', icon: '🎟' },
   { href: '/products', label: 'Produtos', icon: '◆' },
   { href: '/inventory', label: 'Estoque', icon: '◻' },

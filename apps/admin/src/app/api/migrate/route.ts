@@ -430,6 +430,25 @@ export async function POST(req: NextRequest) {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_coupons_tenant_active ON coupons(tenant_id, active)`);
     results.push('coupons: ok');
 
+    // Sprint 5 — user_invite_tokens (convite via URL+token, sem Resend)
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS user_invite_tokens (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL,
+        email varchar(300) NOT NULL,
+        role varchar(30) NOT NULL,
+        token varchar(64) NOT NULL UNIQUE,
+        invited_by_user_id uuid,
+        expires_at timestamptz NOT NULL,
+        accepted_at timestamptz,
+        accepted_by_user_id uuid,
+        created_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_invite_tokens_tenant_email ON user_invite_tokens(tenant_id, email)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_invite_tokens_token ON user_invite_tokens(token)`);
+    results.push('user_invite_tokens: ok');
+
     return NextResponse.json({ ok: true, results });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
