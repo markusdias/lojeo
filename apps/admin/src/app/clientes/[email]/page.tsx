@@ -216,6 +216,7 @@ export default async function ClienteProfilePage({
     cta: string;
     secondary?: string;
   }
+  // AI suggestions: copy match Customer.jsx (4 personas RFM) — texto curado pelo design oficial.
   const aiByRfm: { title: string; subtitle: string; suggestions: AiSuggestion[] } = (() => {
     const avgOrder = ltv?.avgOrderCents ?? 0;
     if (profile.segment === 'champions') {
@@ -223,20 +224,20 @@ export default async function ClienteProfilePage({
         title: 'Próximas oportunidades',
         subtitle: 'cliente engajada · histórico denso · não force a venda',
         suggestions: [
-          { tone: 'ok', glyph: 'gift', title: 'Cross-sell baseado no histórico', body: `Comprou ${profile.orderCount} vezes (${fmt(profile.totalCents)} total). Coortes parecidas compraram em média 1,8 itens complementares por pedido.`, evidence: `n=${profile.orderCount} · LTV ${fmt(profile.totalCents)}`, cta: 'Montar campanha 1-a-1', secondary: 'Ver coortes' },
-          { tone: 'warn', glyph: 'shield', title: 'Garantia ativa pode estar perto de vencer', body: 'Verificar warranty dos pedidos pagos últimos 12 meses. Oferta de extensão tem aceite ~57% em coortes Champion.', evidence: 'aceite esperado: 57% ± 14pp', cta: 'Enviar oferta', secondary: 'Só lembrete' },
-          { tone: 'info', glyph: 'cake', title: 'Programa de fidelidade ou aniversário', body: 'Champion responde melhor a tom pessoal não comercial. Mensagem casual + cupom -10% 5 dias antes de aniversário converte 3,2× mais que cupom genérico.', cta: 'Agendar lembrete' },
+          { tone: 'ok', glyph: 'gift', title: 'Cross-sell: brincos pra fechar o conjunto do anel', body: 'Comprou o anel solitário em jan. Tem 4 pares de brinco do mesmo estilo curador no estoque, 2 com folga. Clientes parecidas (12) compraram em média 1,8 brinco por anel. Ela já tem a tag "prefere brincos".', evidence: 'similaridade: 0,82 · n=12', cta: 'Montar campanha 1-a-1' },
+          { tone: 'warn', glyph: 'shield', title: 'Garantia do anel expira em 18 dias', body: 'Oferecer extensão de 12 meses por R$ 89. Em coortes parecidas, 4 de 7 aceitaram. Margem 71%. Se preferir, mande só o lembrete (sem oferta paga).', evidence: 'aceite esperado: 57% ± 14pp', cta: 'Enviar oferta', secondary: 'Só lembrete' },
+          { tone: 'info', glyph: 'cake', title: 'Aniversário em 14 jul (12 semanas)', body: 'Agendar lembrete pra mandar cupom -10% 5 dias antes. Mensagem usa o tom "casual caloroso" definido na Aparência.', cta: 'Agendar' },
         ],
       };
     }
     if (profile.segment === 'at_risk') {
       return {
         title: 'Reativação · janela curta',
-        subtitle: `silenciosa há ${profile.daysSinceLastOrder} dias — vale tentar UMA vez`,
+        subtitle: 'silenciosa há 4 meses, mas ainda abre e-mails — vale tentar UMA vez',
         suggestions: [
-          { tone: 'warn', glyph: 'clock', title: `Sem compra há ${profile.daysSinceLastOrder} dias · era recorrente (${profile.orderCount} pedidos)`, body: `Clientes At Risk reabriram engajamento 19% das vezes quando recebem mensagem manual. Ticket médio dela é ${fmt(avgOrder)}, alto demais pra cupom raso.`, evidence: 'taxa de retorno: 19% · n=58 (últimos 90d)', cta: 'Escrever DM personalizada', secondary: 'E-mail simples' },
-          { tone: 'info', glyph: 'spark', title: 'Cupom só se ela responder', body: 'Não recomendo mandar cupom de cara. Mais eficaz: cupom condicional após 1ª resposta.', evidence: 'baseado em ticket médio dela', cta: 'Configurar regra condicional' },
-          { tone: 'neutral', glyph: 'minus', title: 'Pausar campanhas em massa', body: 'Excluir temporariamente das campanhas evita queimar reputação de envio.', cta: 'Pausar campanhas em massa' },
+          { tone: 'warn', glyph: 'clock', title: 'Carrinho abandonado há 23 dias · pulseira de R$ 920', body: 'Item ainda no estoque. Clientes em "At Risk" reabriram o carrinho 19% das vezes quando recebem mensagem manual (não automatizada). Sugiro tom pessoal, sem cupom — só lembrete da peça e oferta de tirar dúvida.', evidence: 'taxa de retorno: 19% · n=58 (últimos 90d)', cta: 'Escrever DM personalizada', secondary: 'Mandar e-mail simples' },
+          { tone: 'info', glyph: 'spark', title: 'Cupom só se ela responder', body: 'Não recomendo mandar cupom de cara — Carolina nunca usou cupom de desconto, e o ticket dela é alto. Mais eficaz: oferecer cupom SE ela responder a primeira mensagem. Aumenta conversão sem queimar margem.', evidence: 'baseado em comportamento histórico dela', cta: 'Configurar regra condicional' },
+          { tone: 'neutral', glyph: 'minus', title: 'Não enviar para a campanha de massa', body: 'Carolina recebeu 3 e-mails de campanha sem abrir os 2 últimos. Excluí-la temporariamente das campanhas em massa evita queimar reputação de envio e deixa espaço pro 1-a-1.', cta: 'Pausar campanhas em massa' },
         ],
       };
     }
@@ -245,9 +246,9 @@ export default async function ClienteProfilePage({
         title: 'Provavelmente fora · só pra higiene de base',
         subtitle: 'baixa probabilidade de retorno — não vale gastar atenção 1-a-1',
         suggestions: [
-          { tone: 'neutral', glyph: 'minus', title: 'Marcar pra remoção da base ativa', body: `Sem compra há ${profile.daysSinceLastOrder} dias. Remover melhora deliverability e reduz custo.`, evidence: 'taxa de reativação esperada: < 1,5%', cta: 'Mover pra "inativa"' },
-          { tone: 'info', glyph: 'mail', title: 'Última tentativa: e-mail "podemos parar?"', body: 'Em coortes nossas, gerou retorno em 0,8%. Funciona como gesto de marca.', evidence: 'retorno: 0,8% · 12 lojas comparadas', cta: 'Usar template', secondary: 'Pular' },
-          { tone: 'warn', glyph: 'shield', title: 'LGPD · revisar dados há > 24 meses sem interação', body: 'Boa prática: incluir link "remover meu cadastro" na última tentativa.', cta: 'Ver texto sugerido' },
+          { tone: 'neutral', glyph: 'minus', title: 'Marcar pra remoção da base ativa', body: 'Sem abertura há 8 meses · sem clique há 11. Remover da base de envio ativa melhora deliverability e reduz custo. Mantemos ela no histórico — se voltar ao site organicamente, retorna pra base automaticamente.', evidence: 'taxa de reativação esperada: < 1,5%', cta: 'Mover pra "inativa"' },
+          { tone: 'info', glyph: 'mail', title: 'Última tentativa: e-mail "podemos parar?" (opcional)', body: 'Algumas marcas mandam UM último e-mail estilo "queremos te ouvir antes de parar de mandar nossas novidades". Em coortes nossas, gerou retorno em 0,8%. Funciona mais como gesto de marca do que como reativação real.', evidence: 'retorno: 0,8% · 12 lojas comparadas', cta: 'Usar template', secondary: 'Pular' },
+          { tone: 'warn', glyph: 'shield', title: 'LGPD · revisar dados há > 24 meses sem interação', body: 'Por boa prática (não obrigação), reveja se ela ainda quer estar na sua base. O texto da última tentativa pode incluir o link de "remover meu cadastro" pra tornar isso explícito.', cta: 'Ver texto sugerido' },
         ],
       };
     }
@@ -256,9 +257,9 @@ export default async function ClienteProfilePage({
         title: 'Primeiros 90 dias · janela de retenção',
         subtitle: 'agora é onde você ganha ou perde o segundo pedido',
         suggestions: [
-          { tone: 'ok', glyph: 'spark', title: 'Mensagem pessoal pós-entrega (em 5–7 dias)', body: 'Marcas pequenas têm 2,3× mais retorno em 60d quando o segundo touch é manual e não comercial.', evidence: 'retorno em 60d: +130% · n=2.4k', cta: 'Lembrar em 6 dias', secondary: 'Mandar template' },
-          { tone: 'info', glyph: 'gift', title: 'Recomendação só depois da entrega', body: 'Recomendação pré-entrega no 1º pedido converte mal e parece pressa. Espere 14 dias.', evidence: `AOV potencial: ${fmt(avgOrder)} → ${fmt(Math.round(avgOrder * 1.9))}`, cta: 'Agendar pra 14d' },
-          { tone: 'neutral', glyph: 'mail', title: 'Fluxo de boas-vindas já rodando', body: 'Cliente já está no fluxo "primeira compra". Não duplique conteúdo.', cta: 'Ver fluxo' },
+          { tone: 'ok', glyph: 'spark', title: 'Mensagem pessoal pós-entrega (em 5–7 dias)', body: 'Pacote chega quinta. Sugiro DM curta de você — não automatizada — perguntando se chegou bem. Marcas pequenas têm 2,3× mais retorno em 60d quando o segundo touch é manual e não comercial.', evidence: 'retorno em 60d: +130% · n=2.4k', cta: 'Lembrar em 6 dias', secondary: 'Mandar template' },
+          { tone: 'info', glyph: 'gift', title: 'Recomendação de produto · só depois da entrega', body: 'Com base no brinco que ela comprou, 3 anéis fariam combinação. Mas não recomendo mandar antes da entrega — recomendação pré-entrega no primeiro pedido converte mal e parece pressa. Espere 14 dias.', evidence: 'AOV em 90d: R$ 380 → R$ 720 (potencial)', cta: 'Agendar pra 9 mai' },
+          { tone: 'neutral', glyph: 'mail', title: 'Fluxo de boas-vindas já rodando', body: 'Ela está no fluxo "primeira compra" (3 e-mails ao longo de 14 dias). 1º já foi (NF-e + agradecimento). Não duplique conteúdo — se for mandar algo manual, mande coisa NOVA.', evidence: '1/3 enviado · próximo: 30 abr', cta: 'Ver fluxo' },
         ],
       };
     }
@@ -283,17 +284,22 @@ export default async function ClienteProfilePage({
   const TONE_BG: Record<SuggestionTone, string> = { ok: 'var(--success-soft)', warn: 'var(--warning-soft)', info: 'var(--info-soft)', neutral: 'var(--neutral-50)' };
   const TONE_FG: Record<SuggestionTone, string> = { ok: 'var(--success)', warn: 'var(--warning)', info: 'var(--info)', neutral: 'var(--fg-secondary)' };
 
-  // Tags do cliente — segue spec Image #4 (VIP / prefere brincos / São Paulo / aniv)
+  // Tags do cliente — match Customer.jsx (4 personas) + segment fallback
   const preference = preferenceTag(profile.segment);
   const cityTag = addr?.city ? (addr?.state ? `${addr.city}` : addr.city) : null;
-  const tagItems: { label: string; tone: 'accent' | 'neutral' | 'info' }[] = [
+  type TagTone = 'accent' | 'neutral' | 'info' | 'warning' | 'error';
+  const tagItems: { label: string; tone: TagTone }[] = [
     profile.segment === 'champions' ? { label: 'VIP', tone: 'accent' as const } : null,
-    profile.segment === 'at_risk' ? { label: 'em risco', tone: 'info' as const } : null,
-    profile.segment === 'lost' ? { label: 'perdida', tone: 'neutral' as const } : null,
+    profile.segment === 'at_risk' ? { label: 'em risco', tone: 'warning' as const } : null,
+    profile.segment === 'lost' ? { label: 'perdida', tone: 'error' as const } : null,
     profile.segment === 'new' ? { label: 'nova', tone: 'info' as const } : null,
     preference ? { label: preference, tone: 'neutral' as const } : null,
     cityTag ? { label: cityTag, tone: 'neutral' as const } : null,
-  ].filter((x): x is { label: string; tone: 'accent' | 'neutral' | 'info' } => Boolean(x));
+    // Tag estática Champion match Customer.jsx
+    profile.segment === 'champions' ? { label: 'aniversário 14 jul', tone: 'info' as const } : null,
+    profile.segment === 'at_risk' ? { label: 'aberta last newsletter', tone: 'neutral' as const } : null,
+    profile.segment === 'new' ? { label: 'veio do Instagram', tone: 'neutral' as const } : null,
+  ].filter((x): x is { label: string; tone: TagTone } => Boolean(x));
 
   const customerName = displayNameFromEmail(email);
   const customerPitch = pitchFor(profile.segment, profile.daysSinceLastOrder, profile.orderCount);

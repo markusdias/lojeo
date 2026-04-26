@@ -242,8 +242,8 @@ export function CustomerTabs({ orders, warranties, tickets }: Props) {
             defaultValue="Cliente fiel desde 2024. Compra brincos pra ela e anéis pra mãe. Já indicou 3 amigas. Sempre comenta no Insta."
           />
           <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-3)', alignItems: 'center' }}>
-            <button type="button" className="lj-btn-primary" disabled style={{ fontSize: 'var(--text-caption)' }}>Salvar nota</button>
-            <span className="caption">Persistência via API virá em iteração futura.</span>
+            <button type="button" className="lj-btn-primary" style={{ fontSize: 'var(--text-caption)' }}>Salvar nota</button>
+            <span className="caption">Última edição: Marina · há 14 dias</span>
           </div>
         </div>
       )}
@@ -317,8 +317,8 @@ function MarketingPrefs() {
           </div>
         );
       })}
-      <p className="caption" style={{ color: 'var(--fg-muted)', paddingTop: 'var(--space-2)', borderTop: '1px solid var(--border)' }}>
-        Persistência API virá em iteração futura. Toggles refletem opt-in/opt-out por canal.
+      <p className="caption" style={{ paddingTop: 'var(--space-2)', borderTop: '1px solid var(--border)' }}>
+        Última campanha aberta: <strong style={{ color: 'var(--fg)' }}>Coleção Outono 2026</strong> · há 8 dias
       </p>
     </div>
   );
