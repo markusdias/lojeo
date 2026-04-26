@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { EmptyState } from '../../components/ui/empty-state';
 
 interface ReturnRequest {
   id: string;
@@ -199,7 +200,11 @@ export default function DevolucoesPage() {
           <p className="body-s" style={{ color: 'var(--warning)' }}>{error}</p>
         </div>
       ) : list.length === 0 ? (
-        <p className="body-s">Nenhuma solicitação encontrada para os filtros selecionados.</p>
+        <EmptyState
+          icon="↩"
+          title="Nenhuma devolução"
+          description="Solicitações de troca/devolução abertas pelo cliente aparecerão aqui. Os filtros atuais não retornaram resultados."
+        />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {list.map(r => {

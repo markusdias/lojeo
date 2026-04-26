@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { EmptyState } from '../../components/ui/empty-state';
 
 interface Ticket {
   id: string;
@@ -116,9 +117,13 @@ export default function TicketsPage() {
       {loading && <p style={{ color: 'var(--fg-secondary)', fontSize: 14 }}>Carregando…</p>}
 
       {!loading && tickets.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '64px 0', color: 'var(--fg-muted)' }}>
-          <p style={{ fontSize: 16 }}>Nenhum ticket encontrado.</p>
-        </div>
+        <EmptyState
+          icon="💬"
+          title="Nenhum ticket encontrado"
+          description="Tickets criados pelo cliente via storefront, chatbot ou WhatsApp aparecerão aqui."
+          action={{ label: 'Configurar chatbot', href: '/chatbot' }}
+          secondaryAction={{ label: 'Ver templates', href: '/tickets/templates' }}
+        />
       )}
 
       {!loading && tickets.length > 0 && (
