@@ -1,5 +1,14 @@
 # Deploy — EasyPanel
 
+## Status (2026-04-26 08:30 UTC) — UP
+
+- ✅ admin: `https://apps-lojeo-admin.m9axtw.easypanel.host/api/health` → `{"ok":true,"db":"up"}`
+- ✅ storefront: `https://apps-lojeo-storefront.m9axtw.easypanel.host/api/health` → `{"ok":true,"template":"jewelry-v1","locale":"pt-BR"}`
+- ✅ storefront home renderiza com template jewelry-v1 ("Em breve, peças que duram para sempre")
+- ✅ Migrations + seed aplicados em produção (14 tabelas, tenant joias-lab + admin@lojeo.dev)
+- 🟡 `joias.lojeo.com` aguarda DNS apontar pra `31.97.174.116`
+- 🔴 Trigger.dev parado (placeholder; setup completo no Sprint 1)
+
 ## Estado provisionado em 2026-04-26
 
 Painel EasyPanel: `https://31.97.174.116/` (login: `markusmgdias@gmail.com`)
@@ -49,17 +58,22 @@ apps/storefront/Dockerfile   → service lojeo-storefront
 - User: `postgres`
 - Password: `Lj-pg-2026-strong-pwd!` (rotacionar antes de produção real)
 
-Após primeiro deploy do admin, rodar migrations:
+Migrations + seed já aplicados em produção (2026-04-26 08:29 UTC) via expose temporário do Postgres na porta 5433 → run local `pnpm db:migrate` + `pnpm db:seed` → fechar porta. Para re-rodar (ex: nova migration):
 
 ```bash
-# Conectar via shell do EasyPanel ou exec no container
-DATABASE_URL='postgres://postgres:Lj-pg-2026-strong-pwd!@lojeo-postgres:5432/apps?sslmode=disable' \
+# 1. Expor postgres
+curl -k -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  "$HOST/api/trpc/services.postgres.exposeService" -X POST \
+  -d '{"json":{"projectName":"apps","serviceName":"lojeo-postgres","exposedPort":5433}}'
+
+# 2. Rodar
+DATABASE_URL='postgres://postgres:Lj-pg-2026-strong-pwd!@31.97.174.116:5433/apps?sslmode=disable' \
   pnpm db:migrate
 
-# Seed inicial (cria tenant joias-lab + admin@lojeo.dev)
-DATABASE_URL='...' pnpm db:seed
-
-# Ou expor o banco e rodar de fora — EasyPanel UI tem "Expose"
+# 3. SEMPRE fechar porta após
+curl -k -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  "$HOST/api/trpc/services.postgres.exposeService" -X POST \
+  -d '{"json":{"projectName":"apps","serviceName":"lojeo-postgres","exposedPort":0}}'
 ```
 
 ## Secrets a rotacionar antes de tráfego real
