@@ -237,25 +237,22 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 **Entregável tangível:** Fluxo completo Pix → QR code → confirmação automática → email de pedido confirmado.
 
 **Critérios de pronto:**
-- [ ] Checkout em mínimo de etapas (endereço → frete → pagamento → confirmação)
-- [ ] **Conexão Mercado Pago via OAuth 1-clique** (não copy-paste de access token) — lojista clica "Conectar Mercado Pago", autoriza, conexão pronta
-- [ ] Mercado Pago: Pix (QR code + chave), cartão com parcelamento configurável, boleto
-- [ ] Webhooks de pagamento com validação de assinatura
-- [ ] **Sync gateway expandido (Sec 5.1)** via Trigger.dev:
-  - Produto criado → produto + preço criados no gateway
-  - Preço alterado → novo preço criado, anterior arquivado
-  - Produto pausado/arquivado → desativado no gateway (impede nova cobrança)
-  - Estoque zerado → marcado indisponível no gateway
-  - Cliente criado → customer criado no gateway
-  - Cupom criado → coupon criado no gateway
-- [ ] Aviso claro no checkout sobre VAT/taxas alfandegárias (preparado para Fase 1.2 internacional)
-- [ ] Email transacional via Resend: confirmação de pedido, Pix gerado, pagamento confirmado
-- [ ] Dados de cartão nunca passam pelo servidor (tokenização via SDK MP no browser)
-- [ ] Detecção básica de fraude (score por pedido)
-- [ ] Cupons de desconto criados no admin → sincronizados no gateway via Trigger.dev
-- [ ] Eventos de tracking de checkout: cada step + abandono em cada etapa
-- [ ] **Relatório de abandono por etapa do checkout (Sec 12.2)** — admin vê: % abandono em endereço, frete, pagamento. Filtros por período + canal. Identifica gargalo do funil.
-- [ ] Testes E2E do fluxo de checkout com Playwright (ambiente sandbox)
+- [x] Checkout em mínimo de etapas (endereço → frete → pagamento → confirmação) — UI completa com stepper
+- [x] Schema orders/order_items/order_events/customer_addresses + migration 0002
+- [x] API POST /api/orders: cria pedido com snapshot de preço/endereço, audit event
+- [x] CEP autocomplete via ViaCEP (gratuito, zero deps)
+- [x] Pix com 5% desconto, boleto, cartão (método selecionável, sem tokenização real ainda)
+- [x] Eventos de tracking checkout: step_start/step_complete em cada etapa
+- [ ] **Conexão Mercado Pago via OAuth 1-clique** — BLOQUEADO: requer conta MP sandbox
+- [ ] Mercado Pago: Pix QR code real, cartão tokenizado, boleto — BLOQUEADO: conta MP
+- [ ] Webhooks de pagamento com validação de assinatura — BLOQUEADO: conta MP
+- [ ] Sync gateway expandido via Trigger.dev — BLOQUEADO: conta MP + Trigger.dev
+- [ ] Aviso VAT/taxas alfandegárias no checkout — Sprint 4
+- [ ] Email transacional via Resend — BLOQUEADO: Resend API key
+- [ ] Detecção básica de fraude — Sprint 4 (pós-MP)
+- [ ] Cupons de desconto no admin — Sprint 4
+- [ ] Relatório de abandono por etapa — dados existem (behavior_events), UI Sprint 5
+- [ ] Testes E2E Playwright — Sprint 4 (pós-integração MP sandbox)
 
 **Bloqueadores externos:**
 - Conta Mercado Pago com acesso à API (sandbox + produção)

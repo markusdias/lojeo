@@ -10,6 +10,10 @@ describe('schema', () => {
     expect(schema.behaviorEvents).toBeDefined();
     expect(schema.aiCache).toBeDefined();
     expect(schema.aiCalls).toBeDefined();
+    expect(schema.orders).toBeDefined();
+    expect(schema.orderItems).toBeDefined();
+    expect(schema.orderEvents).toBeDefined();
+    expect(schema.customerAddresses).toBeDefined();
   });
 
   it('garante coluna tenant_id em entidades multi-tenant', () => {
@@ -20,6 +24,10 @@ describe('schema', () => {
       schema.collections,
       schema.behaviorEvents,
       schema.sessionsBehavior,
+      schema.orders,
+      schema.orderItems,
+      schema.orderEvents,
+      schema.customerAddresses,
     ];
     for (const t of multiTenant) {
       expect((t as unknown as Record<string, unknown>).tenantId, `${(t as unknown as { _: { name: string } })._?.name}`).toBeDefined();

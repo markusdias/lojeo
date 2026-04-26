@@ -420,3 +420,32 @@ Decisões técnicas relevantes registradas com data e justificativa.
 5. **`external_referrer` via `sessionStorage`.** Uma vez por sessão (não por page_view). Key `lojeo_ext_ref_{tenantId}` por tenant para suporte multi-tenant futuro.
 
 6. **Admin dogfood tests requerem DB expose.** 25 testes de integração necessitam `DATABASE_URL` com porta 5433 aberta no EasyPanel. Rodar com: expor porta → testar → fechar. Sprint 3 terá Postgres local via docker-compose para testes sem DB remoto.
+
+---
+
+## 2026-04-26 — Sprint 3 (parcial) — Checkout + schema orders
+
+**Decisão:** Sprint 3 iniciado autonomamente. Bloqueadores externos (conta Mercado Pago, Resend) impedem implementação completa de pagamentos. Entregável parcial: schema + checkout UI funcional.
+
+**Entregáveis Sprint 3 Blocos A–D:**
+
+| Bloco | Feature | Arquivos |
+|---|---|---|
+| A | Schema orders (4 tabelas) + migration 0002 | `schema/orders.ts`, `drizzle/migrations/0002_*.sql` |
+| B | Checkout UI 4 steps | `/checkout/layout` (stepper), `/endereco` (ViaCEP), `/frete`, `/pagamento`, `/confirmacao` |
+| C | API /api/orders + CheckoutProvider | `storefront/api/orders/route.ts`, `checkout-provider.tsx`, `checkout-summary.tsx` |
+| D | Testes DB (2+2=4), 31 testes gerais, push, deploy | Zero regressões |
+
+**Decisões autônomas:**
+
+1. **Schema orders com snapshot de endereço (não FK).** `shippingAddress` é JSONB snapshot — não FK para `customer_addresses`. Motivação: endereço pode mudar após pedido; pedido deve ser imutável. Mesmo padrão para `order_items.productName/unitPriceCents`.
+
+2. **Frete simulado (não ViaCEP de fretes).** Sprint 4 integra Melhor Envio OAuth com cálculo real por CEP+dimensões+peso. Por agora: tabela interna com 3 opções (PAC/SEDEX/Jadlog) estimadas pelo CEP de São Paulo vs demais estados.
+
+3. **CEP autocomplete via ViaCEP.** API pública gratuita `viacep.com.br/ws/{cep}/json/`. Zero deps externas. Erro de rede exibe mensagem inline sem bloquear form — usuário preenche manualmente.
+
+4. **CheckoutProvider usa `sessionStorage` (não localStorage).** Checkout é fluxo de sessão único — não deve persistir entre abas ou reinícios do browser. localStorage seria equivocado: usuário abre nova aba e encontra estado de checkout antigo.
+
+5. **Pix com 5% de desconto.** Decisão (CFO): Pix tem zero custo de processamento vs ~2.5% cartão. Repassar 5% ao cliente é positivo para margem, incentiva Pix (confirmação instantânea = menos chargeback), e é comunicado claramente no checkout.
+
+6. **Migration 0002 pendente de aplicação.** EasyPanel port 5433 inacessível via tRPC API (nomes de projeto/serviço desconhecidos). Migration SQL gerada e comitada. Aplicar quando porta for exposta: `DATABASE_URL=... pnpm --filter @lojeo/db db:migrate`.
