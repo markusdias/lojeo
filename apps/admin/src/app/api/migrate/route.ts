@@ -407,6 +407,29 @@ export async function POST(req: NextRequest) {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_recently_viewed_tenant_user ON recently_viewed_items(tenant_id, user_id)`);
     results.push('recently_viewed_items: ok');
 
+    // Sprint 4 — Cupons de desconto (admin CRUD + storefront validate)
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS coupons (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL,
+        code varchar(60) NOT NULL,
+        name varchar(200) NOT NULL,
+        type varchar(20) NOT NULL,
+        value integer NOT NULL,
+        min_order_cents integer DEFAULT 0 NOT NULL,
+        max_uses integer,
+        uses_count integer DEFAULT 0 NOT NULL,
+        starts_at timestamptz,
+        ends_at timestamptz,
+        active boolean DEFAULT true NOT NULL,
+        created_at timestamptz DEFAULT now() NOT NULL,
+        updated_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS uniq_coupons_tenant_code ON coupons(tenant_id, code)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_coupons_tenant_active ON coupons(tenant_id, active)`);
+    results.push('coupons: ok');
+
     return NextResponse.json({ ok: true, results });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

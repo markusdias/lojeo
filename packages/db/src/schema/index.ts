@@ -13,3 +13,4 @@ export * from './ugc';
 export * from './admin';
 export * from './experiments';
 export * from './recommendations';
+export * from './coupons';
