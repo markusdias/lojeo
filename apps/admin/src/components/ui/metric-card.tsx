@@ -38,6 +38,13 @@ export interface MetricCardProps {
   href?: string;
   /** ícone opcional renderizado à esquerda do label */
   icon?: ReactNode;
+  /**
+   * Estilo do label.
+   * - `eyebrow` (default, legado): UPPERCASE tracking-wide caption.
+   * - `normal`: case normal, body-s peso medium — usado no dashboard
+   *   conforme design oficial Claude Design (ex: "Receita hoje").
+   */
+  labelStyle?: 'eyebrow' | 'normal';
 }
 
 function DeltaChip({ delta }: { delta: MetricDelta }) {
@@ -69,21 +76,27 @@ function tone(props: Pick<MetricCardProps, 'accent' | 'warning' | 'danger'>): st
 }
 
 export function MetricCard(props: MetricCardProps) {
-  const { label, value, delta, sparkData, href, icon, accent, warning, danger } = props;
+  const { label, value, delta, sparkData, href, icon, accent, warning, danger, labelStyle = 'eyebrow' } = props;
   const valueColor = tone({ accent, warning, danger });
   const labelColor = warning ? 'var(--warning)' : danger ? 'var(--error)' : undefined;
   const sparkColor = warning ? 'var(--warning)' : danger ? 'var(--error)' : 'var(--accent)';
+
+  const labelClass = labelStyle === 'eyebrow' ? 'eyebrow' : 'body-s';
+  const labelExtraStyle = labelStyle === 'normal'
+    ? { fontWeight: 'var(--w-medium)', color: labelColor ?? 'var(--fg)', lineHeight: 1.25 }
+    : { color: labelColor };
 
   const inner = (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-2)' }}>
         <p
-          className="eyebrow"
+          className={labelClass}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: 'var(--space-2)',
-            color: labelColor,
+            margin: 0,
+            ...labelExtraStyle,
           }}
         >
           {icon && <span aria-hidden>{icon}</span>}
