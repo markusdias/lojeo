@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { InfoTooltip } from '../../components/ui/info-tooltip';
 
 type AttributionModel = 'last_click' | 'first_click' | 'linear';
 
@@ -77,8 +78,9 @@ export default function AtribuicaoPage() {
       {/* Controls */}
       <div className="lj-card" style={{ padding: 16, marginBottom: 16, display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <label style={{ fontSize: 12, fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          <label style={{ fontSize: 12, fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5, display: 'inline-flex', alignItems: 'center' }}>
             Modelo de atribuição
+            <InfoTooltip text="Last-click = atribui 100% ao último UTM antes da compra. First-click = primeira interação. Linear = divide igualmente entre toques." />
           </label>
           <select
             value={model}
@@ -160,7 +162,12 @@ export default function AtribuicaoPage() {
                 <th style={{ padding: '10px 12px', fontWeight: 600, textAlign: 'right' }}>Orders</th>
                 <th style={{ padding: '10px 12px', fontWeight: 600, textAlign: 'right' }}>Revenue (R$)</th>
                 <th style={{ padding: '10px 12px', fontWeight: 600, textAlign: 'right' }}>AOV</th>
-                <th style={{ padding: '10px 12px', fontWeight: 600, textAlign: 'right' }}>Conv%</th>
+                <th style={{ padding: '10px 12px', fontWeight: 600, textAlign: 'right' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                    Conv%
+                    <InfoTooltip text="Pedidos / sessões únicas com mesmo UTM. AOV = average order value." />
+                  </span>
+                </th>
               </tr>
             </thead>
             <tbody>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { InfoTooltip } from '../../components/ui/info-tooltip';
 
 interface ChurnData {
   total: number;
@@ -108,9 +109,18 @@ export default function InsightsPage() {
 
       {/* Tabs */}
       <div style={{ borderBottom: '1px solid #E5E7EB', marginBottom: 24, display: 'flex', gap: 4 }}>
-        <button style={tabStyle(tab === 'churn')} onClick={() => setTab('churn')}>Risco de Churn</button>
-        <button style={tabStyle(tab === 'estoque')} onClick={() => setTab('estoque')}>Previsão de Estoque</button>
-        <button style={tabStyle(tab === 'funil')} onClick={() => setTab('funil')}>Funil de Conversão</button>
+        <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+          <button style={tabStyle(tab === 'churn')} onClick={() => setTab('churn')}>Risco de Churn</button>
+          <InfoTooltip text="Score 0-100 baseado em recência de compra e frequência. Critical = >180 dias sem comprar. Action = email retenção." />
+        </span>
+        <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+          <button style={tabStyle(tab === 'estoque')} onClick={() => setTab('estoque')}>Previsão de Estoque</button>
+          <InfoTooltip text="Quanto tempo cada produto leva para zerar. Crítico = ≤7 dias. Reorder Point = velocity × 1.2." />
+        </span>
+        <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+          <button style={tabStyle(tab === 'funil')} onClick={() => setTab('funil')}>Funil de Conversão</button>
+          <InfoTooltip text="Taxa de cada etapa do checkout. Drop-off entre etapas = oportunidade de otimização." />
+        </span>
       </div>
 
       {/* Funil tab */}

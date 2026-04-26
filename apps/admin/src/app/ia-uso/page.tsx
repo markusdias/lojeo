@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { InfoTooltip } from '../../components/ui/info-tooltip';
 
 interface UsageData {
   month: string;
@@ -74,7 +75,10 @@ export default function IaUsoPage() {
           className="rounded-lg p-5"
         >
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold text-sm">Orçamento mensal de IA</h2>
+            <h2 className="font-semibold text-sm" style={{ display: 'inline-flex', alignItems: 'center' }}>
+              Orçamento mensal de IA
+              <InfoTooltip text="Limite em USD. Acima do limite, IA bloqueia automaticamente até virar mês. 0 = ilimitado." />
+            </h2>
             <span className="text-xs">
               Dia {budget.daysIntoMonth} de {budget.daysInMonth}
             </span>
@@ -117,16 +121,24 @@ export default function IaUsoPage() {
 
       {/* Cards de resumo */}
       <div className="grid grid-cols-3 gap-4">
-        {[
-          { label: 'Chamadas este mês', value: data.totalCalls.toString() },
-          { label: 'Cache hit rate', value: `${cacheRate}%` },
-          { label: 'Custo estimado (USD)', value: `$${fmt(data.totalCostUsd)}` },
-        ].map(c => (
-          <div key={c.label} className="bg-white rounded-lg shadow p-5">
-            <p className="text-xs text-neutral-500 uppercase tracking-wide mb-1">{c.label}</p>
-            <p className="text-2xl font-semibold">{c.value}</p>
-          </div>
-        ))}
+        <div className="bg-white rounded-lg shadow p-5">
+          <p className="text-xs text-neutral-500 uppercase tracking-wide mb-1">Chamadas este mês</p>
+          <p className="text-2xl font-semibold">{data.totalCalls.toString()}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow p-5">
+          <p className="text-xs text-neutral-500 uppercase tracking-wide mb-1" style={{ display: 'inline-flex', alignItems: 'center' }}>
+            Cache hit rate
+            <InfoTooltip text="% de chamadas servidas pelo cache (gratuitas). Acima de 60% indica boa otimização. Cache TTL é 30 dias para descrições, 90 para SEO." />
+          </p>
+          <p className="text-2xl font-semibold">{`${cacheRate}%`}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow p-5">
+          <p className="text-xs text-neutral-500 uppercase tracking-wide mb-1" style={{ display: 'inline-flex', alignItems: 'center' }}>
+            Custo estimado (USD)
+            <InfoTooltip text="Soma de input × output tokens × preço modelo. Haiku 4.5 = $0.80/MTok in + $4/MTok out. Sonnet 3.5 ~6× mais caro." />
+          </p>
+          <p className="text-2xl font-semibold">{`$${fmt(data.totalCostUsd)}`}</p>
+        </div>
       </div>
 
       {/* Por feature */}

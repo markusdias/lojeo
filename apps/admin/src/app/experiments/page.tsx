@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { InfoTooltip } from '../../components/ui/info-tooltip';
 
 interface Variant {
   key: string;
@@ -125,8 +126,14 @@ export default function ExperimentsPage() {
     <div className="p-8 max-w-5xl space-y-6">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Experimentos A/B</h1>
-          <p className="text-sm text-gray-500 mt-1">Crie variantes, distribua tráfego e mensure conversão.</p>
+          <h1 className="text-2xl font-semibold" style={{ display: 'inline-flex', alignItems: 'center' }}>
+            Experimentos A/B
+            <InfoTooltip text="Status workflow: Draft → Active (coleta dados) → Paused (resultados parciais) → Completed (decisão final)." />
+          </h1>
+          <p className="text-sm text-gray-500 mt-1" style={{ display: 'inline-flex', alignItems: 'center' }}>
+            Crie variantes, distribua tráfego e mensure conversão.
+            <InfoTooltip text="Conversion% = conversões / exposições. Lift = (B−A)/A. Significância estatística requer ~1000 sessões por variante." />
+          </p>
         </div>
         <button
           onClick={() => setShowForm(s => !s)}
@@ -170,7 +177,10 @@ export default function ExperimentsPage() {
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-600 mb-1">Variantes (uma por linha: key:nome:peso)</label>
+            <label className="block text-xs text-gray-600 mb-1" style={{ display: 'inline-flex', alignItems: 'center' }}>
+              Variantes (uma por linha: key:nome:peso)
+              <InfoTooltip text="Soma deve ser 100. Ex: A=50, B=50 = 50/50. A=80, B=20 = 80% controle, 20% teste." />
+            </label>
             <textarea
               value={variantsRaw}
               onChange={e => setVariantsRaw(e.target.value)}

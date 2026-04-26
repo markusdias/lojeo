@@ -1,6 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { InfoTooltip } from '../../components/ui/info-tooltip';
+
+const CATEGORY_TOOLTIPS: Record<string, string> = {
+  Pagamentos: 'Mercado Pago é principal para BR (Pix + cartão + boleto). Stripe entra na Fase 1.2 internacional.',
+  Fiscal: 'Bling NF-e é obrigatório para venda física. Sem ele, emissão é manual e pode atrasar pedidos.',
+  Frete: 'Melhor Envio cobre Correios + Jadlog + transportadoras. Cotação automática reduz fricção checkout.',
+};
 
 interface Integration {
   category: string;
@@ -93,8 +100,9 @@ export default function IntegracoesPage() {
       {/* Por categoria */}
       {Object.entries(byCategory).map(([category, items]) => (
         <section key={category} className="space-y-2">
-          <h2 className="text-sm font-semibold uppercase tracking-wide" style={{ color: 'var(--fg-secondary)' }}>
+          <h2 className="text-sm font-semibold uppercase tracking-wide" style={{ color: 'var(--fg-secondary)', display: 'inline-flex', alignItems: 'center' }}>
             {category}
+            {CATEGORY_TOOLTIPS[category] && <InfoTooltip text={CATEGORY_TOOLTIPS[category]!} />}
           </h2>
           <div className="space-y-2">
             {items.map(i => {

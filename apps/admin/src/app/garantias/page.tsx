@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { InfoTooltip } from '../../components/ui/info-tooltip';
 
 interface Warranty {
   orderId: string;
@@ -108,7 +109,12 @@ export default function GarantiasPage() {
                 <th className="text-left px-4 py-2">Início</th>
                 <th className="text-left px-4 py-2">Expira</th>
                 <th className="text-left px-4 py-2">Restam</th>
-                <th className="text-left px-4 py-2">Status</th>
+                <th className="text-left px-4 py-2">
+                  <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                    Status
+                    <InfoTooltip text="Calculado a partir de paid_at + warrantyMonths × 30 dias. Expirando ≤30d = janela para email de renovação." />
+                  </span>
+                </th>
               </tr>
             </thead>
             <tbody>
