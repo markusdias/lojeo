@@ -9,3 +9,4 @@ export * from './retention';
 export * from './reviews';
 export * from './support';
 export * from './chatbot';
+export * from './ugc';

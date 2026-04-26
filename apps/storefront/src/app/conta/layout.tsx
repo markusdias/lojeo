@@ -7,6 +7,7 @@ import { SignOutButton } from '../../components/account/sign-out-button';
 const NAV = [
   { href: '/conta/pedidos', label: 'Meus pedidos' },
   { href: '/conta/enderecos', label: 'Endereços' },
+  { href: '/conta/galeria', label: 'Minhas fotos' },
   { href: '/wishlist', label: 'Lista de desejos' },
 ];
 

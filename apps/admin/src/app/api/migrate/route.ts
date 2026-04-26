@@ -119,6 +119,35 @@ export async function POST(req: NextRequest) {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_chatbot_sessions_session_key ON chatbot_sessions(tenant_id, session_key)`);
     results.push('chatbot_sessions indexes: ok');
 
+    // Sprint 10 — UGC posts (galeria de clientes)
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS ugc_posts (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL,
+        user_id uuid,
+        customer_email varchar(300),
+        customer_name varchar(200),
+        image_url text NOT NULL,
+        thumbnail_url text,
+        caption text,
+        status varchar(20) DEFAULT 'pending' NOT NULL,
+        source varchar(30) DEFAULT 'direct_upload' NOT NULL,
+        source_url text,
+        products_tagged jsonb DEFAULT '[]'::jsonb NOT NULL,
+        ai_moderation_result jsonb,
+        moderated_by_user_id uuid,
+        moderated_at timestamptz,
+        rejection_reason text,
+        created_at timestamptz DEFAULT now() NOT NULL,
+        approved_at timestamptz
+      )
+    `);
+    results.push('ugc_posts: ok');
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_ugc_tenant_status ON ugc_posts(tenant_id, status)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_ugc_tenant_approved ON ugc_posts(tenant_id, approved_at)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_ugc_user ON ugc_posts(user_id)`);
+    results.push('ugc_posts indexes: ok');
+
     return NextResponse.json({ ok: true, results });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

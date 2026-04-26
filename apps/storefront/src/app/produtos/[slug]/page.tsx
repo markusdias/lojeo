@@ -5,6 +5,7 @@ import { eq, and, gte, count, sql } from 'drizzle-orm';
 import { getActiveTemplate } from '../../../template';
 import { PDPClient } from './pdp-client';
 import { ReviewSection } from '../../../components/reviews/review-section';
+import { UgcGallery } from '../../../components/ugc/ugc-gallery';
 
 export const dynamic = 'force-dynamic';
 
@@ -127,6 +128,7 @@ export default async function PDPPage({ params }: PDPProps) {
         currency={tpl.currency}
       />
       <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '0 var(--container-pad) 80px' }}>
+        <UgcGallery productId={product.id} />
         <ReviewSection productId={product.id} />
       </div>
     </>

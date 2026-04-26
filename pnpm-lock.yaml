@@ -132,6 +132,9 @@ importers:
       '@lojeo/logger':
         specifier: workspace:*
         version: link:../../packages/logger
+      '@lojeo/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
       '@lojeo/template-jewelry-v1':
         specifier: workspace:*
         version: link:../../templates/jewelry-v1
@@ -156,6 +159,9 @@ importers:
       react-dom:
         specifier: ^19.0.0
         version: 19.2.5(react@19.2.5)
+      sharp:
+        specifier: ^0.34.5
+        version: 0.34.5
     devDependencies:
       '@lojeo/config':
         specifier: workspace:*
