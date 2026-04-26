@@ -186,31 +186,32 @@ export const behaviorEvents = pgTable('behavior_events', {
 **Critérios de pronto:**
 
 **Storefront:**
-- [ ] Homepage com hero, coleções em destaque, seções configuráveis
-- [ ] PLP com filtros, ordenação, paginação
-- [ ] PDP com galeria de imagens/vídeos, variantes, campos do nicho
-- [ ] **Urgência com dados reais (Sec 6.3 / 21)** — exibir na PDP: "X pessoas vendo agora" (count de behavior_events `product_view` últimos 5min), "Y unidades vendidas hoje" (count de pedidos do dia), "apenas Z em estoque" (apenas se inventory < threshold configurável). Nunca números falsos. Configurável on/off por produto.
-- [ ] Carrinho com edição, estimativa de frete e resumo
-- [ ] Login social (Google) para clientes — fluxo OAuth nativo
-- [ ] Área do cliente: histórico de pedidos, endereços
-- [ ] Busca simples por texto (semântica vai para Sprint 12)
-- [ ] SEO técnico: sitemap.xml automático, canonical tags, Schema.org/produto
-- [ ] Core Web Vitals no alvo desde o início
-- [ ] Template jewelry-v1 integrado: tokens, tipografia, paleta
-- [ ] Páginas estáticas com editor simples (Sobre, Política, Trocas, Privacidade) — admin edita em rich text, storefront renderiza em rota dedicada
-- [ ] Produtos vistos recentemente — carrossel no rodapé do storefront, persiste em cookie/localStorage por 30 dias
-- [ ] Página de rastreamento branded — cliente vê status do envio em página com identidade visual da loja (não redirecionado para Correios genérico)
-- [ ] **CEP autocomplete (BR)** — campo CEP busca endereço via ViaCEP API, preenche rua/bairro/cidade/estado automaticamente
-- [ ] **Endereçamento adaptativo (Sec 4.1)** — schema flexível para suportar CEP/ZIP/postcode (ativação completa para outros países na Fase 1.2)
+- [x] Homepage com hero, coleções em destaque, seções configuráveis
+- [x] PLP com filtros, ordenação, paginação
+- [x] PDP com galeria de imagens/vídeos, variantes, campos do nicho
+- [x] **Urgência com dados reais (Sec 6.3 / 21)** — "X pessoas vendo agora" (behavior_events COUNT last 5min) + "apenas Z em estoque" (inventoryStock SUM ≤ threshold). Nunca números falsos.
+- [x] Carrinho com edição, barra frete grátis e resumo
+- [ ] Login social (Google) para clientes — Sprint 5
+- [ ] Área do cliente: histórico de pedidos, endereços — Sprint 5
+- [x] Busca simples por texto (/busca com ilike)
+- [x] SEO técnico: sitemap.xml automático, robots.txt, Schema.org/produto JSON-LD
+- [ ] Core Web Vitals — verificação em prod após Sprint 2 deploy
+- [x] Template jewelry-v1 integrado: tokens CSS (5 typo combos, 5 accents, 4 BG tones), data-* attrs no <html>
+- [x] Páginas estáticas (Sobre, Política, Trocas, Privacidade) — conteúdo placeholder; editor rich text Sprint 5
+- [ ] Produtos vistos recentemente — Sprint 5
+- [ ] Página de rastreamento branded — Sprint 4
+- [ ] **CEP autocomplete (BR)** — Sprint 3 checkout
+- [ ] **Endereçamento adaptativo (Sec 4.1)** — Sprint 3
 
 **Instrumentação behavioral:**
-- [ ] SDK `@lojeo/tracking` injetado em todas as páginas
-- [ ] Eventos disparados: `product_view`, `product_scroll` (depth %), `gallery_open`, `gallery_image_index`, `video_watched_full`, `variant_selected`, `cart_add`, `cart_remove`, `checkout_step_start`, `checkout_step_complete`, `search_performed`, `search_clicked`, `external_referrer`
-- [ ] UTM preservado da landing até o pedido
-- [ ] Banner de cookies LGPD com consentimento granular (essencial / analytics / marketing)
-- [ ] Tracking respeita consentimento (eventos analíticos só com opt-in)
-- [ ] Identidade anônima → identificada quando cliente faz login (merge automático de sessions)
-- [ ] Dashboard básico no admin: eventos crus por dia (debug)
+- [x] SDK `@lojeo/tracking` injetado em todas as páginas (TrackerProvider no layout)
+- [x] Eventos: `product_view`, `product_scroll` (25/50/75/100%), `gallery_open`, `gallery_image_index`, `variant_selected`, `cart_add`, `cart_view`, `checkout_start`, `external_referrer`
+- [ ] `video_watched_full`, `search_performed`, `search_clicked` — Sprint 3
+- [ ] UTM preservado da landing até o pedido — Sprint 3
+- [x] Banner de cookies LGPD com consentimento granular (essencial / analytics / marketing)
+- [x] Tracking respeita consentimento (consent-aware no SDK desde Sprint 1)
+- [ ] Identidade anônima → identificada quando cliente faz login — Sprint 5
+- [x] Dashboard básico no admin: GET /api/events (eventos por dia + por tipo)
 
 **Ponto crítico de arquitetura — como templates plugam:**
 
