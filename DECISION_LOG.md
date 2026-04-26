@@ -2243,3 +2243,40 @@ User mostrou 2 screenshots oficiais Claude Design da tela /aparencia. Implementa
 - Account.jsx Tracking branded com mapa SVG
 
 **96 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão** funcional.
+
+---
+
+## 2026-04-26 — Iteração 20: WishlistPro badges match Account.jsx
+
+**Commit 6c92c45** — feat storefront WishlistPro com 4 badges contextuais
+
+`apps/storefront/src/app/api/wishlist/status/route.ts` (NOVO):
+- GET ?productIds=uuid1,uuid2 (max 50, regex UUID)
+- JOIN products + product_variants + inventory_stock SUM(qty)
+- Retorna `{priceCents, comparePriceCents, status, inStock, totalQty}` por produto
+- Falha silenciosa retorna empty
+
+`apps/storefront/src/app/wishlist/page.tsx`:
+- useEffect fetch status on mount
+- getBadge() retorna 4 estados:
+  * **Voltou ao estoque** (verde success) — item >7d na wishlist + inStock + totalQty≤5
+  * **Em promoção** (dark) — priceCents atual < snapshot OU comparePriceCents > priceCents
+  * **Esgotado** (cinza muted) — !inStock
+  * **Indisponível** (cinza muted) — status archived permanente
+- Image filter grayscale+opacity 0.7 quando outOfStock
+- Preço atual + riscado quando dropped/onSale
+- Botão "Esgotado" disabled vs "Adicionar ao carrinho" verde
+
+**Decisões importantes:**
+- **Snapshot priceCents** já existia em localStorage wishlist — pôde detectar drop sem migration nova
+- **Heurística "voltou ao estoque"** com 3 condições simultâneas (idade item + inStock + qty baixa) — evita falso positivo "voltou" pra item sempre disponível
+- **Validação UUID regex** + limite 50 productIds — protege endpoint contra abuse
+
+**Próximo ciclo:**
+- Tickets drawer rich (7 tipos mensagem + composer templates {nome}/{pedido} interpolation)
+- Checkout Pix 5% incentivo visual destacado
+- Customer profile tabs (Garantias/Tickets/Marketing/Notas)
+- Account.jsx Tracking branded com mapa SVG
+- VariantPicker por tipo (anel 12-22 + colar 40-60cm + brinco fecho) na PDP
+
+**98 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão** funcional.
