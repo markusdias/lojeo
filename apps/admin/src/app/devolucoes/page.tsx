@@ -173,19 +173,19 @@ export default function DevolucoesPage() {
 
       <div className="lj-card p-4 flex flex-wrap gap-3 items-end">
         <div>
-          <label className="block text-xs text-gray-600 mb-1">Status</label>
+          <label className="block" style={{ fontSize: 'var(--text-caption)', color: 'var(--fg-secondary)', marginBottom: 4 }}>Status</label>
           <select className="lj-input" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
             {STATUS_OPTIONS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
           </select>
         </div>
         <div>
-          <label className="block text-xs text-gray-600 mb-1">Tipo</label>
+          <label className="block" style={{ fontSize: 'var(--text-caption)', color: 'var(--fg-secondary)', marginBottom: 4 }}>Tipo</label>
           <select className="lj-input" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
             {TYPE_OPTIONS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
           </select>
         </div>
         <div>
-          <label className="block text-xs text-gray-600 mb-1">Período</label>
+          <label className="block" style={{ fontSize: 'var(--text-caption)', color: 'var(--fg-secondary)', marginBottom: 4 }}>Período</label>
           <select className="lj-input" value={days} onChange={e => setDays(e.target.value)}>
             {DAYS_OPTIONS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
           </select>
@@ -193,11 +193,13 @@ export default function DevolucoesPage() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-gray-500">Carregando…</p>
+        <p className="body-s">Carregando…</p>
       ) : error ? (
-        <div className="bg-amber-50 border border-amber-200 rounded p-3 text-sm text-amber-800">{error}</div>
+        <div className="lj-card" style={{ padding: 'var(--space-3)', borderColor: 'var(--warning)', background: 'var(--warning-soft)' }}>
+          <p className="body-s" style={{ color: 'var(--warning)' }}>{error}</p>
+        </div>
       ) : list.length === 0 ? (
-        <p className="text-sm text-gray-500">Nenhuma solicitação encontrada para os filtros selecionados.</p>
+        <p className="body-s">Nenhuma solicitação encontrada para os filtros selecionados.</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {list.map(r => {
@@ -237,33 +239,33 @@ export default function DevolucoesPage() {
                   <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--neutral-100)' }}>
                     {r.reasonDetails && (
                       <div style={{ marginBottom: 12 }}>
-                        <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Detalhes do cliente</p>
+                        <p className="eyebrow" style={{ marginBottom: 4 }}>Detalhes do cliente</p>
                         <p style={{ fontSize: 13, whiteSpace: 'pre-wrap' }}>{r.reasonDetails}</p>
                       </div>
                     )}
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 12 }}>
                       <div>
-                        <p className="text-xs text-gray-500">Aprovado em</p>
+                        <p className="caption">Aprovado em</p>
                         <p className="text-sm">{fmtDate(r.approvedAt)}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500">Rejeitado em</p>
+                        <p className="caption">Rejeitado em</p>
                         <p className="text-sm">{fmtDate(r.rejectedAt)}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500">Recebido em</p>
+                        <p className="caption">Recebido em</p>
                         <p className="text-sm">{fmtDate(r.receivedAt)}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500">Finalizado em</p>
+                        <p className="caption">Finalizado em</p>
                         <p className="text-sm">{fmtDate(r.finalizedAt)}</p>
                       </div>
                     </div>
 
                     {r.resolutionNotes && (
                       <div style={{ marginBottom: 12 }}>
-                        <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Notas internas</p>
+                        <p className="eyebrow" style={{ marginBottom: 4 }}>Notas internas</p>
                         <p style={{ fontSize: 13, whiteSpace: 'pre-wrap' }}>{r.resolutionNotes}</p>
                       </div>
                     )}
@@ -271,7 +273,7 @@ export default function DevolucoesPage() {
                     {allowed.length > 0 && (
                       <>
                         <div style={{ marginBottom: 8 }}>
-                          <label className="block text-xs text-gray-600 mb-1">Notas internas (opcional)</label>
+                          <label className="block" style={{ fontSize: 'var(--text-caption)', color: 'var(--fg-secondary)', marginBottom: 4 }}>Notas internas (opcional)</label>
                           <textarea
                             className="lj-input w-full"
                             rows={2}
@@ -282,7 +284,7 @@ export default function DevolucoesPage() {
                         </div>
                         {allowed.includes('approved') && (
                           <div style={{ marginBottom: 8 }}>
-                            <label className="block text-xs text-gray-600 mb-1">Valor de reembolso (R$, opcional)</label>
+                            <label className="block" style={{ fontSize: 'var(--text-caption)', color: 'var(--fg-secondary)', marginBottom: 4 }}>Valor de reembolso (R$, opcional)</label>
                             <input
                               type="number"
                               step="0.01"
@@ -311,7 +313,7 @@ export default function DevolucoesPage() {
                       </>
                     )}
                     {allowed.length === 0 && (
-                      <p className="text-xs text-gray-500">Status final — nenhuma transição disponível.</p>
+                      <p className="caption">Status final — nenhuma transição disponível.</p>
                     )}
                   </div>
                 )}
