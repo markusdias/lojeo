@@ -472,3 +472,36 @@ Decisões técnicas relevantes registradas com data e justificativa.
 5. **Pix com 5% de desconto.** Decisão (CFO): Pix tem zero custo de processamento vs ~2.5% cartão. Repassar 5% ao cliente é positivo para margem, incentiva Pix (confirmação instantânea = menos chargeback), e é comunicado claramente no checkout.
 
 6. **Migration 0002 pendente de aplicação.** EasyPanel port 5433 inacessível via tRPC API (nomes de projeto/serviço desconhecidos). Migration SQL gerada e comitada. Aplicar quando porta for exposta: `DATABASE_URL=... pnpm --filter @lojeo/db db:migrate`.
+
+---
+
+## 2026-04-26 — Sprint 5 Bloco G — Sistema de avaliações (reviews)
+
+**Decisão:** Avaliações com pipeline de moderação implementadas no Sprint 5 Bloco G.
+
+**Entregáveis:**
+
+| Componente | Arquivo | Decisão |
+|---|---|---|
+| Schema `product_reviews` | `packages/db/src/schema/reviews.ts` | 16 colunas: rating, title, body, status pipeline, adminResponse, verifiedPurchase, helpfulCount |
+| Migration 0005 | `packages/db/drizzle/migrations/0005_empty_chamber.sql` | Gerada, pendente de aplicação em prod |
+| API pública GET | `storefront/api/reviews/route.ts` | Retorna só aprovadas + avg/total calculado. Anônimo — sem auth |
+| API pública POST | `storefront/api/reviews/route.ts` | Valida rating 1-5 + nome obrigatório. Insere como `pending`. Sem CAPTCHA (Sprint 6) |
+| ReviewSection | `storefront/components/reviews/review-section.tsx` | Client Component: Stars com hover state, form, lista com adminResponse display |
+| PDP integration | `storefront/app/produtos/[slug]/page.tsx` | `<ReviewSection productId={product.id} />` abaixo do PDPClient |
+| Admin API | `admin/api/reviews/route.ts` | GET filtra por status. PATCH valida apenas `approved`/`rejected` + adminResponse opcional |
+| Admin fila | `admin/app/avaliacoes/page.tsx` | Client Component: tabs pending/approved/rejected, textarea de resposta inline, botões Aprovar/Rejeitar |
+| Nav admin | `admin/app/layout.tsx` | Link "★ Avaliações" adicionado ao sidebar |
+
+**Decisões pontuais:**
+
+1. **Reviews aprovadas via moderação humana, não automática.** Alternativa (IA auto-moderação) reservada para Sprint 10 (UGC moderation com Claude vision). Por ora: humano aprova/rejeita na fila admin. Justificativa: risco de falso positivo em aprovação automática é alto para nicho joias (concorrente pode postar spam ou review falsa).
+
+2. **Email não publicado.** `anonymousEmail` armazenado no banco mas nunca exposto via GET público. Usado para: notificação futura "sua avaliação foi publicada" (Sprint 7 email system) e deduplicação de avaliações por produto/email.
+
+3. **`verifiedPurchase: false` hardcoded no POST.** Sprint 6 implementa matching: ao aprovar avaliação, cruza `anonymousEmail` com `orders.customerEmail` para setar `verifiedPurchase: true` automaticamente. Badge "Compra verificada" na UI já está implementado.
+
+4. **Média calculada em runtime (não pré-computada).** Para o volume atual (< 50 reviews por produto), `reduce` em memória é O(n) aceitável. Coluna `avgRating` pré-computada entra quando houver produto com > 200 avaliações aprovadas.
+
+5. **Tabs no admin como estado local React (não URL params).** Fila de moderação é ferramenta operacional de uso rápido — moderador navega entre tabs sem precisar de deep-link ou histórico. URL params adicionariam complexidade sem ROI.
+

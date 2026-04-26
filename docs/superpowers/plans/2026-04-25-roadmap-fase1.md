@@ -299,7 +299,7 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 
 **Admin operacional:**
 - [x] Dashboard: métricas reais de pedidos (count+revenue 30d + pending alert) — expandir com produtos mais vendidos, visitantes, conversão na Sprint 5 completo
-- [ ] Fila de moderação de avaliações: preview, aprovar/rejeitar com 1 clique, resposta pública opcional
+- [x] Fila de moderação de avaliações: preview, aprovar/rejeitar com 1 clique, resposta pública opcional
 - [ ] Configurações completas via interface (identidade, gateways, frete, email)
 - [ ] Editor de aparência dentro dos limites do template
 - [ ] Sistema de papéis (roles): Owner, Admin, Operador, Editor, Atendimento, Financeiro
