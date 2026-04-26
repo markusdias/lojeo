@@ -72,6 +72,23 @@ export const giftCards = pgTable(
   ],
 );
 
+// ── Recently viewed (sync localStorage → DB ao login) ────────────────────────
+export const recentlyViewedItems = pgTable(
+  'recently_viewed_items',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id').notNull(),
+    productId: uuid('product_id').notNull(),
+    viewedAt: timestamp('viewed_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index('idx_recently_viewed_user_viewed').on(t.userId, t.viewedAt),
+    index('idx_recently_viewed_tenant_user').on(t.tenantId, t.userId),
+  ],
+);
+
 export type WishlistItem = typeof wishlistItems.$inferSelect;
 export type RestockNotification = typeof restockNotifications.$inferSelect;
 export type GiftCard = typeof giftCards.$inferSelect;
+export type RecentlyViewedItem = typeof recentlyViewedItems.$inferSelect;

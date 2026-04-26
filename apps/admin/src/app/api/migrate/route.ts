@@ -393,6 +393,20 @@ export async function POST(req: NextRequest) {
     await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS uniq_rec_overrides_tenant_product_target ON recommendation_overrides(tenant_id, product_id, recommended_product_id)`);
     results.push('recommendation_overrides: ok');
 
+    // Sprint 5 — Recently viewed sync DB
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS recently_viewed_items (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL,
+        user_id uuid NOT NULL,
+        product_id uuid NOT NULL,
+        viewed_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_recently_viewed_user_viewed ON recently_viewed_items(user_id, viewed_at)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_recently_viewed_tenant_user ON recently_viewed_items(tenant_id, user_id)`);
+    results.push('recently_viewed_items: ok');
+
     return NextResponse.json({ ok: true, results });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

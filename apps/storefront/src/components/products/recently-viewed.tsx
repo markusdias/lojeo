@@ -20,6 +20,10 @@ function fmt(cents: number): string {
 
 /**
  * Hook util: registrar produto visto. Use na PDP.
+ *
+ * - Sempre persiste em localStorage (cliente anônimo + cache rápido)
+ * - Se user logado: POST /api/recently-viewed (server detecta session)
+ *   Server retorna 401 sem session → fire-and-forget
  */
 export function useTrackRecentlyViewed(item: Omit<RecentItem, 'viewedAt'> | null) {
   useEffect(() => {
@@ -30,8 +34,39 @@ export function useTrackRecentlyViewed(item: Omit<RecentItem, 'viewedAt'> | null
       const filtered = list.filter(i => i.productId !== item.productId);
       const next = [{ ...item, viewedAt: Date.now() }, ...filtered].slice(0, MAX_ITEMS);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+
+      // Server tracking (fire-and-forget; falha em 401 quando anônimo)
+      void fetch('/api/recently-viewed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: item.productId }),
+        keepalive: true,
+      }).catch(() => null);
     } catch { /* localStorage cheio ou bloqueado */ }
   }, [item]);
+}
+
+/**
+ * Sync localStorage → DB ao montar (chamado no layout cliente após login).
+ * Idempotente: server deduplica por (user, product) no GET.
+ */
+export function useSyncRecentlyViewedOnLogin() {
+  useEffect(() => {
+    if (typeof localStorage === 'undefined') return;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const list: RecentItem[] = JSON.parse(raw);
+      if (list.length === 0) return;
+      const productIds = list.map(i => i.productId).slice(0, 20);
+      void fetch('/api/recently-viewed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productIds }),
+        keepalive: true,
+      }).catch(() => null);
+    } catch { /* */ }
+  }, []);
 }
 
 /**
