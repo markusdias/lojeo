@@ -44,6 +44,15 @@ const SENDER_LABEL: Record<string, string> = {
   bot: 'Bot',
 };
 
+const sectionLabelStyle: React.CSSProperties = {
+  fontSize: 'var(--text-caption)',
+  fontWeight: 'var(--w-semibold)',
+  color: 'var(--fg-secondary)',
+  marginBottom: 'var(--space-3)',
+  textTransform: 'uppercase',
+  letterSpacing: 'var(--track-wide)',
+};
+
 export default function TicketDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [ticket, setTicket] = useState<Ticket | null>(null);
@@ -104,49 +113,61 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
     void loadTicket();
   }
 
-  if (loading) return <div className="p-8" style={{ color: '#6B7280', fontSize: 14 }}>Carregando…</div>;
-  if (!ticket) return <div className="p-8" style={{ color: '#9CA3AF', fontSize: 14 }}>Ticket não encontrado.</div>;
+  if (loading) return <div style={{ padding: 'var(--space-8)' }}><p className="body-s">Carregando…</p></div>;
+  if (!ticket) return <div style={{ padding: 'var(--space-8)' }}><p className="body-s" style={{ color: 'var(--fg-secondary)' }}>Ticket não encontrado.</p></div>;
+
+  const slaExpired = ticket.slaDeadlineAt && new Date(ticket.slaDeadlineAt) < new Date();
 
   return (
-    <div className="p-8 max-w-4xl">
-      {/* Breadcrumb */}
-      <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 20 }}>
-        <Link href="/tickets" style={{ color: '#2563EB', textDecoration: 'none' }}>Suporte</Link>
-        {' › '}{ticket.subject}
-      </div>
+    <div style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }}>
+      <Link href="/tickets" style={{ fontSize: 'var(--text-caption)', color: 'var(--fg-secondary)', textDecoration: 'none' }}>
+        ← Suporte
+      </Link>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 24 }}>
+      <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginTop: 'var(--space-2)', marginBottom: 'var(--space-6)' }}>
+        {ticket.subject}
+      </h1>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: 'var(--space-6)', alignItems: 'start' }}>
         {/* Thread */}
-        <div>
-          <h1 style={{ fontSize: 18, fontWeight: 600, marginBottom: 20 }}>{ticket.subject}</h1>
-
+        <div style={{ minWidth: 0 }}>
           {/* Messages */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', marginBottom: 'var(--space-6)' }}>
             {messages.length === 0 && (
-              <p style={{ fontSize: 13, color: '#9CA3AF' }}>Nenhuma mensagem ainda.</p>
+              <p className="body-s" style={{ color: 'var(--fg-secondary)' }}>Nenhuma mensagem ainda.</p>
             )}
-            {messages.map(msg => (
-              <div
-                key={msg.id}
-                style={{
-                  padding: '12px 16px',
-                  borderRadius: 8,
-                  background: msg.isInternal ? '#FFFBEB' : msg.senderType === 'admin' ? '#F0F9FF' : '#F9FAFB',
-                  border: msg.isInternal ? '1px dashed #D97706' : '1px solid #E5E7EB',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: msg.isInternal ? '#92400E' : '#374151' }}>
-                    {SENDER_LABEL[msg.senderType] ?? msg.senderType}
-                    {msg.isInternal && ' (nota interna)'}
-                  </span>
-                  <span style={{ fontSize: 11, color: '#9CA3AF' }}>
-                    {new Date(msg.createdAt).toLocaleString('pt-BR')}
-                  </span>
+            {messages.map(msg => {
+              const isAdminMsg = msg.senderType === 'admin';
+              const bg = msg.isInternal ? 'var(--warning-soft)' : isAdminMsg ? 'var(--info-soft)' : 'var(--bg-subtle)';
+              const border = msg.isInternal ? 'var(--warning)' : 'var(--border)';
+              return (
+                <div
+                  key={msg.id}
+                  className="lj-card"
+                  style={{
+                    padding: 'var(--space-3) var(--space-4)',
+                    background: bg,
+                    borderColor: border,
+                    borderStyle: msg.isInternal ? 'dashed' : 'solid',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
+                    <span style={{
+                      fontSize: 'var(--text-caption)',
+                      fontWeight: 'var(--w-semibold)',
+                      color: msg.isInternal ? 'var(--warning)' : 'var(--fg)',
+                    }}>
+                      {SENDER_LABEL[msg.senderType] ?? msg.senderType}
+                      {msg.isInternal && ' (nota interna)'}
+                    </span>
+                    <span className="caption numeric">
+                      {new Date(msg.createdAt).toLocaleString('pt-BR')}
+                    </span>
+                  </div>
+                  <p className="body-s" style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{msg.body}</p>
                 </div>
-                <p style={{ fontSize: 14, whiteSpace: 'pre-wrap', margin: 0 }}>{msg.body}</p>
-              </div>
-            ))}
+              );
+            })}
             <div ref={bottomRef} />
           </div>
 
@@ -157,19 +178,15 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
               onChange={e => setReply(e.target.value)}
               placeholder={isInternal ? 'Nota interna (visível só para a equipe)…' : 'Resposta ao cliente…'}
               rows={5}
+              className="lj-input"
               style={{
                 width: '100%',
-                border: `1px solid ${isInternal ? '#D97706' : '#D1D5DB'}`,
-                borderRadius: 8,
-                padding: '10px 12px',
-                fontSize: 14,
-                fontFamily: 'inherit',
                 resize: 'vertical',
-                boxSizing: 'border-box',
+                borderColor: isInternal ? 'var(--warning)' : undefined,
               }}
             />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginTop: 'var(--space-3)' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-body-s)', cursor: 'pointer' }}>
                 <input
                   type="checkbox"
                   checked={isInternal}
@@ -180,17 +197,8 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
               <button
                 type="submit"
                 disabled={sending || !reply.trim()}
-                style={{
-                  background: isInternal ? '#D97706' : '#111827',
-                  color: '#fff',
-                  padding: '8px 16px',
-                  borderRadius: 6,
-                  fontSize: 14,
-                  fontWeight: 500,
-                  border: 'none',
-                  cursor: 'pointer',
-                  opacity: sending || !reply.trim() ? 0.6 : 1,
-                }}
+                className={isInternal ? 'lj-btn-secondary' : 'lj-btn-primary'}
+                style={isInternal ? { borderColor: 'var(--warning)', color: 'var(--warning)' } : undefined}
               >
                 {sending ? 'Enviando…' : isInternal ? 'Salvar nota' : 'Responder'}
               </button>
@@ -199,46 +207,50 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
         </div>
 
         {/* Sidebar */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ border: '1px solid #E5E7EB', borderRadius: 8, padding: 16 }}>
-            <p style={{ fontSize: 12, fontWeight: 600, color: '#6B7280', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+          <div className="lj-card" style={{ padding: 'var(--space-4)' }}>
+            <p style={sectionLabelStyle}>Status</p>
             <select
               value={ticket.status}
               onChange={e => { void handleStatusChange(e.target.value); }}
               disabled={saving}
-              style={{ width: '100%', border: '1px solid #D1D5DB', borderRadius: 6, padding: '6px 10px', fontSize: 13 }}
+              className="lj-input"
+              style={{ width: '100%' }}
             >
               {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
 
-            <p style={{ fontSize: 12, fontWeight: 600, color: '#6B7280', margin: '16px 0 12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Prioridade</p>
+            <p style={{ ...sectionLabelStyle, marginTop: 'var(--space-4)' }}>Prioridade</p>
             <select
               value={ticket.priority}
               onChange={e => { void handlePriorityChange(e.target.value); }}
               disabled={saving}
-              style={{ width: '100%', border: '1px solid #D1D5DB', borderRadius: 6, padding: '6px 10px', fontSize: 13 }}
+              className="lj-input"
+              style={{ width: '100%' }}
             >
               {PRIORITY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
 
-          <div style={{ border: '1px solid #E5E7EB', borderRadius: 8, padding: 16 }}>
-            <p style={{ fontSize: 12, fontWeight: 600, color: '#6B7280', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cliente</p>
-            <p style={{ fontSize: 13, fontWeight: 500 }}>{ticket.customerName}</p>
-            <p style={{ fontSize: 12, color: '#6B7280' }}>{ticket.customerEmail}</p>
+          <div className="lj-card" style={{ padding: 'var(--space-4)' }}>
+            <p style={sectionLabelStyle}>Cliente</p>
+            <p className="body-s" style={{ fontWeight: 'var(--w-medium)' }}>{ticket.customerName}</p>
+            <p className="body-s" style={{ color: 'var(--fg-secondary)' }}>{ticket.customerEmail}</p>
             {ticket.orderId && (
-              <p style={{ fontSize: 12, color: '#6B7280', marginTop: 8 }}>
-                Pedido: <Link href={`/pedidos/${ticket.orderId}`} style={{ color: '#2563EB' }}>ver pedido →</Link>
+              <p className="body-s" style={{ color: 'var(--fg-secondary)', marginTop: 'var(--space-2)' }}>
+                Pedido: <Link href={`/pedidos/${ticket.orderId}`} style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 'var(--w-medium)' }}>ver pedido →</Link>
               </p>
             )}
           </div>
 
-          <div style={{ border: '1px solid #E5E7EB', borderRadius: 8, padding: 16 }}>
-            <p style={{ fontSize: 12, fontWeight: 600, color: '#6B7280', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Detalhes</p>
-            <p style={{ fontSize: 12, color: '#6B7280' }}>Origem: {ticket.source}</p>
-            <p style={{ fontSize: 12, color: '#6B7280' }}>Criado: {new Date(ticket.createdAt).toLocaleString('pt-BR')}</p>
+          <div className="lj-card" style={{ padding: 'var(--space-4)' }}>
+            <p style={sectionLabelStyle}>Detalhes</p>
+            <p className="body-s" style={{ color: 'var(--fg-secondary)' }}>Origem: {ticket.source}</p>
+            <p className="body-s numeric" style={{ color: 'var(--fg-secondary)' }}>
+              Criado: {new Date(ticket.createdAt).toLocaleString('pt-BR')}
+            </p>
             {ticket.slaDeadlineAt && (
-              <p style={{ fontSize: 12, color: new Date(ticket.slaDeadlineAt) < new Date() ? '#DC2626' : '#6B7280' }}>
+              <p className="body-s numeric" style={{ color: slaExpired ? 'var(--error)' : 'var(--fg-secondary)' }}>
                 SLA: {new Date(ticket.slaDeadlineAt).toLocaleString('pt-BR')}
               </p>
             )}
