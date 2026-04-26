@@ -1719,3 +1719,52 @@ Antes de marcar promessas como concluídas, validei via Playwright nas URLs reai
 - Sparklines com dados sintéticos quando real é zero (mock para visualização durante onboarding)
 
 **59 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão**.
+
+---
+
+## 2026-04-26 — Iteração 10: Sprint 12 RecommendedForYou + favicon + /clientes /products tokens
+
+**Commits:**
+
+1. **641bca9** — feat sprint12 RecommendedForYou homepage personalizada cliente recorrente
+   - `apps/storefront/src/components/products/recommended-for-you.tsx` server component:
+     - auth() pega session → email → null se anônimo
+     - Pedidos pagos do customerEmail últimos 365d (paid/preparing/shipped/delivered)
+     - Resolve produtos comprados via order_items.variantId → product_variants.productId
+     - Identifica coleções via product_collections desses produtos
+     - Sugere top 4 produtos das mesmas coleções, exceto já comprados, ordenados por created_at DESC
+     - Modo degradado: try/catch em torno de auth + cada query DB → null silencioso, homepage mostra blocos default
+   - Inserido em `/` antes de "Recém-criadas"
+   - Roadmap Sprint 12 [x]: cliente identificado homepage histórico, cliente novo fallback, modo degradado motor cair
+   - Roadmap pendente v2: cliente anônimo recorrente fingerprint, PersonalizedHero por RFM, A/B uplift
+   - Bonus: `apps/admin/public/favicon.ico` (resolve console error 404 detectado iter 9)
+
+2. **45bc354** — refactor /clientes lista + /products lista tokens design system
+   - clientes/page.tsx: header h1 token + body-s subtitle RFM
+   - clientes/clientes-table.tsx (full refactor — antes dark hardcoded `#111827`/`#374151`/`#9ca3af`):
+     - Pill chips por segmento (Todos / Campeões / Fiéis / Em risco / Perdidos / Novos / Promissores / Outros) com bullet colorido por tone token + counter tabular-nums + active dark bg `var(--neutral-900)`
+     - Tabela bg-subtle header + var(--border) rows
+     - Badge segmento outline pill com bullet (não solid bg)
+     - numeric tabular-nums em pedidos/LTV/recência/RFM scores
+   - products/page.tsx (full refactor):
+     - Header right-aligned com "+ Novo produto" lj-btn-primary
+     - Empty state lj-card com body+body-s
+     - Tabela bg-subtle header + status badge outline pill com bullet
+     - Status colors via tokens, .mono SKU, .numeric data, link var(--accent)
+
+**Decisões:**
+- **RecommendedForYou retorna null silencioso** quando user anônimo ou DB falha — homepage não quebra. TTFB preservado pois server component executa em paralelo com newArrivals via React.Suspense implícito.
+- **365d window** para histórico do cliente — ajusta sazonalidade de produtos como joias (compras infrequentes mas sazonais).
+- **Outline pill** para segmentos clientes vs solid pill para status pedidos — diferenciação visual: segmento = perfil estático, status = workflow ativo.
+- **Pill chip pattern padronizado** em /pedidos + /clientes (table filters): ícone bullet color + label + counter tabular-nums + active dark bg.
+
+**Próximo ciclo:**
+- /atribuicao IA banner já existe (iter 9) — pendente subir pra topo
+- /collections + /inventory + /tickets refactor interno (header + container OK iter 7, mas tabelas ainda ad-hoc)
+- /devolucoes refactor cards expansíveis com tokens
+- /ugc refactor + galeria moderação
+- Sprint 12 v2: PersonalizedHero por segmento RFM
+- Cron backup VPS produção (precisa SSH)
+- Sparklines "Últimos pedidos" no dashboard quando houver dados reais
+
+**63 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão**.
