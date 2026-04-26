@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 750" width="600" height="750">
+  <defs>
+    <radialGradient id="g" cx="50%" cy="42%" r="60%">
+      <stop offset="0%" stop-color="#FFFFFF"></stop>
+      <stop offset="100%" stop-color="#EDE6D7"></stop>
+    </radialGradient>
+  </defs>
+  <rect width="600" height="750" fill="url(#g)"></rect>
+  <g stroke="#A89B8C" stroke-width="0.6" fill="none" opacity="0.5">
+    <circle cx="300" cy="340" r="120"></circle>
+    <circle cx="300" cy="340" r="160"></circle>
+  </g>
+  <g transform="translate(300 360)" fill="none" stroke="#6B6055" stroke-width="1">
+    <ellipse cx="0" cy="0" rx="44" ry="44"></ellipse>
+    <ellipse cx="0" cy="0" rx="40" ry="40"></ellipse>
+    <path d="M-20 -36 L-12 -16 L0 -8 L12 -16 L20 -36"></path>
+    <circle cx="0" cy="-32" r="3" fill="#B8956A" stroke="none"></circle>
+  </g>
+  <text x="300" y="640" text-anchor="middle" font-family="&#39;Inter&#39;, sans-serif" font-size="11" letter-spacing="0.3em" fill="#A89B8C">PLACEHOLDER · IMAGEM DE PRODUTO</text>
+</svg>

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><title>Palette · Neutrals</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 24px; font-family: var(--font-body); }
+  .row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  .sw { aspect-ratio: 1.4 / 1; border-radius: 6px; border: 1px solid var(--divider);
+        display:flex; flex-direction:column; justify-content:flex-end; padding: 10px; }
+  .sw .name { font-size: 11px; font-weight: 600; }
+  .sw .hex  { font-size: 10px; color: var(--text-muted); font-family: var(--font-mono); margin-top:2px;}
+  .sw.dark .name, .sw.dark .hex { color: #FAFAF6; }
+  .sw.dark .hex { color: #A89B8C; }
+</style></head>
+<body>
+  <div class="row">
+    <div class="sw" style="background:#FAFAF6">       <div class="name">Paper warm</div><div class="hex">#FAFAF6</div></div>
+    <div class="sw" style="background:#FFFFFF">       <div class="name">Surface</div>   <div class="hex">#FFFFFF</div></div>
+    <div class="sw" style="background:#E8E2D5">       <div class="name">Divider</div>   <div class="hex">#E8E2D5</div></div>
+    <div class="sw" style="background:#A89B8C">       <div class="name">Ink 300</div>   <div class="hex">#A89B8C</div></div>
+    <div class="sw dark" style="background:#6B6055">  <div class="name">Ink 500</div>   <div class="hex">#6B6055</div></div>
+    <div class="sw dark" style="background:#3A332C">  <div class="name">Ink 700</div>   <div class="hex">#3A332C</div></div>
+    <div class="sw dark" style="background:#1A1612">  <div class="name">Ink 900</div>   <div class="hex">#1A1612</div></div>
+    <div class="sw" style="background:#F7F8FA">       <div class="name">Paper cool</div><div class="hex">#F7F8FA</div></div>
+    <div class="sw" style="background:#F5EFE3">       <div class="name">Paper cream</div><div class="hex">#F5EFE3</div></div>
+    <div class="sw" style="background:#F4F1E9">       <div class="name">Sunken</div>    <div class="hex">#F4F1E9</div></div>
+  </div>
+</body></html>

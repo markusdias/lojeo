@@ -1,0 +1,28 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Card</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 32px; background: var(--paper); font-family: var(--font-sans); color: var(--fg); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .pane { border-radius: 12px; padding: 24px; }
+  .light { background: #FAFAF7; color: #0A0A0A; border: 1px solid #E5E5E5; }
+  .dark  { background: #0A0A0A; color: #FAFAF7; }
+  .pane h3 { margin: 0 0 4px; font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
+  .pane .secondary { font-size: 14px; opacity: 0.6; margin: 0 0 16px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; }
+  .light .pill { background: #00553D; color: white; }
+  .dark .pill { background: #34C796; color: #0A0A0A; }
+  .dot { width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
+</style></head><body>
+<div class="row">
+  <div class="pane light">
+    <h3>Olá, Marina</h3>
+    <p class="secondary">Sua loja vendeu R$ 4.280 hoje.</p>
+    <span class="pill"><span class="dot"></span>Conectado</span>
+  </div>
+  <div class="pane dark">
+    <h3>Olá, Marina</h3>
+    <p class="secondary">Sua loja vendeu R$ 4.280 hoje.</p>
+    <span class="pill"><span class="dot"></span>Conectado</span>
+  </div>
+</div>
+</body></html>

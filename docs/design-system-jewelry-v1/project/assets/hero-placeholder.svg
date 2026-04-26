@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900">
+  <defs>
+    <linearGradient id="hg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5EFE3"></stop>
+      <stop offset="100%" stop-color="#E8DFC8"></stop>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#hg)"></rect>
+  <g opacity="0.35" fill="none" stroke="#B8956A" stroke-width="0.5">
+    <circle cx="800" cy="450" r="180"></circle>
+    <circle cx="800" cy="450" r="240"></circle>
+    <circle cx="800" cy="450" r="320"></circle>
+  </g>
+  <g transform="translate(800 470)" fill="none" stroke="#6B6055" stroke-width="1.2">
+    <ellipse rx="80" ry="80"></ellipse>
+    <ellipse rx="74" ry="74"></ellipse>
+    <circle cx="0" cy="-72" r="6" fill="#B8956A" stroke="none"></circle>
+  </g>
+  <text x="800" y="820" text-anchor="middle" font-family="&#39;Inter&#39;, sans-serif" font-size="13" letter-spacing="0.4em" fill="#6B6055">PLACEHOLDER · HERO LIFESTYLE</text>
+</svg>

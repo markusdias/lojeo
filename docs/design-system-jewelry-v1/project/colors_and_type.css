@@ -1,0 +1,410 @@
+/* ============================================================
+ * jewelry-v1 — colors_and_type.css
+ * Storefront template tokens (CSS variables, Tailwind v4 friendly)
+ * ============================================================
+ *
+ * Architecture:
+ *   1. Base tokens (raw values)            :root
+ *   2. Semantic tokens (intent)            :root
+ *   3. Combo presets (typography A/B/C)    [data-typo="a|b|c"]
+ *   4. Accent presets                      [data-accent="..."]
+ *   5. Background tone presets             [data-bg-tone="..."]
+ *   6. Image radius preset                 [data-img-radius="0|8|16"]
+ *   7. Type ramp scale                     [data-type-scale="..."]
+ *   8. Element-level semantic vars         h1, h2, p, code, ...
+ *
+ * The storefront <html> tag carries the data-* attributes that
+ * the admin writes; e.g.
+ *   <html data-typo="a" data-accent="champagne"
+ *         data-bg-tone="warm" data-img-radius="8"
+ *         data-type-scale="default">
+ * ============================================================ */
+
+/* --- Google Fonts (all three combos preloaded; combo selector
+       activates the right family) ----------------------------- */
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root {
+  /* ============================================================
+   * 1 · Base color tokens (raw)
+   * ============================================================ */
+  --color-paper-warm:        #FAFAF6;  /* default bg */
+  --color-paper-pure:        #FFFFFF;
+  --color-paper-cool:        #F7F8FA;
+  --color-paper-cream:       #F5EFE3;
+
+  --color-ink-900:           #1A1612;  /* near-black warm */
+  --color-ink-700:           #3A332C;
+  --color-ink-500:           #6B6055;
+  --color-ink-300:           #A89B8C;
+  --color-ink-100:           #E8E2D5;  /* divider */
+
+  --color-champagne:         #B8956A;
+  --color-champagne-hover:   #9F7E58;
+  --color-silver:            #9AA0A6;
+  --color-silver-hover:      #7E848A;
+  --color-rose-gold:         #C8A28C;
+  --color-rose-gold-hover:   #B0876F;
+  --color-copper:            #A96B3F;
+  --color-copper-hover:      #8E5630;
+  --color-noir-rose:         #5C3A3F;
+  --color-noir-rose-hover:   #492C30;
+
+  --color-success:           #5C7A4A;
+  --color-success-bg:        #EEF2E8;
+  --color-error:             #A84444;
+  --color-error-bg:          #F4E6E6;
+  --color-warning:           #B8853A;
+  --color-warning-bg:        #F6EEDC;
+
+  /* ============================================================
+   * 2 · Semantic color tokens
+   * (these are what UI references; the [data-*] presets below
+   *  rewrite them)
+   * ============================================================ */
+  --bg:               var(--color-paper-warm);
+  --surface:          var(--color-paper-pure);
+  --surface-sunken:   #F4F1E9;
+  --text-primary:     var(--color-ink-900);
+  --text-secondary:   var(--color-ink-500);
+  --text-muted:       var(--color-ink-300);
+  --text-on-accent:   var(--color-paper-pure);
+  --text-on-dark:     var(--color-paper-warm);
+  --divider:          var(--color-ink-100);
+  --accent:           var(--color-champagne);
+  --accent-hover:     var(--color-champagne-hover);
+  --accent-soft:      #F2EAD9;
+  --success:          var(--color-success);
+  --success-bg:       var(--color-success-bg);
+  --error:            var(--color-error);
+  --error-bg:         var(--color-error-bg);
+  --warning:          var(--color-warning);
+  --warning-bg:       var(--color-warning-bg);
+
+  --footer-bg:        #1A1612;
+  --footer-text:      #FAFAF6;
+  --footer-muted:     #8B8275;
+
+  /* ============================================================
+   * 3 · Spacing scale (4px base — generous luxe rhythm)
+   * ============================================================ */
+  --sp-0:    0;
+  --sp-1:    4px;
+  --sp-2:    8px;
+  --sp-3:    12px;
+  --sp-4:    16px;
+  --sp-5:    20px;
+  --sp-6:    24px;
+  --sp-8:    32px;
+  --sp-10:   40px;
+  --sp-12:   48px;
+  --sp-16:   64px;
+  --sp-20:   80px;
+  --sp-24:   96px;
+  --sp-32:   128px;
+  --sp-40:   160px;
+
+  /* ============================================================
+   * 4 · Radius
+   * ============================================================ */
+  --r-none:  0;
+  --r-sm:    2px;
+  --r-md:    8px;
+  --r-lg:    16px;
+  --r-xl:    24px;
+  --r-pill:  999px;
+
+  /* lojista chooses 0 / 8 / 16; default = 8 */
+  --r-image: 8px;
+
+  /* ============================================================
+   * 5 · Shadows (very subtle — paper feel)
+   * ============================================================ */
+  --shadow-none:   none;
+  --shadow-sm:     0 1px 2px rgba(26,22,18,0.04);
+  --shadow-md:     0 4px 16px rgba(26,22,18,0.06);
+  --shadow-lg:     0 12px 32px rgba(26,22,18,0.08);
+  --shadow-image:  0 20px 60px rgba(26,22,18,0.12);
+  --shadow-focus:  0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+
+  /* ============================================================
+   * 6 · Borders
+   * ============================================================ */
+  --border-thin:    1px solid var(--divider);
+  --border-strong:  1px solid var(--text-primary);
+  --border-accent:  1px solid var(--accent);
+
+  /* ============================================================
+   * 7 · Motion
+   * ============================================================ */
+  --ease-out:       cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out:    cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro:      120ms;
+  --dur-base:       240ms;
+  --dur-page:       480ms;
+
+  /* ============================================================
+   * 8 · Layout
+   * ============================================================ */
+  --container-max:    1280px;
+  --container-pad:    clamp(16px, 5vw, 64px);
+  --header-h-mobile:  64px;
+  --header-h-desktop: 80px;
+
+  /* ============================================================
+   * 9 · Typography — base (overridden by [data-typo])
+   *    DEFAULT = combo A
+   * ============================================================ */
+  --font-display: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --font-body:    'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --display-tracking: -0.01em;
+  --display-weight:   500;
+  --body-tracking:    0;
+  --body-weight:      400;
+  --eyebrow-tracking: 0.12em;
+
+  /* Type ramp — clamp(min, fluid, max) for fluid responsive */
+  --fs-eyebrow:  11px;
+  --fs-caption:  12px;
+  --fs-small:    14px;
+  --fs-body:     16px;
+  --fs-lead:     18px;
+  --fs-h6:       18px;
+  --fs-h5:       20px;
+  --fs-h4:       clamp(22px, 2vw, 26px);
+  --fs-h3:       clamp(26px, 2.5vw, 32px);
+  --fs-h2:       clamp(32px, 4vw, 44px);
+  --fs-h1:       clamp(40px, 6vw, 64px);
+  --fs-display:  clamp(56px, 8vw, 96px);
+
+  --lh-tight:    1.1;
+  --lh-snug:     1.25;
+  --lh-normal:   1.5;
+  --lh-relaxed:  1.65;
+}
+
+/* ============================================================
+ * 10 · Typography combo presets — lojista chooses one whole
+ *    package; system applies display + body + tracking + weight.
+ * ============================================================ */
+
+[data-typo="a"], :root {
+  /* Combo A — Default · Cormorant Garamond + Inter
+     Mood: timeless, heritage, traditional sophistication */
+  --font-display: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --font-body:    'Inter', system-ui, sans-serif;
+  --display-tracking: -0.01em;
+  --display-weight:   500;
+  --body-tracking:    0;
+  --body-weight:      400;
+}
+
+[data-typo="b"] {
+  /* Combo B — Editorial · Playfair Display + Source Sans 3
+     Mood: editorial fashion magazine, high contrast */
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body:    'Source Sans 3', system-ui, sans-serif;
+  --display-tracking: -0.02em;
+  --display-weight:   500;
+  --body-tracking:    0.005em;
+  --body-weight:      400;
+}
+
+[data-typo="c"] {
+  /* Combo C — Object-design · Inter (display) + JetBrains Mono
+     Mood: ultra-premium, jewelry as design object
+     Note: real Inter Display requires Rasmus license; using Inter
+     with optical features as substitute. */
+  --font-display: 'Inter', system-ui, sans-serif;
+  --font-body:    'JetBrains Mono', ui-monospace, monospace;
+  --display-tracking: -0.04em;
+  --display-weight:   600;
+  --body-tracking:    0;
+  --body-weight:      400;
+}
+
+/* Combo C: tighten body since mono is wider */
+[data-typo="c"] body {
+  font-feature-settings: "ss01", "cv11", "cv02";
+}
+
+/* ============================================================
+ * 11 · Type-scale presets (lojista: padrão / maior / menor)
+ * ============================================================ */
+[data-type-scale="larger"] {
+  --fs-eyebrow: 12px;   --fs-caption: 13px;  --fs-small: 15px;
+  --fs-body:    17px;   --fs-lead:    19px;  --fs-h6:    20px;
+  --fs-h5:      22px;   --fs-h4:      clamp(24px, 2.2vw, 28px);
+  --fs-h3:      clamp(28px, 2.7vw, 36px);
+  --fs-h2:      clamp(36px, 4.4vw, 48px);
+  --fs-h1:      clamp(44px, 6.6vw, 72px);
+  --fs-display: clamp(64px, 9vw, 108px);
+}
+[data-type-scale="smaller"] {
+  --fs-eyebrow: 10px;   --fs-caption: 11px;  --fs-small: 13px;
+  --fs-body:    15px;   --fs-lead:    17px;  --fs-h6:    16px;
+  --fs-h5:      18px;   --fs-h4:      clamp(20px, 1.8vw, 24px);
+  --fs-h3:      clamp(24px, 2.3vw, 28px);
+  --fs-h2:      clamp(28px, 3.6vw, 38px);
+  --fs-h1:      clamp(34px, 5.4vw, 56px);
+  --fs-display: clamp(48px, 7vw, 84px);
+}
+
+/* ============================================================
+ * 12 · Accent presets
+ * ============================================================ */
+[data-accent="champagne"], :root {
+  --accent:        var(--color-champagne);
+  --accent-hover:  var(--color-champagne-hover);
+  --accent-soft:   #F2EAD9;
+}
+[data-accent="silver"] {
+  --accent:        var(--color-silver);
+  --accent-hover:  var(--color-silver-hover);
+  --accent-soft:   #ECEEF1;
+}
+[data-accent="rose-gold"] {
+  --accent:        var(--color-rose-gold);
+  --accent-hover:  var(--color-rose-gold-hover);
+  --accent-soft:   #F4E7DD;
+}
+[data-accent="copper"] {
+  --accent:        var(--color-copper);
+  --accent-hover:  var(--color-copper-hover);
+  --accent-soft:   #F0DDCD;
+}
+[data-accent="noir-rose"] {
+  --accent:        var(--color-noir-rose);
+  --accent-hover:  var(--color-noir-rose-hover);
+  --accent-soft:   #ECDBDD;
+}
+/* custom hex: lojista sets --accent inline; --accent-hover/soft fallback */
+
+/* ============================================================
+ * 13 · Background tone presets
+ * ============================================================ */
+[data-bg-tone="warm"], :root {
+  --bg:             var(--color-paper-warm);
+  --surface-sunken: #F4F1E9;
+}
+[data-bg-tone="pure"] {
+  --bg:             var(--color-paper-pure);
+  --surface-sunken: #F5F5F5;
+}
+[data-bg-tone="cool"] {
+  --bg:             var(--color-paper-cool);
+  --surface-sunken: #EEF0F3;
+}
+[data-bg-tone="cream"] {
+  --bg:             var(--color-paper-cream);
+  --surface-sunken: #EBE3D2;
+}
+
+/* ============================================================
+ * 14 · Image radius preset
+ * ============================================================ */
+[data-img-radius="0"]  { --r-image: 0; }
+[data-img-radius="8"]  { --r-image: 8px; }
+[data-img-radius="16"] { --r-image: 16px; }
+
+/* ============================================================
+ * 15 · Element-level semantic styles
+ *    (apply at element level so any plain markup looks right)
+ * ============================================================ */
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: var(--lh-normal);
+  font-weight: var(--body-weight);
+  letter-spacing: var(--body-tracking);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-tracking);
+  line-height: var(--lh-tight);
+  color: var(--text-primary);
+  text-wrap: balance;
+}
+
+h1 { font-size: var(--fs-h1); }
+h2 { font-size: var(--fs-h2); line-height: var(--lh-snug); }
+h3 { font-size: var(--fs-h3); line-height: var(--lh-snug); }
+h4 { font-size: var(--fs-h4); line-height: var(--lh-snug); }
+h5 { font-size: var(--fs-h5); line-height: var(--lh-snug); }
+h6 { font-size: var(--fs-h6); line-height: var(--lh-snug); }
+
+p {
+  margin: 0 0 var(--sp-4) 0;
+  text-wrap: pretty;
+  max-width: 65ch;
+}
+
+small, .text-small { font-size: var(--fs-small); }
+.text-caption     { font-size: var(--fs-caption); color: var(--text-secondary); }
+.text-lead        { font-size: var(--fs-lead); color: var(--text-secondary); line-height: var(--lh-relaxed); }
+.text-display     { font-family: var(--font-display); font-size: var(--fs-display); letter-spacing: var(--display-tracking); line-height: 0.95; }
+
+.eyebrow {
+  font-family: var(--font-body);
+  font-size: var(--fs-eyebrow);
+  font-weight: 500;
+  letter-spacing: var(--eyebrow-tracking);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+  transition: color var(--dur-micro) var(--ease-out);
+}
+a:hover { color: var(--accent-hover); }
+
+code, pre, kbd, samp {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+hr {
+  border: none;
+  border-top: var(--border-thin);
+  margin: var(--sp-12) 0;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--text-primary);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+/* Reduced motion: kill long transitions, keep gentle fades */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 80ms !important;
+    scroll-behavior: auto !important;
+  }
+}

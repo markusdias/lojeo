@@ -8,6 +8,25 @@ Motor único de e-commerce adaptável via templates. Fase 1: duas lojas própria
 
 **Status atual:** pré-código. Etapas 1 e 2 (diagnóstico + decisões de fundação) ainda pendentes.
 
+## Distinção fundamental: Lojeo (sistema) vs Templates (instâncias)
+
+**NUNCA confundir as duas camadas.** São produtos com identidades visuais e marcas diferentes.
+
+| Camada | O que é | Identidade visual | Quem vê |
+|---|---|---|---|
+| **Lojeo (sistema/produto SaaS)** | Motor + admin + marca corporativa | Identidade Lojeo (neutra, profissional, multi-nicho) | Lojistas (todos os nichos) |
+| **Template `jewelry-v1`** | Identidade aplicada na loja de joias BR | Mood/marca de joalheria premium | Clientes finais da loja de joias |
+| **Template `coffee-v1`** | Identidade aplicada na loja de café internacional | Mood/marca de café artesanal | Clientes finais da loja de café |
+
+**Regras práticas:**
+- Storefront = identidade do template ativo (jewelry-v1 ou coffee-v1)
+- Admin = identidade Lojeo (sistema) — usado por todos os lojistas
+- Marca corporativa Lojeo = identidade do produto SaaS (logo, paleta, tom de voz da marca-mãe)
+- Componentes que vivem no storefront (chatbot widget, galeria UGC, hero personalizado, recomendações) seguem identidade do template
+- Componentes que vivem no admin (estúdio criativo IA, IA Analyst, dashboards, fila de moderação UGC) seguem identidade do Lojeo
+- Briefings para Claude Design devem declarar explicitamente qual camada está sendo desenhada
+- Decisões de UX, branding e tipografia precisam dizer a qual camada se aplicam
+
 ## Fluxo de trabalho obrigatório
 
 Antes de qualquer código, seguir sequência:

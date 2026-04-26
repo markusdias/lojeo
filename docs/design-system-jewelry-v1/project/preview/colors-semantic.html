@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><title>Semantic colors</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 24px; font-family: var(--font-body);}
+  .row { display:grid; grid-template-columns: repeat(3,1fr); gap:16px;}
+  .item { border:1px solid var(--divider); border-radius:8px; padding:14px; background:var(--surface);}
+  .dot { width:14px; height:14px; border-radius:999px; display:inline-block; vertical-align:middle; margin-right:8px;}
+  .name { font-size:12px; font-weight:600;}
+  .hex  { font-size:10px; color:var(--text-muted); font-family:var(--font-mono);}
+  .pill { display:inline-block; padding:4px 10px; border-radius:999px; font-size:11px; margin-top:8px; font-weight:500;}
+</style></head>
+<body>
+  <div class="row">
+    <div class="item">
+      <span class="dot" style="background:#5C7A4A"></span><span class="name">Success</span>
+      <div class="hex">#5C7A4A · bg #EEF2E8</div>
+      <span class="pill" style="background:#EEF2E8;color:#5C7A4A">Pedido confirmado</span>
+    </div>
+    <div class="item">
+      <span class="dot" style="background:#A84444"></span><span class="name">Error</span>
+      <div class="hex">#A84444 · bg #F4E6E6</div>
+      <span class="pill" style="background:#F4E6E6;color:#A84444">CEP inválido</span>
+    </div>
+    <div class="item">
+      <span class="dot" style="background:#B8853A"></span><span class="name">Warning</span>
+      <div class="hex">#B8853A · bg #F6EEDC</div>
+      <span class="pill" style="background:#F6EEDC;color:#B8853A">Restam 3 unidades</span>
+    </div>
+  </div>
+</body></html>

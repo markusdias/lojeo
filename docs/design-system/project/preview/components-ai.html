@@ -1,0 +1,29 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Card</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin:0; padding:24px; background:var(--paper); font-family:var(--font-sans); color:var(--fg); display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .card { background:#fff; border:1px solid #E5E5E5; border-radius:12px; padding:16px; }
+  .ai-hero { background: linear-gradient(135deg, rgba(0,85,61,0.06) 0%, rgba(52,199,150,0.12) 100%); border:1px solid rgba(0,85,61,0.12); border-radius:12px; padding:18px; }
+  .head { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .badge { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:999px; font-size:11px; font-weight:600; background: linear-gradient(135deg, rgba(0,85,61,0.10), rgba(52,199,150,0.20)); color:#00553D; border:1px solid rgba(0,85,61,0.15); letter-spacing:-0.01em; }
+  h4 { margin:0; font-size:14px; font-weight:600; letter-spacing:-0.01em; }
+  p { margin:0; font-size:12px; color:#525252; line-height:1.5; }
+  .gen-btn { margin-top:10px; display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 12px; background:#00553D; color:#fff; border:0; border-radius:8px; font-size:12px; font-weight:500; cursor:pointer; }
+  .cost { font-family:var(--font-mono); font-size:11px; color:#525252; margin-top:8px; }
+  .meter-row { display:flex; justify-content:space-between; font-size:11px; color:#525252; margin-bottom:6px; font-family:var(--font-mono); }
+  .bar { height:6px; background:#F5F5F5; border-radius:999px; overflow:hidden; }
+  .bar > div { height:100%; background: linear-gradient(90deg, #00553D, #34C796); border-radius:999px; }
+</style></head><body>
+  <div class="ai-hero">
+    <div class="head"><span class="badge">✨ IA</span><h4>Gerar descrição</h4></div>
+    <p>Texto otimizado pra SEO em segundos. Você revisa antes de salvar.</p>
+    <button class="gen-btn">Gerar com IA</button>
+    <div class="cost">≈ R$ 0,02 · ~3s</div>
+  </div>
+  <div class="card">
+    <div class="head"><span class="badge">IA</span><h4>Cota mensal</h4></div>
+    <div class="meter-row"><span>Usado</span><span>R$ 12,40 / R$ 50,00</span></div>
+    <div class="bar"><div style="width:24.8%"></div></div>
+    <p style="margin-top:10px">Estimativa de fim: 18 de maio · modo econômico desligado.</p>
+  </div>
+</body></html>

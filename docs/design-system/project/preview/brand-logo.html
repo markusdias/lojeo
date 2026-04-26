@@ -1,0 +1,31 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Card</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin:0; padding:0; background:var(--paper); font-family:var(--font-sans); display:grid; grid-template-columns:1fr 1fr; min-height:240px; }
+  .pane { padding:32px; display:flex; flex-direction:column; justify-content:center; gap:14px; }
+  .light { background:#FAFAF7; }
+  .dark  { background:#0A0A0A; }
+  .row { display:flex; align-items:center; gap:18px; }
+  .mark { width:48px; height:48px; }
+  .word { font-size:36px; font-weight:600; letter-spacing:-0.04em; line-height:1; }
+  .light .word { color:#0A0A0A; }
+  .dark  .word { color:#FAFAF7; }
+  .meta { font-family:var(--font-mono); font-size:11px; opacity:0.5; }
+  .light .meta { color:#0A0A0A; }
+  .dark .meta { color:#FAFAF7; }
+</style></head><body>
+  <div class="pane light">
+    <div class="row">
+      <svg class="mark" viewBox="0 0 56 56"><path d="M8 8 H44 V44 H20 a12 12 0 0 1 -12 -12 Z" fill="#00553D"/><circle cx="34" cy="20" r="4" fill="#FAFAF7"/></svg>
+      <span class="word">lojeo</span>
+    </div>
+    <div class="meta">Light · Verde profundo + preto suave</div>
+  </div>
+  <div class="pane dark">
+    <div class="row">
+      <svg class="mark" viewBox="0 0 56 56"><path d="M8 8 H44 V44 H20 a12 12 0 0 1 -12 -12 Z" fill="#34C796"/><circle cx="34" cy="20" r="4" fill="#0A0A0A"/></svg>
+      <span class="word">lojeo</span>
+    </div>
+    <div class="meta">Dark · Verde claro + off-white</div>
+  </div>
+</body></html>

@@ -1,0 +1,31 @@
+/* Lojeo template jewelry-v1 — tokens base. Bundle completo em docs/design-system-jewelry-v1/ */
+:root {
+  --color-bg: #fbf9f4;
+  --color-bg-elevated: #ffffff;
+  --color-fg: #1a1a1a;
+  --color-fg-muted: #5a5a5a;
+  --color-accent: #b08d4c;
+  --color-accent-fg: #ffffff;
+  --color-border: #e5e0d4;
+  --color-success: #2f7a4d;
+  --color-warning: #c08a1f;
+  --color-danger: #b8312a;
+
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+
+  --font-display: 'Playfair Display', 'Inter', serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+[data-typography='editorial-moderno'] {
+  --font-display: 'EB Garamond', serif;
+  --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+[data-typography='minimalista-contemporaneo'] {
+  --font-display: 'Outfit', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+}

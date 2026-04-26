@@ -1,0 +1,195 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Jewelry-v1 Storefront Configuration",
+  "description": "Schema das opções configuráveis pelo lojista no admin Lojeo. Toda config gera apenas data-* attributes no <html> + valores em CSS variables; sem rebuild.",
+  "type": "object",
+  "required": ["identity", "typography", "accent", "background", "imagery", "homepage"],
+  "properties": {
+    "identity": {
+      "type": "object",
+      "required": ["storeName"],
+      "properties": {
+        "storeName":  { "type": "string", "maxLength": 60 },
+        "slogan":     { "type": "string", "maxLength": 80 },
+        "logo":       { "type": "string", "format": "uri", "description": "SVG ou PNG transparente recomendado" },
+        "logoDark":   { "type": "string", "format": "uri", "description": "Versão clara para footer dark" },
+        "favicon":    { "type": "string", "format": "uri" }
+      }
+    },
+
+    "typography": {
+      "type": "object",
+      "required": ["combo", "scale"],
+      "properties": {
+        "combo": {
+          "type": "string",
+          "enum": ["a", "b", "c"],
+          "default": "a",
+          "x-labels": {
+            "a": "Clássica refinada · Cormorant Garamond + Inter",
+            "b": "Editorial alto-contraste · Playfair Display + Source Sans 3",
+            "c": "Objeto de design · Inter Display + JetBrains Mono"
+          }
+        },
+        "scale": {
+          "type": "string",
+          "enum": ["smaller", "default", "larger"],
+          "default": "default"
+        }
+      }
+    },
+
+    "accent": {
+      "type": "object",
+      "required": ["preset"],
+      "properties": {
+        "preset": {
+          "type": "string",
+          "enum": ["champagne", "silver", "rose-gold", "copper", "noir-rose", "custom"],
+          "default": "champagne",
+          "x-labels": {
+            "champagne": "Dourado fosco champagne",
+            "silver":    "Prata escovada",
+            "rose-gold": "Rosé gold",
+            "copper":    "Cobre antigo",
+            "noir-rose": "Preto-rose",
+            "custom":    "Hex personalizado"
+          }
+        },
+        "customHex": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "description": "Usado apenas se preset = custom"
+        }
+      }
+    },
+
+    "background": {
+      "type": "object",
+      "required": ["tone"],
+      "properties": {
+        "tone": {
+          "type": "string",
+          "enum": ["warm", "pure", "cool", "cream"],
+          "default": "warm",
+          "x-labels": {
+            "warm":  "Off-white quente (papel)",
+            "pure":  "Branco puro",
+            "cool":  "Off-white frio",
+            "cream": "Creme"
+          }
+        }
+      }
+    },
+
+    "imagery": {
+      "type": "object",
+      "required": ["style", "borderRadius"],
+      "properties": {
+        "style": {
+          "type": "string",
+          "enum": ["isolated", "lifestyle", "mix"],
+          "default": "mix",
+          "description": "Style fotográfico predominante. Influencia recomendações IA mas não bloqueia uploads."
+        },
+        "borderRadius": {
+          "type": "integer",
+          "enum": [0, 8, 16],
+          "default": 8
+        }
+      }
+    },
+
+    "brandGuide": {
+      "type": "object",
+      "description": "Alimenta o assistente IA que gera copy de produto e seções.",
+      "properties": {
+        "tone": {
+          "type": "string",
+          "enum": ["formal", "casual", "poetic"],
+          "default": "formal"
+        },
+        "person": {
+          "type": "string",
+          "enum": ["voce", "tu", "voces"],
+          "default": "voce",
+          "x-labels": {
+            "voce":  "Você (formal-amigável, default)",
+            "tu":    "Tu (regional)",
+            "voces": "Vocês (plural neutro)"
+          }
+        },
+        "wordsToAvoid":  { "type": "array", "items": { "type": "string" }, "default": ["queridinha", "fofa", "produto", "item"] },
+        "wordsToPrefer": { "type": "array", "items": { "type": "string" }, "default": ["peça", "criação", "feita à mão"] },
+        "tagline":       { "type": "string", "maxLength": 120 },
+        "exampleCopy":   { "type": "string", "maxLength": 600 }
+      }
+    },
+
+    "hero": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["video", "image", "carousel", "grid"],
+          "default": "image"
+        },
+        "media":     { "type": "array", "items": { "type": "string", "format": "uri" } },
+        "headline":  { "type": "string", "maxLength": 120 },
+        "subheadline": { "type": "string", "maxLength": 220 },
+        "ctaLabel":  { "type": "string", "maxLength": 32 },
+        "ctaHref":   { "type": "string" }
+      }
+    },
+
+    "homepage": {
+      "type": "object",
+      "description": "Lojista escolhe ordem e visibilidade das seções.",
+      "properties": {
+        "sections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "enabled"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "enum": ["hero", "collections", "newArrivals", "bestSellers", "about", "testimonials", "ugc", "blog"]
+              },
+              "enabled": { "type": "boolean", "default": true },
+              "title":   { "type": "string" }
+            }
+          },
+          "default": [
+            { "id": "hero",         "enabled": true },
+            { "id": "collections",  "enabled": true, "title": "Coleções" },
+            { "id": "newArrivals",  "enabled": true, "title": "Acabou de chegar" },
+            { "id": "bestSellers",  "enabled": true, "title": "Mais queridas" },
+            { "id": "about",        "enabled": true, "title": "Nossa história" },
+            { "id": "ugc",          "enabled": true, "title": "Da nossa comunidade" },
+            { "id": "testimonials", "enabled": false },
+            { "id": "blog",         "enabled": false }
+          ]
+        }
+      }
+    },
+
+    "trustSignals": {
+      "type": "object",
+      "properties": {
+        "certificates":  { "type": "array", "items": { "type": "string" }, "description": "Ex: IBGM, IGI, GIA" },
+        "warrantyYears": { "type": "integer", "minimum": 0, "default": 1 },
+        "packaging":     { "type": "string", "default": "Embalagem presente inclusa" },
+        "paymentMethods": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["pix", "credit", "boleto", "applepay", "googlepay"]
+          },
+          "default": ["pix", "credit", "boleto"]
+        }
+      }
+    }
+  }
+}

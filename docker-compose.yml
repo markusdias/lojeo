@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: lojeo-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: lojeo
+      POSTGRES_PASSWORD: lojeo
+      POSTGRES_DB: lojeo
+    ports:
+      - "5432:5432"
+    volumes:
+      - lojeo-postgres-data:/var/lib/postgresql/data
+      - ./scripts/postgres-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lojeo -d lojeo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    container_name: lojeo-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: lojeo
+      MINIO_ROOT_PASSWORD: lojeo-minio-secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - lojeo-minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - storage
+
+volumes:
+  lojeo-postgres-data:
+  lojeo-minio-data:

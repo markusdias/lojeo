@@ -1,0 +1,41 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Card</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin:0; padding:24px; background:var(--paper); font-family:var(--font-sans); color:var(--fg); display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .quote { padding:14px 16px; border-left:3px solid #00553D; background:#fff; border-radius:0 8px 8px 0; }
+  .label { font-size:11px; font-weight:600; color:#00553D; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px; }
+  .text { font-size:14px; line-height:1.5; color:#0A0A0A; }
+  .text + .text { margin-top:6px; color:#737373; font-size:13px; }
+  .bad { border-left-color:#EF4444; }
+  .bad .label { color:#EF4444; }
+  .bad .text { text-decoration: line-through; color:#A3A3A3; }
+</style></head><body>
+  <div class="quote">
+    <div class="label">Sucesso</div>
+    <div class="text">Tudo certo!</div>
+    <div class="text">Vendido! Pedido #00185 confirmado.</div>
+  </div>
+  <div class="quote">
+    <div class="label">Erro</div>
+    <div class="text">Não rolou — vamos tentar de novo?</div>
+    <div class="text">Hmm, deu ruim por aqui. Tenta isto:</div>
+  </div>
+  <div class="quote">
+    <div class="label">Vazio</div>
+    <div class="text">Ainda nada por aqui — comece criando seu primeiro produto.</div>
+  </div>
+  <div class="quote">
+    <div class="label">Loading</div>
+    <div class="text">Um instante…</div>
+  </div>
+  <div class="quote bad">
+    <div class="label">Não fazer</div>
+    <div class="text">Loading…</div>
+    <div class="text">Sua vendinha decolou, queridinha! ✨</div>
+  </div>
+  <div class="quote">
+    <div class="label">CTA</div>
+    <div class="text">Conectar Mercado Pago em 1 clique</div>
+    <div class="text">Publicar agora</div>
+  </div>
+</body></html>

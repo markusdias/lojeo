@@ -1,0 +1,37 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Card</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin:0; padding:28px; background:var(--paper); font-family:var(--font-sans); color:var(--fg); display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  .field { display:flex; flex-direction:column; gap:6px; }
+  .label { font-size:13px; font-weight:500; color:#262626; }
+  .hint { font-size:12px; color:#737373; }
+  .input { height:40px; padding:0 12px; border:1px solid #D4D4D4; border-radius:8px; background:#fff; font:inherit; font-size:14px; color:#0A0A0A; outline:none; transition: border 180ms; }
+  .input:focus { border-color:#00553D; box-shadow: 0 0 0 3px rgba(0,85,61,0.15); }
+  .input.error { border-color:#EF4444; }
+  .input-icon { position:relative; }
+  .input-icon svg { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#737373; }
+  .input-icon input { padding-left:38px; }
+  .err-msg { font-size:12px; color:#EF4444; }
+</style></head><body>
+  <div class="field">
+    <label class="label">Nome do produto</label>
+    <input class="input" value="Anel Solitário Ouro 18k" />
+    <span class="hint">Como aparece na loja</span>
+  </div>
+  <div class="field">
+    <label class="label">Buscar</label>
+    <div class="input-icon">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input class="input" placeholder="Pedido, cliente, SKU…" />
+    </div>
+  </div>
+  <div class="field">
+    <label class="label">SKU</label>
+    <input class="input error" value="" />
+    <span class="err-msg">Não rolou — esse SKU já existe.</span>
+  </div>
+  <div class="field">
+    <label class="label">Preço</label>
+    <input class="input" value="R$ 2.490,00" style="font-family:var(--font-mono); font-variant-numeric: tabular-nums;" />
+  </div>
+</body></html>

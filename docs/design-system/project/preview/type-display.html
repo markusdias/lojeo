@@ -1,0 +1,16 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Card</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 32px; background: var(--paper); font-family: var(--font-sans); color: var(--fg); }
+  .row { display: flex; flex-direction: column; gap: 14px; }
+  .item { display: grid; grid-template-columns: 80px 1fr; gap: 16px; align-items: baseline; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .item:last-child { border: 0; }
+  .meta { font-family: var(--font-mono); font-size: 11px; color: var(--fg-secondary); }
+  .spec { letter-spacing: -0.025em; color: var(--fg); font-weight: 600; }
+</style></head><body>
+<div class="row">
+  <div class="item"><div class="meta">72 / 700</div><div class="spec" style="font-size:56px; line-height:1; letter-spacing:-0.03em">Vender</div></div>
+  <div class="item"><div class="meta">48 / 600</div><div class="spec" style="font-size:48px; line-height:1.1">é fácil agora</div></div>
+  <div class="item"><div class="meta">36 / 600</div><div class="spec" style="font-size:36px; line-height:1.2">Sua loja, do seu jeito</div></div>
+</div>
+</body></html>

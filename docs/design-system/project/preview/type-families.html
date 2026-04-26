@@ -1,0 +1,29 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Card</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 32px; background: var(--paper); font-family: var(--font-sans); color: var(--fg); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+  .col h4 { font-size: 12px; font-weight: 500; color: var(--fg-secondary); text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 12px; }
+  .row { display: flex; align-items: baseline; gap: 16px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .row:last-child { border: 0; }
+  .meta { font-family: var(--font-mono); font-size: 10px; color: var(--fg-secondary); width: 50px; }
+  .demo { letter-spacing: -0.01em; }
+  .demo.mono { font-family: var(--font-mono); letter-spacing: 0; }
+</style></head><body>
+<div class="grid">
+  <div class="col">
+    <h4>Inter — Sans</h4>
+    <div class="row"><div class="meta">400</div><div class="demo" style="font-size:18px;font-weight:400">Vender é fácil agora.</div></div>
+    <div class="row"><div class="meta">500</div><div class="demo" style="font-size:18px;font-weight:500">Vender é fácil agora.</div></div>
+    <div class="row"><div class="meta">600</div><div class="demo" style="font-size:18px;font-weight:600">Vender é fácil agora.</div></div>
+    <div class="row"><div class="meta">700</div><div class="demo" style="font-size:18px;font-weight:700">Vender é fácil agora.</div></div>
+  </div>
+  <div class="col">
+    <h4>JetBrains Mono — Data</h4>
+    <div class="row"><div class="meta">400</div><div class="demo mono" style="font-size:16px;font-weight:400">R$ 4.280,90</div></div>
+    <div class="row"><div class="meta">500</div><div class="demo mono" style="font-size:16px;font-weight:500">#PED-00184</div></div>
+    <div class="row"><div class="meta">600</div><div class="demo mono" style="font-size:16px;font-weight:600">SKU-A91-XL</div></div>
+    <div class="row"><div class="meta">400</div><div class="demo mono" style="font-size:13px;font-weight:400;color:var(--fg-secondary)">2026-04-25 14:32</div></div>
+  </div>
+</div>
+</body></html>

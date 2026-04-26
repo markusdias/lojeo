@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<title>lojeo · Brand Suite</title>
+<link rel="stylesheet" href="../colors_and_type.css"/>
+<style>
+  body { background: #FAFAF7; padding: 64px 48px 96px; }
+  .wrap { max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 40px; font-weight: 600; letter-spacing: -0.04em; margin: 0; }
+  .lede { color: var(--fg-secondary); font-size: 16px; margin: 8px 0 48px; max-width: 640px; }
+  .section { margin-bottom: 64px; }
+  .section h2 { font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--fg-muted); margin: 0 0 20px; }
+  .grid { display: grid; gap: 16px; }
+  .grid.two { grid-template-columns: 1fr 1fr; }
+  .grid.four { grid-template-columns: repeat(4, 1fr); }
+  .grid.six { grid-template-columns: repeat(6, 1fr); }
+
+  .swatch { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .swatch.dark { background: #0A0A0A; border-color: #262626; }
+  .swatch.dark .label, .swatch.dark .meta { color: #A3A3A3; }
+  .swatch .label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg-muted); }
+  .swatch .meta { font-family: var(--font-mono); font-size: 11px; color: var(--fg-muted); }
+  .swatch .preview { display: flex; align-items: center; justify-content: center; min-height: 80px; }
+  .swatch img { display: block; max-width: 100%; height: auto; }
+
+  .fav-cell { background: white; border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+  .fav-cell img { display: block; margin: 0 auto 10px; image-rendering: -webkit-optimize-contrast; }
+  .fav-cell .label { font-family: var(--font-mono); font-size: 11px; color: var(--fg-muted); }
+
+  .og-frame { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: white; }
+  .og-frame img { display: block; width: 100%; height: auto; }
+  .og-meta { padding: 12px 16px; font-size: 12px; color: var(--fg-secondary); display: flex; justify-content: space-between; border-top: 1px solid var(--border); }
+
+  .lockup-stage { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 48px; display: flex; align-items: center; justify-content: center; min-height: 160px; }
+  .lockup-stage.dark { background: #0A0A0A; border-color: #262626; }
+  .lockup-stage img { max-width: 320px; }
+
+  .browser-mock { background: white; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .browser-mock .chrome { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--neutral-50); border-bottom: 1px solid var(--border); }
+  .browser-mock .dots { display: flex; gap: 6px; }
+  .browser-mock .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--neutral-200); }
+  .browser-mock .url { font-family: var(--font-mono); font-size: 11px; background: white; padding: 5px 10px; border-radius: 6px; flex: 1; color: var(--fg-secondary); display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); }
+  .browser-mock .tab { display: flex; align-items: center; gap: 6px; padding: 4px 10px 4px 6px; background: white; border: 1px solid var(--border); border-bottom: none; border-radius: 6px 6px 0 0; font-size: 11px; color: var(--fg); position: relative; top: 1px; max-width: 200px; }
+  .browser-mock .tab img { width: 14px; height: 14px; }
+  .browser-mock .body { padding: 24px; min-height: 100px; color: var(--fg-secondary); font-size: 13px; }
+
+  .clearance { position: relative; background: white; border: 1px solid var(--border); border-radius: 12px; padding: 40px; display: flex; align-items: center; justify-content: center; }
+  .clearance .guides { position: absolute; inset: 16px; border: 1px dashed rgba(0, 85, 61, 0.3); border-radius: 6px; pointer-events: none; }
+  .clearance .x { position: absolute; font-family: var(--font-mono); font-size: 10px; color: var(--accent); padding: 2px 6px; background: var(--accent-soft); border-radius: 3px; }
+  .clearance .x.tl { top: 8px; left: 8px; }
+  .clearance .x.tr { top: 8px; right: 8px; }
+  .clearance .x.bl { bottom: 8px; left: 8px; }
+  .clearance .x.br { bottom: 8px; right: 8px; }
+  .clearance img { width: 100px; }
+</style>
+</head>
+<body data-screen-label="Brand Suite">
+<div class="wrap">
+  <h1>Brand Suite</h1>
+  <p class="lede">Sistema de marca finalizado para <strong>lojeo</strong>. Símbolo + lockup + app icon + favicons + social card. Direção <em>"Abrigo"</em> — quadrado com canto arredondado e ponto orgânico.</p>
+
+  <!-- LOCKUP -->
+  <section class="section">
+    <h2>Logo · Lockup primário</h2>
+    <div class="grid two">
+      <div class="lockup-stage">
+        <img src="../brand/lockup.svg" alt="lojeo lockup"/>
+      </div>
+      <div class="lockup-stage dark">
+        <img src="../brand/lockup-dark.svg" alt="lojeo lockup dark"/>
+      </div>
+    </div>
+  </section>
+
+  <!-- SYMBOL VARIATIONS -->
+  <section class="section">
+    <h2>Símbolo · 4 versões oficiais</h2>
+    <div class="grid four">
+      <div class="swatch">
+        <div class="preview"><img src="../brand/symbol.svg" width="80" height="80" alt=""/></div>
+        <div class="label">Primary</div>
+        <div class="meta">#00553D / cream</div>
+      </div>
+      <div class="swatch dark">
+        <div class="preview"><img src="../brand/symbol-dark.svg" width="80" height="80" alt=""/></div>
+        <div class="label">Dark bg</div>
+        <div class="meta">#34C796 / preto</div>
+      </div>
+      <div class="swatch">
+        <div class="preview"><img src="../brand/symbol-mono-black.svg" width="80" height="80" alt=""/></div>
+        <div class="label">Mono preto</div>
+        <div class="meta">1 cor · impressão</div>
+      </div>
+      <div class="swatch dark">
+        <div class="preview"><img src="../brand/symbol-mono-white.svg" width="80" height="80" alt=""/></div>
+        <div class="label">Mono branco</div>
+        <div class="meta">1 cor · sobre foto</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- APP ICON -->
+  <section class="section">
+    <h2>App icon · iOS · Android · PWA</h2>
+    <div class="grid four" style="align-items:end">
+      <div class="swatch"><div class="preview"><img src="../brand/app-icon-512.png" width="180" height="180" alt=""/></div><div class="label">512 · App stores</div><div class="meta">Squircle r=115</div></div>
+      <div class="swatch"><div class="preview"><img src="../brand/app-icon-192.png" width="120" height="120" alt=""/></div><div class="label">192 · PWA</div><div class="meta">manifest.json</div></div>
+      <div class="swatch"><div class="preview"><img src="../brand/app-icon-512.png" width="80" height="80" style="border-radius: 18px" alt=""/></div><div class="label">80 · iOS home</div><div class="meta">renderizado</div></div>
+      <div class="swatch"><div class="preview"><img src="../brand/app-icon-512.png" width="60" height="60" style="border-radius: 14px" alt=""/></div><div class="label">60 · iOS settings</div><div class="meta">renderizado</div></div>
+    </div>
+  </section>
+
+  <!-- FAVICONS -->
+  <section class="section">
+    <h2>Favicon · em contexto</h2>
+
+    <div class="browser-mock" style="margin-bottom: 20px">
+      <div class="chrome">
+        <div class="dots"><i/><i/><i/></div>
+        <div class="tab"><img src="../brand/favicon-16.png" alt=""/>lojeo · admin</div>
+        <div class="url"><img src="../brand/favicon-16.png" alt="" width="14" height="14"/> admin.lojeo.com.br/dashboard</div>
+      </div>
+      <div class="body">Browser tab @ 16px — favicon visível em zoom 100% num MacBook Air.</div>
+    </div>
+
+    <div class="grid six">
+      <div class="fav-cell"><img src="../brand/favicon-16.png" width="16" height="16" alt=""/><div class="label">16×16</div></div>
+      <div class="fav-cell"><img src="../brand/favicon-32.png" width="32" height="32" alt=""/><div class="label">32×32</div></div>
+      <div class="fav-cell"><img src="../brand/favicon-48.png" width="48" height="48" alt=""/><div class="label">48×48</div></div>
+      <div class="fav-cell"><img src="../brand/favicon-64.png" width="64" height="64" alt=""/><div class="label">64×64</div></div>
+      <div class="fav-cell"><img src="../brand/favicon-128.png" width="128" height="128" alt=""/><div class="label">128×128</div></div>
+      <div class="fav-cell" style="background:#0A0A0A;border-color:#262626"><img src="../brand/favicon-128.png" width="128" height="128" alt="" style="filter: invert(0)"/><div class="label" style="color:#A3A3A3">on dark</div></div>
+    </div>
+  </section>
+
+  <!-- OG -->
+  <section class="section">
+    <h2>Social card · Open Graph</h2>
+    <div class="og-frame">
+      <img src="../brand/og-1200x630.png" alt="Social card 1200×630"/>
+      <div class="og-meta">
+        <span><strong style="color:var(--fg)">lojeo</strong> · sua loja, do seu jeito.</span>
+        <span class="mono">1200 × 630 · og:image, twitter:card</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- CLEARANCE -->
+  <section class="section">
+    <h2>Espaço de respiro · clearance</h2>
+    <div class="grid two">
+      <div class="clearance">
+        <span class="x tl">x</span><span class="x tr">x</span><span class="x bl">x</span><span class="x br">x</span>
+        <span class="guides"></span>
+        <img src="../brand/symbol.svg" alt=""/>
+      </div>
+      <div class="swatch" style="text-align:left;align-items:flex-start;padding:24px 28px">
+        <div style="font-size:13px;color:var(--fg);line-height:1.6">
+          <strong>Regra de respiro:</strong> mínimo de <code style="font-family:var(--font-mono);font-size:12px;background:var(--accent-soft);color:var(--accent);padding:2px 6px;border-radius:4px">x</code> em cada lado, onde <code style="font-family:var(--font-mono);font-size:12px">x = altura do ponto</code> dentro do símbolo (~14% do bounding box). Nenhum elemento tipográfico, fotográfico ou ilustrativo deve invadir essa área.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DON'TS -->
+  <section class="section">
+    <h2>Não faça · uso impróprio</h2>
+    <div class="grid four">
+      <div class="swatch" style="position:relative">
+        <div class="preview"><img src="../brand/symbol.svg" width="80" height="80" style="transform:rotate(15deg)" alt=""/></div>
+        <div class="label" style="color:#B91C1C">✕ não rotacionar</div>
+        <div class="meta">vertical sempre</div>
+      </div>
+      <div class="swatch">
+        <div class="preview"><img src="../brand/symbol.svg" width="80" height="60" style="transform:scaleX(1.4)" alt=""/></div>
+        <div class="label" style="color:#B91C1C">✕ não distorcer</div>
+        <div class="meta">manter aspect ratio</div>
+      </div>
+      <div class="swatch" style="background:linear-gradient(135deg,#FF6B9D,#FFB36B)">
+        <div class="preview"><img src="../brand/symbol.svg" width="80" height="80" alt=""/></div>
+        <div class="label" style="color:white">✕ fundos saturados</div>
+        <div class="meta" style="color:rgba(255,255,255,0.8)">use mono branco</div>
+      </div>
+      <div class="swatch">
+        <div class="preview" style="filter: hue-rotate(120deg)"><img src="../brand/symbol.svg" width="80" height="80" alt=""/></div>
+        <div class="label" style="color:#B91C1C">✕ não trocar cor</div>
+        <div class="meta">verde lojeo apenas</div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,18 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Card</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 32px; background: var(--paper); font-family: var(--font-sans); color: var(--fg); }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .item { border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+  .swatch { height: 70px; display: flex; align-items: center; justify-content: center; font-weight: 600; color: white; font-size: 13px; letter-spacing: -0.01em; }
+  .meta { padding: 10px 12px; background: var(--surface); }
+  .meta .name { font-size: 12px; font-weight: 600; color: var(--fg); }
+  .meta .hex { font-family: var(--font-mono); font-size: 11px; color: var(--fg-secondary); margin-top: 2px; }
+</style></head><body>
+<div class="grid">
+  <div class="item"><div class="swatch" style="background:#10B981">Success</div><div class="meta"><div class="name">Tudo certo!</div><div class="hex">#10B981</div></div></div>
+  <div class="item"><div class="swatch" style="background:#F59E0B">Warning</div><div class="meta"><div class="name">Atenção</div><div class="hex">#F59E0B</div></div></div>
+  <div class="item"><div class="swatch" style="background:#EF4444">Error</div><div class="meta"><div class="name">Não rolou</div><div class="hex">#EF4444</div></div></div>
+  <div class="item"><div class="swatch" style="background:#3B82F6">Info</div><div class="meta"><div class="name">Informação</div><div class="hex">#3B82F6</div></div></div>
+</div>
+</body></html>

@@ -1,0 +1,22 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Card</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 28px; background: var(--paper); font-family: var(--font-sans); color: var(--fg); display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .btn { display:inline-flex; align-items:center; gap:8px; height:40px; padding:0 16px; border-radius:8px; font-size:14px; font-weight:500; cursor:pointer; transition: all 180ms cubic-bezier(0.16,1,0.3,1); border: 1px solid transparent; font-family: inherit; letter-spacing:-0.01em; }
+  .primary { background:#00553D; color:#fff; }
+  .primary:hover { background:#007A57; }
+  .secondary { background:#fff; color:#0A0A0A; border-color:#D4D4D4; }
+  .secondary:hover { background:#F5F5F5; }
+  .ghost { background:transparent; color:#0A0A0A; }
+  .ghost:hover { background:#F5F5F5; }
+  .destructive { background:#fff; color:#EF4444; border-color:#FECACA; }
+  .destructive:hover { background:#FEF2F2; }
+  .destructive-solid { background:#EF4444; color:#fff; }
+  .icon { width:16px; height:16px; }
+</style></head><body>
+  <button class="btn primary"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5v14M5 12h14"/></svg>Novo produto</button>
+  <button class="btn secondary">Cancelar</button>
+  <button class="btn ghost">Ver detalhes</button>
+  <button class="btn destructive">Excluir</button>
+  <button class="btn destructive-solid">Apagar tudo</button>
+</body></html>

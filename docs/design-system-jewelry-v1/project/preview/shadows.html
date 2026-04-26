@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><title>Shadows</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{padding:32px; font-family:var(--font-body); background:var(--bg);}
+  .row{display:grid; grid-template-columns:repeat(4,1fr); gap:24px;}
+  .item{display:flex; flex-direction:column; align-items:center; gap:10px;}
+  .box{width:90px; height:90px; background:#fff; border-radius:8px;}
+  .lbl{font-family:var(--font-mono); font-size:10px; color:var(--text-primary);}
+  .desc{font-size:10px; color:var(--text-muted); text-align:center;}
+</style></head>
+<body>
+  <div class="row">
+    <div class="item"><div class="box" style="box-shadow:0 1px 2px rgba(26,22,18,.04)"></div><span class="lbl">shadow-sm</span><span class="desc">cards default</span></div>
+    <div class="item"><div class="box" style="box-shadow:0 4px 16px rgba(26,22,18,.06)"></div><span class="lbl">shadow-md</span><span class="desc">menus, popovers</span></div>
+    <div class="item"><div class="box" style="box-shadow:0 12px 32px rgba(26,22,18,.08)"></div><span class="lbl">shadow-lg</span><span class="desc">modais</span></div>
+    <div class="item"><div class="box" style="box-shadow:0 20px 60px rgba(26,22,18,.12)"></div><span class="lbl">shadow-image</span><span class="desc">hero produto</span></div>
+  </div>
+</body></html>

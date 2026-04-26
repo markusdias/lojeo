@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><title>Spacing scale</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{padding:24px; font-family:var(--font-body);}
+  .row{display:grid; grid-template-columns: 60px 60px 1fr; align-items:center; gap:14px; padding:5px 0;}
+  .token{font-family:var(--font-mono); font-size:10px; color:var(--text-primary);}
+  .px{font-family:var(--font-mono); font-size:10px; color:var(--text-muted); text-align:right;}
+  .bar{background:#B8956A; height:10px; border-radius:2px;}
+</style></head>
+<body>
+  <div class="row"><span class="token">--sp-1</span><span class="px">4</span><div class="bar" style="width:4px"></div></div>
+  <div class="row"><span class="token">--sp-2</span><span class="px">8</span><div class="bar" style="width:8px"></div></div>
+  <div class="row"><span class="token">--sp-3</span><span class="px">12</span><div class="bar" style="width:12px"></div></div>
+  <div class="row"><span class="token">--sp-4</span><span class="px">16</span><div class="bar" style="width:16px"></div></div>
+  <div class="row"><span class="token">--sp-6</span><span class="px">24</span><div class="bar" style="width:24px"></div></div>
+  <div class="row"><span class="token">--sp-8</span><span class="px">32</span><div class="bar" style="width:32px"></div></div>
+  <div class="row"><span class="token">--sp-12</span><span class="px">48</span><div class="bar" style="width:48px"></div></div>
+  <div class="row"><span class="token">--sp-16</span><span class="px">64</span><div class="bar" style="width:64px"></div></div>
+  <div class="row"><span class="token">--sp-24</span><span class="px">96</span><div class="bar" style="width:96px"></div></div>
+  <div class="row"><span class="token">--sp-32</span><span class="px">128</span><div class="bar" style="width:128px"></div></div>
+</body></html>

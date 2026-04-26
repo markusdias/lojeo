@@ -1,0 +1,49 @@
+/* Lojeo admin — additional screen styles */
+
+/* Filter bar */
+.filter-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.search-inline { position: relative; }
+.search-inline svg { position: absolute; left: 10px; top: 9px; color: var(--neutral-400); }
+.search-inline input { height: 32px; padding: 0 12px 0 30px; border: 1px solid var(--border-strong); background: var(--surface); border-radius: 8px; font: inherit; font-size: 13px; outline: none; width: 240px; }
+.chip { height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface); font: inherit; font-size: 12px; font-weight: 500; cursor: pointer; color: var(--neutral-700); display: inline-flex; align-items: center; gap: 6px; }
+.chip:hover { background: var(--neutral-50); }
+.chip.active { background: var(--neutral-900); color: white; border-color: var(--neutral-900); }
+.chip-count { font-size: 10px; opacity: 0.65; font-family: var(--font-mono); }
+
+/* Product cell */
+.prod-cell { display: flex; align-items: center; gap: 10px; }
+.prod-img { width: 36px; height: 36px; border-radius: 6px; flex-shrink: 0; }
+
+/* Order detail */
+.order-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+.timeline { list-style: none; padding: 0; margin: 0; position: relative; }
+.timeline::before { content: ''; position: absolute; left: 7px; top: 8px; bottom: 8px; width: 1.5px; background: var(--border-strong); }
+.timeline li { position: relative; display: flex; gap: 14px; padding: 10px 0; align-items: flex-start; }
+.timeline .tl-dot { width: 16px; height: 16px; border-radius: 999px; background: var(--surface); border: 2px solid var(--border-strong); margin-top: 1px; z-index: 1; flex-shrink: 0; }
+.timeline li.done .tl-dot { background: var(--accent); border-color: var(--accent); }
+.timeline li.current .tl-dot { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+
+.line-item { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--border); }
+.totals { padding: 14px 20px; }
+.totals > div { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; color: var(--neutral-700); }
+.totals .grand { font-weight: 600; font-size: 15px; color: var(--fg); border-top: 1px solid var(--border); margin-top: 6px; padding-top: 12px; }
+.totals code { font-family: var(--font-mono); font-size: 11px; background: var(--neutral-50); padding: 1px 5px; border-radius: 4px; margin-left: 4px; }
+
+.cust-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.cust-row .avatar { width: 36px; height: 36px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+.kv { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border); }
+.kv > div { display: flex; justify-content: space-between; font-size: 13px; align-items: center; }
+.kv > div > span:first-child { color: var(--fg-secondary); }
+
+/* Login */
+.login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--paper); padding: 32px; }
+.login-card { width: 100%; max-width: 380px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 40px 36px; box-shadow: var(--shadow-md); }
+.btn-oauth { width: 100%; height: 44px; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--surface); display: flex; align-items: center; justify-content: center; gap: 10px; font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; margin-bottom: 8px; transition: background 120ms; }
+.btn-oauth:hover { background: var(--neutral-50); }
+.btn-oauth.apple { background: var(--neutral-900); color: white; border-color: var(--neutral-900); }
+.btn-oauth.apple:hover { background: var(--neutral-800); }
+.login-divider { display: flex; align-items: center; gap: 12px; margin: 24px 0; font-size: 11px; color: var(--fg-secondary); text-transform: uppercase; letter-spacing: 0.06em; }
+.login-divider::before, .login-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.form label { display: block; font-size: 12px; font-weight: 500; color: var(--neutral-700); margin: 10px 0 6px; }
+.form input { width: 100%; height: 40px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 8px; font: inherit; font-size: 14px; outline: none; background: var(--surface); }
+.form input:focus { border-color: var(--accent); box-shadow: var(--shadow-focus); }

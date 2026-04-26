@@ -2,13 +2,33 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Motor único de e-commerce com template de joias em produção vendendo de verdade, validando o mercado BR.
+**Goal:** Motor único de e-commerce com template de joias em produção vendendo de verdade, validando o mercado BR — com diferenciais de IA nativa, UGC e personalização comportamental que nenhum concorrente nacional oferece.
 
-**Architecture:** Monorepo Next.js 15 (App Router) com packages compartilhados para engine, DB (Drizzle + Neon) e UI. Motor não conhece nicho — carrega template via configuração de instância. Multi-tenant por `tenant_id` desde o dia 1.
+**Architecture:** Monorepo Next.js 15 (App Router) com packages compartilhados para engine, DB (Drizzle + Neon) e UI. Motor não conhece nicho — carrega template via configuração de instância. Multi-tenant por `tenant_id` desde o dia 1. Coleta de comportamento e tracking são fundação, não feature posterior.
 
-**Tech Stack:** Next.js 15, TypeScript, pnpm workspaces + Turborepo, Neon (PostgreSQL), Drizzle ORM, Auth.js v5, Trigger.dev (self-hosted), Cloudflare R2, Resend, shadcn/ui + Tailwind v4, Vitest + Playwright.
+**Tech Stack:** Next.js 15, TypeScript, pnpm workspaces + Turborepo, Neon (PostgreSQL com pgvector), Drizzle ORM, Auth.js v5, Trigger.dev (self-hosted), Cloudflare R2, Resend, shadcn/ui + Tailwind v4, Vitest + Playwright. Anthropic Claude API (Haiku para alto volume, Sonnet para premium).
 
 **Regra de ouro:** O motor (`packages/engine`) não pode importar nada de `templates/`. Templates são carregados via configuração de instância.
+
+**Princípio de IA:** Toda feature de IA tem cache + modo degradado + tracking de custo. Sem exceção.
+
+**Princípio de integrações:** Toda integração externa segue o padrão **OAuth 1-clique** sempre que o provedor oferecer. API key manual é fallback, nunca caminho principal. Lojista nunca copia chave manualmente quando OAuth for possível. Aplica a: Stripe, Mercado Pago, Pagar.me, PayPal, Melhor Envio, FaqZap, GA, GTM, Meta Pixel, TikTok Pixel, Google Ads, Microsoft Clarity, Bling, Olist, Resend, marketplaces (Mercado Livre, Shopee, Amazon, Etsy, Google Shopping, Meta Catalog).
+
+**Distinção fundamental — Lojeo (sistema) vs Templates (instâncias):**
+
+| Camada | Identidade visual | Onde aparece |
+|---|---|---|
+| **Lojeo (sistema + admin + marca SaaS)** | Identidade corporativa Lojeo, neutra e multi-nicho | Admin completo, marca-mãe, dashboards, fila moderação, IA Analyst, Estúdio criativo, Painel uso IA |
+| **Template `jewelry-v1`** | Mood de joalheria premium BR | Storefront da loja de joias: homepage, PLP, PDP, checkout, conta cliente, widget chatbot, galeria UGC, hero personalizado |
+| **Template `coffee-v1`** (Fase 1.2) | Mood de café artesanal internacional | Storefront da loja de café |
+
+**Regra:** todo briefing de design declara explicitamente qual camada. Storefront ≠ Admin. Marca Lojeo ≠ Marca jewelry-v1 ≠ Marca coffee-v1.
+
+**Princípio de IA — Research-first protocol (OBRIGATÓRIO):** Antes de implementar QUALQUER feature de IA, executar fase de pesquisa documentada em `docs/research/<sprint>-<feature>.md`. Inclui:
+- Para geração de imagem/vídeo: pesquisar prompts de referência por modelo (DALL-E 3, Flux, Ideogram, Stable Diffusion 3, Midjourney, Veo, Runway, Pika), padrões de sucesso para e-commerce/produtos, estratégias de seed/variation/upscale, custos por tentativa, melhores práticas de cada provider
+- Para outras IAs (chatbot, analyst, recomendação, moderação): pesquisar implementações reais em GitHub (open source de ponta), papers/artigos relevantes, soluções de concorrentes (Shopify Magic, Shopify Sidekick, Klaviyo AI, etc), patterns consolidados (RAG, tool-calling, hybrid search, RFM ML)
+- Documentar fontes, sumarizar achados, registrar decisão arquitetural antes de codar
+- Critério: nenhum prompt entra em produção sem ter passado por benchmark (mínimo 3 variações testadas com mesma input, comparação custo × qualidade)
 
 ---
 
@@ -16,20 +36,22 @@
 
 | Sprint | Tema | Duração | Bloqueador externo |
 |---|---|---|---|
-| 0 | Fundação técnica | 2 semanas | — |
-| 1 | Motor + catálogo | 2 semanas | — |
-| 2 | Storefront base | 2 semanas | **🎨 Design #1 (jewelry-v1)** |
+| 0 | Fundação técnica | 2 semanas | **🎨 Design A (Lojeo — marca + admin login)** |
+| 1 | Motor + catálogo + tracking foundation | 2 semanas | — |
+| 2 | Storefront base + instrumentação behavioral | 3 semanas | **🎨 Design B (template jewelry-v1)** |
 | 3 | Checkout + pagamentos BR | 2 semanas | Conta Mercado Pago |
 | 4 | Pedidos + frete + fiscal | 2 semanas | Conta Bling + Melhor Envio |
-| 5 | Admin operacional | 2 semanas | — |
-| 6 | CRM + garantias + trocas | 2 semanas | — |
-| 7 | IA backoffice v1 | 2 semanas | Chave Claude API |
-| 8 | FaqZap + notificações + tickets | 2 semanas | Conta FaqZap |
-| 9 | Estúdio criativo IA | 2 semanas | **🎨 Design #2 (estúdio)** + API imagem |
-| 10 | Busca semântica + pixels + SEO avançado | 2 semanas | — |
-| 11 | Polimento + segurança + produção | 2 semanas | — |
+| 5 | Admin + wishlist + gift card + back-in-stock | 3 semanas | **🎨 Design A completo (admin)** |
+| 6 | CRM + garantias + trocas + segmentação RFM | 2 semanas | — |
+| 7 | IA backoffice básica (descrições, SEO, fundo) | 2 semanas | Chave Claude API |
+| 8 | IA Analyst + churn + previsão de estoque | 2 semanas | **🎨 Design C (IA UX no admin Lojeo)** |
+| 9 | FaqZap + chatbot storefront + tickets | 2 semanas | Conta FaqZap + **🎨 Design D (chatbot widget no template)** |
+| 10 | UGC + galeria + compre o look + moderação | 2 semanas | (Design C editor compre o look) |
+| 11 | Estúdio criativo IA + motor de recomendação | 2 semanas | API imagem + (Design C estúdio) |
+| 12 | Busca semântica + pixels + SEO + Clarity-IA + homepage personalizada | 2 semanas | (Design D homepage personalizada no template) |
+| 13 | Polimento + segurança + produção | 2 semanas | — |
 
-**Total estimado Fase 1 (joias):** ~24 semanas (~6 meses)
+**Total estimado Fase 1 (joias):** ~30 semanas (~7,5 meses)
 
 ---
 
@@ -42,12 +64,16 @@
 **Critérios de pronto:**
 - [ ] Monorepo com pnpm workspaces + Turborepo buildando sem erros
 - [ ] Schema inicial no Neon com `tenant_id` em todas as tabelas base
+- [ ] Extensão `pgvector` habilitada no Neon (preparação para embeddings)
 - [ ] Auth.js v5 com Google OAuth funcionando no admin
 - [ ] Trigger.dev self-hosted rodando no EasyPanel
 - [ ] Cloudflare R2 bucket configurado (storage abstrato no código)
 - [ ] GitHub Actions: lint + typecheck + test em cada PR
 - [ ] Deploy automático para EasyPanel em merge na main
 - [ ] `DECISION_LOG.md` criado com as decisões da Etapa 2
+- [ ] Estrutura de observabilidade: logs estruturados + dashboard básico de erros
+- [ ] Diretório `docs/research/` criado para receber pesquisas obrigatórias antes de cada sprint de IA
+- [ ] Template jewelry-v1 com 3 a 5 combinações tipográficas curadas (Sec 3.3 do doc balisador) — fonte serifada clássica, fonte display com contraste, monoespaço minimalista, etc. Lojista escolhe combinação inteira, não fontes soltas.
 
 **Estrutura de pastas a criar:**
 
@@ -61,10 +87,12 @@ lojeo/
 │   ├── db/                  # Schema Drizzle + migrations
 │   ├── storage/             # Abstração R2/local
 │   ├── email/               # Templates React Email
+│   ├── tracking/            # SDK de coleta de comportamento (anônimo, LGPD)
+│   ├── ai/                  # Wrapper Claude API com cache + cost tracking
 │   └── ui/                  # Componentes shadcn compartilhados
 ├── templates/
 │   ├── jewelry-v1/          # Design tokens, campos, tom de voz
-│   └── coffee-v1/           # (vazio até Sprint 12)
+│   └── coffee-v1/           # (vazio até Sprint 14)
 ├── docs/
 │   ├── superpowers/plans/
 │   └── adr/                 # Architecture Decision Records
@@ -78,16 +106,19 @@ lojeo/
 - Apple OAuth: criar Apple Developer app (requer Apple Developer $99/ano) — **decisão do stakeholder:** incluir Apple login no sprint 0 ou postergar?
 - Neon: criar projeto "lojeo-prod" + branch "dev" para desenvolvimento
 - EasyPanel: configurar variáveis de ambiente por instância (joias vs café)
+- pgvector é gratuito no Neon e elimina necessidade de Pinecone/Weaviate na Fase 1
 
 ---
 
-## Sprint 1 — Motor + catálogo básico
+## Sprint 1 — Motor + catálogo + tracking foundation
 
-**Objetivo:** Lojista consegue cadastrar produtos com variantes, fotos e estoque no admin.
+**Objetivo:** Lojista cadastra produtos. Sistema já coleta sinais de comportamento desde o início (mesmo sem storefront pronto, schema e contratos prontos).
 
-**Entregável tangível:** Admin funcional (sem design final) onde é possível criar, editar e arquivar produtos com variantes e galeria de imagens.
+**Entregável tangível:** Admin funcional onde é possível criar produtos com variantes e galeria. Tabela de eventos comportamentais existindo e recebendo eventos de teste.
 
 **Critérios de pronto:**
+
+**Catálogo:**
 - [ ] Entidades no banco: `tenant`, `product`, `product_variant`, `product_image`, `collection`, `inventory`
 - [ ] Upload de imagens → R2 com otimização automática (WebP, thumbnails)
 - [ ] CRUD completo de produtos via API (Next.js Route Handlers)
@@ -98,100 +129,131 @@ lojeo/
 - [ ] Campos customizados por template (joias: material, pedra, quilate, tamanho, aro)
 - [ ] Garantia e política de troca configuráveis por produto
 - [ ] NCM e regime tributário por produto
+- [ ] Restrições de exportação por país por produto (Sec 4.3/6.2) — bloqueia checkout automaticamente quando endereço incompatível
+- [ ] Pré-venda com data prevista de envio (Sec 6.2) — produto aceita pedido sem estoque, exibe data prometida
+- [ ] Alt text de imagens gerado por IA no upload (Sec 12.3) — usa Claude vision + brand guide
+- [ ] **Otimização automática de vídeos no upload (Sec 16)** — transcodificação para H.264 + WebM, geração de poster frame, thumbnails em múltiplas resoluções (job Trigger.dev)
 - [ ] Importação básica via CSV
 - [ ] Testes unitários: motor de catálogo (Vitest)
 
-**Schema Drizzle — tabelas principais:**
+**Tracking foundation (NOVO — fundação obrigatória):**
+- [ ] Schema `behavior_events` (tenant_id, session_id, anonymous_id, event_type, entity_id, metadata jsonb, created_at) — particionada por mês
+- [ ] Schema `sessions` (anonymous_id, fingerprint, first_seen, last_seen, user_id nullable)
+- [ ] Package `@lojeo/tracking` com SDK client + endpoint de ingestão `/api/track`
+- [ ] Tipos de evento mapeados: `product_view`, `product_scroll`, `gallery_open`, `video_watched`, `variant_selected`, `cart_add`, `cart_remove`, `checkout_step`, `search_performed`, `search_clicked`
+- [ ] Fingerprint anônimo compatível com LGPD (sem PII)
+- [ ] Buffer client + flush em batch (não bloqueia render)
+- [ ] Trigger.dev: job de agregação noturna (eventos crus → tabelas analíticas)
+
+**Schema Drizzle — exemplo:**
 
 ```typescript
-// packages/db/src/schema/catalog.ts
-export const products = pgTable('products', {
+// packages/db/src/schema/behavior.ts
+export const behaviorEvents = pgTable('behavior_events', {
   id: uuid('id').primaryKey().defaultRandom(),
   tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
-  name: varchar('name', { length: 255 }).notNull(),
-  slug: varchar('slug', { length: 255 }).notNull(),
-  description: text('description'),
-  price: integer('price').notNull(), // centavos
-  compareAtPrice: integer('compare_at_price'),
-  cost: integer('cost'),
-  sku: varchar('sku', { length: 100 }),
-  status: productStatusEnum('status').default('draft'),
-  // campos fiscais
-  ncm: varchar('ncm', { length: 8 }),
-  taxRegime: varchar('tax_regime', { length: 50 }),
-  // garantia
-  warrantyMonths: integer('warranty_months'),
-  exchangePolicyDays: integer('exchange_policy_days'),
-  // metadados do template
-  customFields: jsonb('custom_fields').default({}),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
-});
+  sessionId: uuid('session_id').notNull(),
+  anonymousId: varchar('anonymous_id', { length: 64 }).notNull(),
+  userId: uuid('user_id').references(() => users.id),
+  eventType: varchar('event_type', { length: 50 }).notNull(),
+  entityType: varchar('entity_type', { length: 50 }),
+  entityId: uuid('entity_id'),
+  metadata: jsonb('metadata').default({}),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => ({
+  tenantTimeIdx: index('idx_events_tenant_time').on(t.tenantId, t.createdAt),
+  sessionIdx: index('idx_events_session').on(t.sessionId),
+}));
 ```
 
-**Complexidade:** Média. Upload + R2 + variantes são as partes mais trabalhosas.
+**Complexidade:** Média-Alta. Tracking foundation adiciona complexidade mas é não-negociável.
+
+**Justificativa arquitetural:** Recomendações, personalização, IA Analyst, Clarity+IA — tudo depende de behavior_events existir desde o dia 1. Adicionar depois força backfill artificial (impossível) ou perda de meses de dados.
 
 ---
 
-## Sprint 2 — Storefront base
+## Sprint 2 — Storefront base + instrumentação behavioral
 
-> ⚠️ **BLOQUEADOR: Design #1 — jewelry-v1**
+> ⚠️ **BLOQUEADOR: Design Checkpoint B — template jewelry-v1 (storefront)**
 >
 > Este sprint **não pode começar** sem o design do template de joias aprovado.
-> Antes de iniciar, o stakeholder deve levar o briefing gerado por Claude Code para o Claude Design.
-> O desenvolvimento do storefront começa com shadcn padrão e é substituído pelo design entregue.
+> Atenção: identidade visual aqui é do **TEMPLATE jewelry-v1** (joalheria premium BR), não do Lojeo. Storefront ≠ Admin.
 
-**Objetivo:** Cliente consegue navegar pela loja, ver produtos e adicionar ao carrinho.
+**Objetivo:** Cliente navega na loja, vê produtos, adiciona ao carrinho. Cada interação significativa é capturada pelo tracking.
 
-**Entregável tangível:** Storefront com homepage, PLP, PDP e carrinho funcionando com o design jewelry-v1 aplicado.
+**Entregável tangível:** Storefront com homepage, PLP, PDP e carrinho funcionando com design jewelry-v1, todos os eventos de comportamento sendo gravados.
 
 **Critérios de pronto:**
+
+**Storefront:**
 - [ ] Homepage com hero, coleções em destaque, seções configuráveis
 - [ ] PLP com filtros, ordenação, paginação
-- [ ] PDP com galeria de imagens/vídeos, variantes, campos do nicho, urgência com dados reais
+- [ ] PDP com galeria de imagens/vídeos, variantes, campos do nicho
+- [ ] **Urgência com dados reais (Sec 6.3 / 21)** — exibir na PDP: "X pessoas vendo agora" (count de behavior_events `product_view` últimos 5min), "Y unidades vendidas hoje" (count de pedidos do dia), "apenas Z em estoque" (apenas se inventory < threshold configurável). Nunca números falsos. Configurável on/off por produto.
 - [ ] Carrinho com edição, estimativa de frete e resumo
-- [ ] Login social (Google) para clientes
+- [ ] Login social (Google) para clientes — fluxo OAuth nativo
 - [ ] Área do cliente: histórico de pedidos, endereços
-- [ ] Busca simples por texto (semântica fica no Sprint 10)
+- [ ] Busca simples por texto (semântica vai para Sprint 12)
 - [ ] SEO técnico: sitemap.xml automático, canonical tags, Schema.org/produto
 - [ ] Core Web Vitals no alvo desde o início
 - [ ] Template jewelry-v1 integrado: tokens, tipografia, paleta
+- [ ] Páginas estáticas com editor simples (Sobre, Política, Trocas, Privacidade) — admin edita em rich text, storefront renderiza em rota dedicada
+- [ ] Produtos vistos recentemente — carrossel no rodapé do storefront, persiste em cookie/localStorage por 30 dias
+- [ ] Página de rastreamento branded — cliente vê status do envio em página com identidade visual da loja (não redirecionado para Correios genérico)
+- [ ] **CEP autocomplete (BR)** — campo CEP busca endereço via ViaCEP API, preenche rua/bairro/cidade/estado automaticamente
+- [ ] **Endereçamento adaptativo (Sec 4.1)** — schema flexível para suportar CEP/ZIP/postcode (ativação completa para outros países na Fase 1.2)
+
+**Instrumentação behavioral:**
+- [ ] SDK `@lojeo/tracking` injetado em todas as páginas
+- [ ] Eventos disparados: `product_view`, `product_scroll` (depth %), `gallery_open`, `gallery_image_index`, `video_watched_full`, `variant_selected`, `cart_add`, `cart_remove`, `checkout_step_start`, `checkout_step_complete`, `search_performed`, `search_clicked`, `external_referrer`
+- [ ] UTM preservado da landing até o pedido
+- [ ] Banner de cookies LGPD com consentimento granular (essencial / analytics / marketing)
+- [ ] Tracking respeita consentimento (eventos analíticos só com opt-in)
+- [ ] Identidade anônima → identificada quando cliente faz login (merge automático de sessions)
+- [ ] Dashboard básico no admin: eventos crus por dia (debug)
 
 **Ponto crítico de arquitetura — como templates plugam:**
 
 ```typescript
 // packages/engine/src/template-loader.ts
 export async function loadTemplate(templateId: string) {
-  // Motor não conhece "joias" — só carrega via ID
   const template = await import(`../../../templates/${templateId}/index.ts`);
   return template.default;
 }
 
 // apps/storefront/src/app/layout.tsx
 const template = await loadTemplate(process.env.TEMPLATE_ID!);
-// template.tokens, template.config, template.voiceConfig
 ```
 
-**Claude Design brief (gerado no final do Sprint 1):**
-Entregar ao stakeholder briefing completo com: escopo, seções do doc balisador relevantes, limitações técnicas, lista de componentes esperados e formato de entrega.
+**Duração:** 3 semanas (era 2). Justificativa: instrumentação behavioral em todas as superfícies é trabalhoso de fazer corretamente.
 
 ---
 
 ## Sprint 3 — Checkout + pagamentos BR
 
-**Objetivo:** Cliente consegue pagar e receber confirmação. Lojista vê o pedido.
+**Objetivo:** Cliente paga e recebe confirmação. Lojista vê o pedido.
 
 **Entregável tangível:** Fluxo completo Pix → QR code → confirmação automática → email de pedido confirmado.
 
 **Critérios de pronto:**
 - [ ] Checkout em mínimo de etapas (endereço → frete → pagamento → confirmação)
+- [ ] **Conexão Mercado Pago via OAuth 1-clique** (não copy-paste de access token) — lojista clica "Conectar Mercado Pago", autoriza, conexão pronta
 - [ ] Mercado Pago: Pix (QR code + chave), cartão com parcelamento configurável, boleto
 - [ ] Webhooks de pagamento com validação de assinatura
-- [ ] Trigger.dev: job de sync automático com gateway após criação de produto/preço
+- [ ] **Sync gateway expandido (Sec 5.1)** via Trigger.dev:
+  - Produto criado → produto + preço criados no gateway
+  - Preço alterado → novo preço criado, anterior arquivado
+  - Produto pausado/arquivado → desativado no gateway (impede nova cobrança)
+  - Estoque zerado → marcado indisponível no gateway
+  - Cliente criado → customer criado no gateway
+  - Cupom criado → coupon criado no gateway
+- [ ] Aviso claro no checkout sobre VAT/taxas alfandegárias (preparado para Fase 1.2 internacional)
 - [ ] Email transacional via Resend: confirmação de pedido, Pix gerado, pagamento confirmado
 - [ ] Dados de cartão nunca passam pelo servidor (tokenização via SDK MP no browser)
 - [ ] Detecção básica de fraude (score por pedido)
 - [ ] Cupons de desconto criados no admin → sincronizados no gateway via Trigger.dev
+- [ ] Eventos de tracking de checkout: cada step + abandono em cada etapa
+- [ ] **Relatório de abandono por etapa do checkout (Sec 12.2)** — admin vê: % abandono em endereço, frete, pagamento. Filtros por período + canal. Identifica gargalo do funil.
 - [ ] Testes E2E do fluxo de checkout com Playwright (ambiente sandbox)
 
 **Bloqueadores externos:**
@@ -210,13 +272,17 @@ Entregar ao stakeholder briefing completo com: escopo, seções do doc balisador
 
 **Critérios de pronto:**
 - [ ] Ciclo de vida completo: pendente → pago → em separação → enviado → entregue → cancelado
+- [ ] **Conexão Melhor Envio via OAuth 1-clique** — autoriza todas transportadoras da conta automaticamente
+- [ ] **Conexão Bling via OAuth 1-clique** — sem copy-paste de chave
 - [ ] Melhor Envio: cálculo de frete em tempo real, múltiplas opções com prazo
 - [ ] Geração de etiqueta de envio com 1 clique (Correios, Jadlog via Melhor Envio)
-- [ ] Integração Bling: NF-e automática ao confirmar pagamento (regra configurável)
-- [ ] NF-e disponível no email do cliente, área logada e admin (PDF + XML)
+- [ ] Integração Bling: NF-e automática ao confirmar pagamento (regra configurável: ao pagar OU ao despachar)
+- [ ] NF-e disponível no email do cliente, área logada e admin (PDF + DANFE + XML)
+- [ ] Pedido fica em "aguardando emissão fiscal" se NF-e falhar — alerta no admin
 - [ ] Fila de pedidos no admin com filtros e atualização de status
 - [ ] Emails automáticos por transição de status
-- [ ] Status de saúde do gateway no dashboard (verde/amarelo/vermelho)
+- [ ] Status de saúde do gateway/integração: verde (operacional), amarelo (alerta — produto fora de sync), vermelho (desconectado/erro)
+- [ ] Botão "Ressincronizar" para corrigir divergência loja × gateway com 1 clique
 
 **Bloqueadores externos:**
 - Conta Bling com acesso à API (CNPJ do lojista)
@@ -224,15 +290,17 @@ Entregar ao stakeholder briefing completo com: escopo, seções do doc balisador
 
 ---
 
-## Sprint 5 — Admin operacional completo
+## Sprint 5 — Admin + wishlist + gift card + back-in-stock
 
-**Objetivo:** Admin está pronto para operação diária sem precisar de suporte externo.
+**Objetivo:** Admin pronto para operação diária. Funcionalidades de retenção (wishlist, gift card, back-in-stock) funcionando porque são alavancas de receita de baixo custo de implementação.
 
-**Entregável tangível:** Dashboard completo + todas as filas operacionais funcionando.
+**Entregável tangível:** Dashboard completo + filas operacionais + cliente pode adicionar à wishlist, comprar gift card, e pedir notificação de "voltou ao estoque".
 
 **Critérios de pronto:**
-- [ ] Dashboard: receita por período, pedidos recentes, produtos mais vendidos, visitantes, taxa de conversão
-- [ ] Fila de moderação de avaliações: preview, aprovar/rejeitar com 1 clique
+
+**Admin operacional:**
+- [ ] Dashboard: receita por período, pedidos recentes, produtos mais vendidos, visitantes, taxa de conversão, **margem por produto e margem da loja como um todo (Sec 13.1)** — calculada com campo `cost` do produto, deduzindo frete/taxas/comissões
+- [ ] Fila de moderação de avaliações: preview, aprovar/rejeitar com 1 clique, resposta pública opcional
 - [ ] Configurações completas via interface (identidade, gateways, frete, email)
 - [ ] Editor de aparência dentro dos limites do template
 - [ ] Sistema de papéis (roles): Owner, Admin, Operador, Editor, Atendimento, Financeiro
@@ -240,17 +308,50 @@ Entregar ao stakeholder briefing completo com: escopo, seções do doc balisador
 - [ ] Logs de auditoria: quem fez o quê e quando
 - [ ] Convite de usuário por email com 1 clique
 - [ ] Instruções contextuais em todas as telas (fator moleza)
+- [ ] **Robots.txt configurável** pelo admin (Sec 12.3)
+- [ ] **Relatórios programados por email** (Sec 13.2) — lojista define cron + filtros + destinatários, sistema dispara CSV/PDF
+- [ ] **A/B testing nativo integrado ao template** (Sec 12.2) — admin cria experimento (variante A/B), define audience, sistema rotaciona, mensura conversão. Base reusada para personalização de homepage no Sprint 12.
+- [ ] **Feeds de catálogo automáticos** (Sec 6.2) — geração contínua de feed Google Shopping (XML) e Meta Catalog (CSV) atualizados a cada mudança de produto. URL pública para o lojista colar no Google Merchant Center / Meta Commerce Manager.
+
+**Wishlist (retenção):**
+- [ ] Schema: `wishlist_items` (user_id, product_id, variant_id, created_at)
+- [ ] Botão coração na PDP e card de produto (toggle)
+- [ ] Página "Minha lista de desejos" na área do cliente
+- [ ] Notificação automática quando produto da wishlist entra em promoção (Trigger.dev: job diário)
+- [ ] Wishlist disponível também para anônimos (localStorage → migra ao login)
+
+**Gift card / vale-presente digital:**
+- [ ] Schema: `gift_cards` (code, initial_value, current_balance, expires_at, status, buyer_id, recipient_email)
+- [ ] Compra de gift card como produto especial no storefront
+- [ ] Email automático para destinatário com código + design branded
+- [ ] Aplicação no checkout como meio de pagamento (parcial ou total)
+- [ ] Painel no admin: emitidos, resgatados, saldo total, expiração
+
+**Back-in-stock:**
+- [ ] Botão "Avise-me quando voltar" em variante esgotada
+- [ ] Schema: `restock_notifications` (user_id ou email, product_variant_id, notified_at)
+- [ ] Trigger.dev: job que dispara quando inventário > 0 (email + WhatsApp via FaqZap quando Sprint 9 entregar)
+
+**Opção de presente no checkout:**
+- [ ] Toggle "É um presente" no checkout
+- [ ] Campo de mensagem personalizada
+- [ ] Embalagem para presente (com custo configurável pelo lojista)
+- [ ] Pedido marcado para separação especial
+
+**Duração:** 3 semanas (era 2). Justificativa: 4 features de retenção adicionadas, todas com schema + UI + integração.
+
+**ROI esperado (visão CFO):** wishlist + back-in-stock + gift card sozinhos pagam o sprint extra em 60-90 dias de operação real. Custo de implementação baixo, custo de não-implementar é receita perdida silenciosa.
 
 ---
 
-## Sprint 6 — CRM + garantias + trocas e devoluções
+## Sprint 6 — CRM + garantias + trocas + segmentação RFM
 
-**Objetivo:** Operação pós-venda estruturada. Zero WhatsApp para resolver troca.
+**Objetivo:** Operação pós-venda estruturada. Zero WhatsApp manual para resolver troca. Clientes segmentados automaticamente para ações futuras.
 
-**Entregável tangível:** Cliente abre troca pela área logada → lojista aprova/recusa no admin → etiqueta reversa gerada → reembolso disparado com 1 clique.
+**Entregável tangível:** Cliente abre troca pela área logada → lojista aprova/recusa no admin → etiqueta reversa gerada → reembolso disparado com 1 clique. RFM segmenta clientes em campeões, em risco, novos, inativos.
 
 **Critérios de pronto:**
-- [ ] Perfil completo de cliente: dados, LTV, número de pedidos, segmento RFM, canal de aquisição
+- [ ] Perfil completo de cliente: dados, LTV, número de pedidos, segmento RFM, canal de aquisição, eventos comportamentais agregados
 - [ ] Garantias por produto/cliente: painel com status, alertas 30 dias antes do vencimento
 - [ ] Filtro: clientes com garantia expirando nos próximos 30/60/90 dias
 - [ ] Fluxo de trocas/devoluções: solicitação pelo cliente → análise → aprovação → logística reversa → reembolso
@@ -258,170 +359,503 @@ Entregar ao stakeholder briefing completo com: escopo, seções do doc balisador
 - [ ] Estados claros: solicitada → em análise → aprovada → aguardando produto → recebida → finalizada
 - [ ] Geração de etiqueta reversa via Melhor Envio
 - [ ] Reembolso integrado ao gateway no clique de aprovação
-- [ ] Crédito em loja como alternativa ao reembolso (gift card automático)
+- [ ] Crédito em loja como alternativa ao reembolso (gift card automático — reusa Sprint 5)
 - [ ] NF-e de devolução emitida automaticamente via Bling
+- [ ] **Segmentação RFM automática:** Trigger.dev calcula segmentos diariamente (Champions, Loyal, Potential, At Risk, Hibernating, Lost)
+- [ ] Sugestão de recompra baseada em ciclo de consumo + garantia (visível no perfil do cliente no admin)
 
 ---
 
-## Sprint 7 — IA backoffice v1
+## Sprint 7 — IA backoffice básica
 
 **Objetivo:** Lojista gera descrições, SEO e remove fundos sem sair do admin.
 
 **Entregável tangível:** Produto criado → botão "Gerar com IA" → descrição + meta title + meta description preenchidos automaticamente no tom de voz configurado.
 
+**🔬 Research-first (OBRIGATÓRIO antes de codar prompts):**
+- [ ] `docs/research/sprint-7-product-copy-prompts.md` — pesquisar:
+  - Prompts de e-commerce copy do Shopify Magic, Klaviyo, Jasper, Copy.ai
+  - Repositórios open source: `shopify/llm-prompts`, `microsoft/prompt-engineering`
+  - Best practices Anthropic para copy generation com brand voice
+  - Padrões de SEO meta description que rankeiam (Ahrefs/SEMrush studies)
+  - Benchmark: 3 variações de prompt × 5 produtos reais × medir consistência de tom + conversão
+- [ ] Documentar prompts finais com exemplos de input/output em `packages/ai/prompts/product-copy/README.md`
+
 **Critérios de pronto:**
+- [ ] Wrapper `@lojeo/ai` com Claude API: Haiku (alto volume) e Sonnet (premium), seleção por tipo de tarefa
 - [ ] Geração de descrições via Claude API (tom configurado pelo brand guide do template)
 - [ ] SEO automático: meta title e meta description otimizados e editáveis
 - [ ] Remoção de fundo via Remove.bg no upload de imagem
 - [ ] Brand guide por instância: tom, pessoa, palavras a evitar/preferir, exemplo de copy
-- [ ] Cache inteligente: mesma geração para mesmo produto não consome 2x
-- [ ] Painel de uso de IA: gerações consumidas no mês
-- [ ] Limites configuráveis por instância com alerta antes do teto
+- [ ] Cache inteligente em Postgres: hash(prompt + brand_guide + product_data) → resposta. TTL 90 dias.
+- [ ] Painel de uso de IA: gerações consumidas no mês, custo estimado em USD
+- [ ] Limites configuráveis por instância com alerta antes do teto + bloqueio automático opcional
+- [ ] **Modo econômico opcional (Sec 11.4)** — toggle no admin: usar Haiku no lugar de Sonnet para tarefas de baixa criticidade. Lojista escolhe trade-off custo × qualidade.
 - [ ] Modo degradado: se Claude API falhar, exibe campos em branco sem quebrar o admin
+- [ ] Telemetria: cada chamada registra modelo, tokens in/out, custo, latência
 - [ ] Testes: mock da Claude API nos testes, sem custo real em CI
 
 **Bloqueadores externos:**
 - Chave Claude API (Anthropic)
 
+**Decisão arquitetural (IA Engineer):** todo wrapper de IA passa por `@lojeo/ai` para garantir cache + telemetria + cost tracking. Nenhuma chamada direta à Claude API espalhada pelo código.
+
 ---
 
-## Sprint 8 — FaqZap + notificações + tickets
+## Sprint 8 — IA Analyst + churn + previsão de estoque
 
-**Objetivo:** Lojista não precisa ficar no admin para saber o que está acontecendo.
+**Objetivo:** Lojista pergunta "por que minhas vendas caíram?" e recebe resposta acionável. Sistema antecipa churn e ruptura de estoque.
 
-**Entregável tangível:** Pedido criado → cliente recebe confirmação no WhatsApp com Pix/QR → lojista recebe alerta no seu WhatsApp.
+**Entregável tangível:** Painel "Insights" no admin onde lojista digita pergunta em linguagem natural → IA consulta dados reais → responde com texto + gráficos + ações sugeridas. Notificações automáticas de churn iminente e estoque crítico.
+
+**🔬 Research-first (OBRIGATÓRIO):**
+- [ ] `docs/research/sprint-8-ai-analyst.md` — pesquisar:
+  - Padrão **agentic data analysis**: Vanna.AI, Defog SQLCoder, LangChain SQL Agent, Anthropic tool-calling guide
+  - Repos: `vanna-ai/vanna`, `defog-ai/sqlcoder`, `e2b-dev/code-interpreter`, `julianschill/llama-index-pack-text2sql`
+  - Shopify Sidekick (referência de UX para chatbot analytics)
+  - Best practices Anthropic para tool-use com múltiplas ferramentas (max tools por prompt, descrições, JSON schema)
+  - Benchmark de churn: heurística RFM × ML (lifetimes lib em Python) — escolher v1 viável
+  - Forecasting de estoque: lib `statsmodels` (Holt-Winters), Prophet, ou heurística de média móvel — comparar precisão × custo
+- [ ] Documentar tools, prompts de sistema e prompts de planejamento em `packages/ai/prompts/analyst/README.md`
 
 **Critérios de pronto:**
+
+**IA Analyst (insights em linguagem natural):**
+- [ ] Interface de chat no admin: lojista digita pergunta
+- [ ] Pattern tool-calling: Claude tem ferramentas para consultar `revenue_by_period`, `top_products`, `conversion_funnel`, `behavior_aggregates`, `customer_segments`, `cohort_analysis`
+- [ ] Respostas com texto + gráfico inline (Recharts)
+- [ ] Sugestões de ação ao final de cada análise ("baseado nisso, sugiro testar X")
+- [ ] Histórico de perguntas + respostas (lojista pode voltar e ver)
+- [ ] Cache: pergunta similar em janela de 24h reutiliza resposta
+- [ ] Limite: N perguntas/dia por usuário (rate limit configurável)
+
+**Predição de churn:**
+- [ ] Heurística v1 (sem ML): cliente sem compra em N dias × ciclo médio + sem abertura de email = risco
+- [ ] Schema: `customer_churn_score` (user_id, score, reason, calculated_at)
+- [ ] Trigger.dev: job semanal recalcula scores
+- [ ] Alerta no admin: "X clientes em alto risco de churn" + ação sugerida (campanha de reengajamento)
+
+**Previsão de estoque:**
+- [ ] Heurística v1: velocidade de venda média (últimos 30/60/90 dias) + sazonalidade básica → dias até zerar
+- [ ] Alerta proativo: produto vai zerar em <14 dias → notificação ao lojista
+- [ ] Sugestão de quanto repor (lead time configurável por produto)
+
+**Monitoramento de concorrência (versão inicial — opcional, descopar se atrasar):**
+- [ ] Lojista cadastra URLs de produtos concorrentes
+- [ ] Job semanal: scrape preço + disponibilidade
+- [ ] Dashboard: variação de preço dos concorrentes ao longo do tempo
+- [ ] Sugestão de preço quando há gap significativo
+
+**Bloqueadores externos:** nenhum (usa Claude API já disponível desde Sprint 7)
+
+**Justificativa CFO:** IA Analyst é o feature mais marketável da plataforma. "Pergunte ao seu negócio" — nenhum concorrente nacional tem. Churn + previsão de estoque previnem perdas concretas.
+
+**Custo estimado IA neste sprint (CFO):** Sonnet para análises (~$0.003/1K tokens input + $0.015/1K output). Cache reduz 60-80%. Estimativa: $20-50/mês por loja em uso moderado.
+
+---
+
+## Sprint 9 — FaqZap + chatbot storefront + tickets
+
+**Objetivo:** Lojista não fica no admin para saber o que acontece. Cliente tira dúvidas no widget de chat sem esperar humano.
+
+**Entregável tangível:** Pedido criado → cliente recebe confirmação no WhatsApp com Pix/QR → lojista recebe alerta no seu WhatsApp. Widget de chat no storefront responde dúvidas técnicas usando catálogo + FAQ.
+
+**🔬 Research-first (OBRIGATÓRIO):**
+- [ ] `docs/research/sprint-9-storefront-chatbot.md` — pesquisar:
+  - Shopify Sidekick (storefront chatbot referência), Klaviyo AI, Tidio Lyro, Intercom Fin AI
+  - Repos open source: `langchain-ai/customer-support-bot`, `e-commerce-bot` patterns, `chatwoot/chatwoot` (escalation flow)
+  - Padrão **RAG híbrido**: catálogo via embeddings + FAQ estruturada via tool calls + busca semântica
+  - Anthropic computer use + tool-use docs para chatbot agentic
+  - Pesquisar guardrails: anti-jailbreak, escalação, rate limit por sessão
+  - Benchmark Haiku vs Sonnet em chatbot e-commerce (custo × resolução)
+- [ ] Conexão FaqZap via OAuth 1-clique documentada (preparado se API permitir, fallback API key se não)
+- [ ] Documentar prompts de sistema, tools e fluxo de escalação em `packages/ai/prompts/chatbot/README.md`
+
+**Critérios de pronto:**
+
+**FaqZap + notificações:**
 - [ ] Integração FaqZap: todos os eventos da seção 17 do doc balisador
-- [ ] Notificações ao lojista: novo pedido, pagamento, estoque baixo, avaliação pendente, solicitação de troca, falha fiscal
+- [ ] Notificações ao lojista: novo pedido, pagamento, estoque baixo, avaliação pendente, solicitação de troca, falha fiscal, churn iminente, repor produto
 - [ ] Canais configuráveis por evento: email, push (PWA), WhatsApp, Slack
 - [ ] Resumo diário no horário escolhido pelo lojista
-- [ ] Sistema de tickets: caixa com histórico, status, responsável, prioridade
-- [ ] Ticket vinculado ao pedido e ao cliente
-- [ ] Templates de resposta com variáveis
-- [ ] SLA configurável com alerta visual
-- [ ] Escalada do bot FaqZap → ticket no admin
 - [ ] Recuperação de carrinho abandonado via email + WhatsApp (Trigger.dev: job agendado)
+
+**Sistema de tickets:**
+- [ ] Caixa com histórico, status, responsável, prioridade
+- [ ] Ticket vinculado ao pedido e ao cliente
+- [ ] Templates de resposta com variáveis (nome cliente, número pedido, produto)
+- [ ] SLA configurável com alerta visual
+- [ ] **Atribuição automática ou manual de tickets (Sec 9.2)** — regras: round-robin por equipe, atribuição por palavra-chave, atribuição manual via drag-and-drop
+- [ ] **Notas internas** visíveis só pra equipe (não enviadas ao cliente)
+- [ ] Escalada do bot FaqZap → ticket no admin
+
+**Chatbot storefront (NOVO):**
+- [ ] Widget de chat na PDP, PLP e homepage (configurável)
+- [ ] **Contexto da página atual passado ao chatbot (Sec 17)** — quando cliente abre widget na PDP, o chatbot já sabe qual produto está sendo visto (entity_id + variant atual + items no carrinho). Chatbot abre com mensagem contextual: "vejo que está olhando o anel X, posso ajudar?"
+- [ ] Tool-calling pattern: Claude com ferramentas `search_products`, `get_product_details`, `check_stock`, `get_shipping_estimate`, `get_faq_answer`, `escalate_to_human`
+- [ ] Catálogo + FAQ injetados como contexto (cache de embeddings em pgvector)
+- [ ] Personalidade alinhada ao brand guide do template
+- [ ] Rate limit por sessão (anti-abuso): N mensagens/15min, M tokens/dia por sessão
+- [ ] Escalação para FaqZap WhatsApp quando bot não resolve
+- [ ] Telemetria: % resoluções pelo bot, % escalações, tópicos mais perguntados
+- [ ] Modo degradado: se Claude API cair, widget exibe FAQ estática + botão WhatsApp
 
 **Bloqueadores externos:**
 - Conta FaqZap
 
+**Decisão UX (estrategista):** chatbot na PDP de joias derruba dúvidas sobre material, aro, quilate, prazo de entrega. Para café internacional, derruba dúvidas sobre origem, processo, frete. Reduz abandono de checkout sem precisar humano disponível 24/7.
+
+**Custo estimado IA (CFO):** Haiku para chatbot (custo ~5x menor que Sonnet). Com rate limit + cache de FAQs comuns, estimativa: $10-30/mês por loja em uso moderado.
+
 ---
 
-## Sprint 9 — Estúdio criativo IA
+## Sprint 10 — UGC + galeria + compre o look + moderação
 
-> ⚠️ **BLOQUEADOR: Design #2 — UX do estúdio criativo**
->
-> A interface do estúdio é complexa o suficiente para precisar de design dedicado.
-> Stakeholder leva briefing para Claude Design antes deste sprint.
-> O desenvolvimento começa com interface funcional e é refinado com o design entregue.
+**Objetivo:** Loja vira plataforma de prova social real. Cliente vê outros clientes usando o produto. Galeria UGC alimenta PDP e marketing.
 
-**Objetivo:** Foto de celular vira conjunto profissional pronto para loja e anúncios.
+**Entregável tangível:** Cliente posta foto na área logada → lojista aprova no admin → foto aparece na galeria "Como nossos clientes usam" da PDP. "Compre o look" permite tagar produtos em uma foto e linkar diretamente.
 
-**Entregável tangível:** Upload de 1 foto do produto → admin gera 5 composições com cenário, variação de ângulo e lifestyle via IA.
+**🔬 Research-first (OBRIGATÓRIO):**
+- [ ] `docs/research/sprint-10-ugc-moderation.md` — pesquisar:
+  - Padrões de moderação visual: AWS Rekognition, Google Vision SafeSearch, Azure Content Moderator (benchmark vs Claude vision para custo × precisão)
+  - Yotpo, Bazaarvoice, Foursixty (referências de UGC e-commerce)
+  - "Shop the look" patterns: Pinterest, Instagram Shopping, LTK
+  - Repos: `awesome-content-moderation`, `microsoft/Cognitive-Samples-IntelligentKiosk`
+  - Prompts Claude vision para detectar: nudez, violência, marca concorrente visível, qualidade baixa, conteúdo off-brand
+  - Benchmark: 50 imagens-amostra (mix seguro/borderline/inseguro) × 3 prompts × medir false positive/negative
+- [ ] Documentar prompts de moderação em `packages/ai/prompts/ugc-moderation/README.md`
 
 **Critérios de pronto:**
-- [ ] Integração com provider de geração de imagem (a definir: Ideogram, Flux via Replicate, DALL-E 3)
+
+**Galeria de clientes (UGC):**
+- [ ] Schema: `ugc_posts` (user_id, image_url, caption, status, products_tagged jsonb, source enum [direct_upload, social_import], moderated_by, moderated_at)
+- [ ] Upload direto de foto pelo cliente na área logada
+- [ ] Importação por hashtag/menção em redes sociais (preparado, integração na Fase 1.2)
+- [ ] Fila de moderação no admin: aprovar/rejeitar com 1 clique
+- [ ] Detecção automática de conteúdo impróprio (Claude vision call: nudez, violência, marca concorrente)
+- [ ] Rejeição automática de imagem suspeita + flag para revisão manual
+- [ ] Galeria "Como nossos clientes usam" na PDP (carrossel)
+- [ ] Galeria geral "Comunidade" como página dedicada
+- [ ] Cliente recebe email de notificação quando foto é aprovada (incentivo)
+
+**Compre o look:**
+- [ ] Editor no admin: lojista marca produtos em foto UGC (tags com posição x,y)
+- [ ] Hover/click em tag exibe card do produto + link
+- [ ] Métrica: cliques em tags + conversão derivada de UGC
+
+**Moderação assistida por IA:**
+- [ ] Pipeline: upload → Claude vision verifica conteúdo → score → fila com priorização
+- [ ] Fotos seguras vão pra fila normal; suspeitas vão pra fila de revisão urgente
+- [ ] Lojista pode definir auto-aprovação para clientes com histórico (>3 fotos aprovadas)
+
+**Incentivo (visão UX/marketing):**
+- [ ] Email automático pós-entrega: "compartilhe sua experiência" com link direto para upload
+- [ ] Crédito de loja (gift card automático) por foto aprovada — opcional, configurável
+- [ ] Selo "embaixador" para clientes com >5 fotos aprovadas (preparação para Sprint 17)
+
+**Justificativa estratégica (UX + marketing):** UGC é gasolina de conversão para joias. Cliente quer ver como o anel fica em mão real, não só foto de estúdio. Conversão típica: +10-20% em PDP com galeria UGC ativa. Custo de aquisição zero — cliente cria conteúdo de graça, plataforma facilita o fluxo.
+
+**Custo IA (CFO):** Claude vision para moderação: ~$0.0008 por imagem. Loja com 100 uploads/mês = $0.08. Negligível.
+
+---
+
+## Sprint 11 — Estúdio criativo IA + motor de recomendação
+
+> ⚠️ **BLOQUEADOR: Design Checkpoint C — UX features de IA NO ADMIN Lojeo**
+>
+> A interface do estúdio criativo é parte do Design C (admin Lojeo), entregue antes do Sprint 8.
+> Atenção: estúdio criativo vive no admin = identidade Lojeo, não do template ativo.
+
+**Objetivo:** Foto de celular vira conjunto profissional. Cada cliente vê produtos relevantes na homepage e na PDP.
+
+**Entregável tangível:** Upload de 1 foto do produto → admin gera 5 composições com cenário, variação de ângulo e lifestyle via IA. Homepage e PDP mostram produtos recomendados baseados em comportamento.
+
+**🔬 Research-first (CRÍTICO — maior custo de IA da plataforma):**
+- [ ] `docs/research/sprint-11-image-generation.md` — pesquisar **profundamente** por modelo:
+  - **Flux 1.1 Pro** (Black Forest Labs via fal.ai/Replicate): prompts de produto, negative prompts, seed/steering, custo $0.04/img
+  - **DALL-E 3** (OpenAI): style/quality params, prompt rewriting interno, custo $0.04-0.08/img, limitações comerciais
+  - **Ideogram 2.0**: melhor para texto na imagem (rótulos, embalagem), custo $0.08/img
+  - **Stable Diffusion 3 Large** (Stability via fal.ai): controlnet, img-to-img, custo $0.035/img
+  - **Recraft V3**: especializado em design/produto/vetor, custo $0.04/img
+  - **Midjourney v7** (via API não-oficial ou aguardar oficial): qualidade líder, custo via créditos
+  - **Nano Banana** (Gemini 2.5 Flash Image): edição de imagem com referência, custo baixo
+  - Repos referência: `black-forest-labs/flux`, `Stability-AI/sdxl-prompts`, `awesome-stable-diffusion`, `mikubill/sd-webui-controlnet`, prompt libraries (Lexica, Civitai categorias)
+  - Casos de sucesso e-commerce: Pebblely, Booth.ai, Photoroom AI, Stylar AI (estudar UX e prompts inferidos)
+  - Estratégia de seed/variation/upscale para previsibilidade
+  - Img-to-img com produto real → composição nova preservando produto (CRÍTICO — produto real do lojista, não inventado)
+  - **Vídeo:** Veo 3 (Google), Runway Gen-3, Pika 1.5, Kling — comparar custo (geralmente $0.50-2/clip de 5s) × qualidade × API maturity
+- [ ] `docs/research/sprint-11-recommendations.md` — pesquisar:
+  - Recombee, Algolia Recommend (referências comerciais)
+  - Repos: `microsoft/recommenders`, `RUCAIBox/RecBole`, `NVIDIA-Merlin/models`
+  - Two-tower model vs collaborative filtering vs hybrid (custo × precisão)
+  - Embeddings de produto: text-embedding-3-large vs Cohere embed-v3 vs Voyage AI vs sentence-transformers local
+- [ ] **Benchmark obrigatório:** mesmo produto (joia real) × 3 modelos × 3 prompts cada = 9 imagens. Avaliar custo, qualidade, fidelidade ao produto, consistência. Decisão registrada em `DECISION_LOG.md`.
+- [ ] Documentar prompts finais (template + variações) em `packages/ai/prompts/creative-studio/README.md`
+
+**Critérios de pronto:**
+
+**Estúdio criativo IA:**
+- [ ] Integração com provider de geração de imagem (decisão pendente — ver decisões estratégicas)
 - [ ] Composições com cenário configurável pelo template
 - [ ] Variações de ângulo
 - [ ] Lifestyle com modelo/cenário
-- [ ] Troca de fundo
+- [ ] Troca de fundo (alternativa avançada ao Remove.bg)
 - [ ] Pipeline Trigger.dev: job assíncrono de geração (não bloqueia o admin)
 - [ ] Cache: composição já gerada para o mesmo produto é reaproveitada
 - [ ] Geração de vídeo: rotação 360° + composição animada (provider a definir)
 - [ ] Modo degradado: se provider falhar, admin exibe mensagem clara sem quebrar
+- [ ] Painel de uso atualizado (integração com Sprint 7)
+
+**Motor de recomendação (NOVO):**
+- [ ] Schema: `product_recommendations` (tenant_id, product_id, recommended_product_id, score, reason, calculated_at)
+- [ ] Schema: `product_embeddings` em pgvector (descrição + atributos + categoria → vetor)
+- [ ] Trigger.dev: job noturno calcula:
+  - Content-based: produto similar via embedding de descrição/atributos
+  - Collaborative "quem comprou X também comprou Y" (a partir de pedidos)
+  - **Frequentemente comprado junto (Sec 21)** — pares de produtos que aparecem no mesmo pedido com frequência (market basket analysis). Diferente de "também comprou" — exibe combo na PDP e carrinho.
+  - Behavioral: "quem viu X também viu Y" (a partir de behavior_events)
+- [ ] **Ajuste manual no admin (Sec 6.2)** — lojista pode override sugestão IA por produto: fixar produto recomendado, remover sugestão indesejada. Override sobrepõe job automático.
+- [ ] API `/api/recommendations?context=pdp&product_id=X` retorna top N
+- [ ] Componente `<RelatedProducts />` na PDP usando recomendações
+- [ ] Componente `<FrequentlyBoughtTogether />` na PDP e carrinho (combo com desconto opcional)
+- [ ] Componente `<YouMayAlsoLike />` no carrinho
+- [ ] Tracking de cliques em recomendações (CTR mensurável)
+- [ ] Modo degradado: sem recomendações personalizadas, exibe "mais vendidos da categoria"
 
 **Decisão estratégica necessária antes deste sprint:**
 Qual provider de geração de imagem? Trade-off custo vs qualidade vs API reliability. Stakeholder decide.
 
+**Justificativa arquitetural:** recomendações precisam de embeddings + behavior_events + pedidos. Tudo já existe nesse ponto. Adicionar motor agora é barato; adicionar depois exige refatorar PDP, carrinho, homepage.
+
 ---
 
-## Sprint 10 — Busca semântica + pixels + SEO avançado
+## Sprint 12 — Busca semântica + pixels + SEO + Clarity-IA + homepage personalizada
 
-**Objetivo:** Tráfego orgânico e pago funcionando e rastreável.
+**Objetivo:** Tráfego orgânico e pago funcionando, rastreável, e cada visitante recorrente vê uma loja personalizada.
 
-**Entregável tangível:** Busca por "anel dourado para noivado" retorna produtos relevantes. Compra rastreada no Meta Pixel e GA4.
+**Entregável tangível:** Busca por "anel dourado para noivado" retorna produtos relevantes. Compra rastreada no Meta Pixel e GA4. Homepage exibe produtos diferentes para cada cliente. Insights do Clarity são consumidos pela IA para gerar sugestões automáticas.
+
+**🔬 Research-first (OBRIGATÓRIO):**
+- [ ] `docs/research/sprint-12-semantic-search.md` — pesquisar:
+  - Hybrid search (BM25 + dense vector): Weaviate docs, Qdrant docs, pgvector + tsvector pattern
+  - Repos: `castorini/pyserini`, `qdrant/qdrant`, `pgvector/pgvector` examples
+  - Algolia (referência), Typesense (open source competitor)
+  - Reranking com Cohere Rerank ou bge-reranker (uplift de precisão)
+  - Estratégia de embedding para e-commerce (produto + categoria + atributos como single doc)
+- [ ] `docs/research/sprint-12-clarity-ai-insights.md` — pesquisar:
+  - Microsoft Clarity API (data export, sessões, heatmaps)
+  - Patterns para análise de heatmap por LLM (transformar em descrição estruturada antes de enviar)
+  - Repos: `microsoft/clarity`, exemplos de Clarity insights via IA
+- [ ] `docs/research/sprint-12-personalization.md` — pesquisar:
+  - Real-time personalization patterns: Dynamic Yield, Bloomreach, Algolia Personalization
+  - Cold-start strategies (visitante novo) vs warm (recorrente)
+  - Segmentation × individualization trade-off
+- [ ] Documentar abordagens em `packages/ai/prompts/clarity-insights/README.md`
 
 **Critérios de pronto:**
-- [ ] Busca semântica v1: embeddings de produtos + busca por intenção
-- [ ] Google Tag Manager: container único injetado pelo motor
-- [ ] GA4: funil completo, receita, LTV, origem
-- [ ] Meta Pixel: Conversions API server-side + pixel client-side
-- [ ] TikTok Pixel
-- [ ] Google Ads Conversion Tracking
-- [ ] Microsoft Clarity: integração + base para IA de insights
+
+**Busca semântica:**
+- [ ] Embeddings de produtos em pgvector (já criados no Sprint 11 reusados)
+- [ ] Busca por intenção: query → embedding → similarity search
+- [ ] Híbrido: combina semântica + full-text para melhor precisão
+- [ ] Telemetria: query → resultado clicado → conversão
+
+**Pixels e analytics:**
+- [ ] Google Tag Manager: container único injetado pelo motor — conexão via OAuth 1-clique
+- [ ] GA4: funil completo, receita, LTV, origem — conexão via OAuth 1-clique
+- [ ] Meta Pixel: Conversions API server-side + pixel client-side — conexão via OAuth 1-clique (Facebook Login)
+- [ ] TikTok Pixel — conexão via TikTok for Business OAuth
+- [ ] Google Ads Conversion Tracking — OAuth Google Ads
+- [ ] Microsoft Clarity: integração via OAuth 1-clique
 - [ ] Parâmetros UTM preservados até o pedido
+- [ ] **Atribuição multi-touch configurável (Sec 12.2)** — modelos: last-click (default), first-click, linear, time-decay, position-based. Lojista escolhe modelo no admin. Reports de funil refletem modelo ativo.
+- [ ] Funil de conversão nativo com taxa em cada etapa (independente de pixel externo)
+
+**SEO:**
 - [ ] Schema.org completo: produto, breadcrumb, organização, avaliações
 - [ ] Redirects 301 automáticos quando produto é arquivado ou URL muda
-- [ ] hreflang preparado (ativado na Fase 2 multi-idioma)
+- [ ] hreflang preparado (ativado na Fase 1.2 multi-idioma)
 - [ ] Blog/conteúdo nativo: lojista publica guias, IA ajuda na escrita
+
+**Clarity + IA (NOVO — seção 11.5 do doc balisador):**
+- [ ] Job noturno (Trigger.dev) consome API do Clarity: heatmaps, scroll maps, sessões agregadas
+- [ ] IA analisa padrões: zonas mortas, frustrações (rage clicks), abandono de scroll
+- [ ] Cruza com dados de venda: "PDPs onde scroll para baixo é raro têm 40% menos conversão"
+- [ ] Insights automáticos no painel de IA Analyst (aparece junto com insights de venda)
+- [ ] Sugestões acionáveis: "as duas primeiras imagens deste produto precisam ser mais impactantes"
+
+**Homepage personalizada (NOVO — seção 11.2 do doc balisador):**
+- [ ] Cliente identificado: homepage exibe produtos baseados em behavior_events + histórico
+- [ ] Cliente anônimo recorrente (mesmo fingerprint): personalização por sessões anteriores
+- [ ] Cliente novo: fallback para "mais vendidos" + "novidades"
+- [ ] Componente `<PersonalizedHero />` substitui hero estático para clientes recorrentes
+- [ ] A/B test: personalizada vs default → mede uplift de conversão
+- [ ] Modo degradado: se motor de recomendação cair, exibe homepage default
+
+**Sugestão de recompra storefront (NOVO):**
+- [ ] Área logada exibe "está na hora de repor?" baseado em ciclo + garantia
+- [ ] Email automático com sugestão de recompra (Trigger.dev: job semanal)
+- [ ] Sugestão de presente: aniversário cadastrado + sugestão de produto coerente
+
+**Justificativa CFO:** Clarity+IA + homepage personalizada são features de retenção e otimização que se pagam em 30-60 dias se a loja tem >500 visitantes/dia. Custo de implementação concentrado neste sprint, ganho contínuo.
 
 ---
 
-## Sprint 11 — Polimento + segurança + produção
+## Sprint 13 — Polimento + segurança + produção
 
 **Objetivo:** Loja pronta para vender de verdade. Zero dívida técnica crítica.
 
-**Entregável tangível:** Auditoria de segurança passando, Core Web Vitals no verde, backup automatizado testado, modo degradado validado.
+**Entregável tangível:** Auditoria de segurança passando, Core Web Vitals no verde, backup automatizado testado, modo degradado validado para todos os serviços externos.
 
 **Critérios de pronto:**
 - [ ] Security audit: CSRF, rate limiting, sanitização de inputs, upload com validação de tipo real
-- [ ] LGPD: banner de cookies com consentimento granular, direito de exclusão
+- [ ] LGPD: banner de cookies com consentimento granular (já tem desde Sprint 2 — auditar)
+- [ ] LGPD: direito de exclusão (right to be forgotten) implementado e testado
+- [ ] GDPR: básico para coffee internacional na Fase 1.2 (preparação)
 - [ ] Core Web Vitals dentro dos limites do Google
 - [ ] PWA: instalável no celular, push notifications
-- [ ] Acessibilidade WCAG 2.1 AA (básico)
-- [ ] CDN Cloudflare: assets com cache longo, imagens via R2
+- [ ] Acessibilidade WCAG 2.1 AA (auditoria automatizada + manual)
+- [ ] **Carregamento progressivo / lazy loading (Sec 16)** — imagens abaixo do fold, vídeos em viewport, componentes pesados (galeria, recomendações) com Intersection Observer
+- [ ] **CDN global Cloudflare (Sec 16)** — assets servidos do POP mais próximo do cliente. Crítico para coffee/internacional. Imagens via R2 com transformações on-the-fly.
 - [ ] Backup automático diário no Neon (retenção 30 dias)
 - [ ] Procedimento de restore testado e documentado
-- [ ] Modo degradado validado: IA fora, gateway secundário, serviço de email fora
+- [ ] Modo degradado validado em testes: IA fora, gateway secundário, serviço de email fora, FaqZap fora
 - [ ] Status page pública da loja
-- [ ] Testes E2E com Playwright: fluxo completo compra, troca, login
+- [ ] Testes E2E com Playwright: fluxo completo compra, troca, login, wishlist, gift card
 - [ ] Plano de contingência Black Friday documentado
+- [ ] Auditoria de custo IA: tabela com estimativa mensal por feature, alertas configurados
+- [ ] Documentação do operador final (lojista) — guia de uso
 
 ---
 
 ## Design checkpoints — quando e o que entregar ao Claude Design
 
-### 🎨 Design #1 — Antes do Sprint 2 (obrigatório para storefront)
+> **Protocolo:** Claude Code (este plano) gera briefing detalhado. Stakeholder revisa, ajusta se necessário, e leva ao Claude Design. Entrega volta como Tailwind tokens + especs de componentes + Figma/imagens. Claude Code implementa usando o entregue.
+
+> **CRÍTICO — declarar camada em todo briefing:** cada briefing abaixo identifica explicitamente se está desenhando o **Lojeo (sistema/admin/marca SaaS)** ou um **template** (jewelry-v1, coffee-v1). Confundir as camadas resulta em design incoerente — admin com cara de joalheria, ou template de joias com cara de SaaS corporativo.
+
+### 🎨 Design Checkpoint A — Identidade do Lojeo (sistema/produto SaaS)
+
+**Camada:** Lojeo (sistema, admin, marca corporativa do produto SaaS)
+
+**Bloqueia:** Sprint 0 (logo no admin login) parcialmente, Sprint 5 (admin operacional completo) totalmente
 
 **Solicitar:**
-- Sistema de design completo jewelry-v1
-- Design tokens: paleta, tipografia (3–5 combinações curadas), espaçamentos, sombras, raios
-- Layouts: homepage, PLP, PDP, carrinho, checkout, conta do cliente
-- Estados: hover, foco, erro, vazio, loading
-- Componentes: card de produto, galeria, badge de urgência, avaliações, trust signals
-- Formato de entrega: Tailwind tokens + especificações de componentes
+- **Marca Lojeo:** logo, símbolo, paleta corporativa, tipografia institucional, tom de voz da marca-mãe
+- **Design system do admin:**
+  - Tokens neutros que servem qualquer nicho (paleta, tipografia, espaçamentos, radii, sombras)
+  - Densidade (denso vs espaçoso) — definir com stakeholder
+  - Tema (light/dark/switcher) — definir com stakeholder
+- **Componentes-base do admin:** botões, inputs, tabelas, cards, modais, drawers, toasts, tabs, navegação lateral, filtros, batch actions, paginação, search universal
+- **Padrão "fator moleza":** instruções contextuais, microcopy, estados vazios bem desenhados
+- **Estados:** vazio, erro, loading, sucesso
 
-**Entregar para Claude Design:**
-```
-[Claude Code gera este briefing ao fim do Sprint 1, 
-com trechos exatos do doc balisador + limitações técnicas + 
-lista completa de componentes necessários + formato de entrega]
-```
-
-### 🎨 Design #2 — Antes do Sprint 9 (UX do estúdio criativo)
-
-**Solicitar:**
-- UX do estúdio de imagem/vídeo no admin
-- Fluxo de upload → configurar composição → visualizar resultado → salvar/descartar
-- Estados de loading para geração (pode levar 30–60s)
-- Painel de uso de IA (cotas, consumo, alertas)
-- Componentes: uploader, selector de estilo, grid de resultados, comparador antes/depois
+**NÃO incluir aqui:** identidade visual de joias ou café — isso vem nos checkpoints B e C.
 
 ---
 
-## Fase 1.2 — Template café + internacional (após Sprint 11)
+### 🎨 Design Checkpoint B — Template jewelry-v1 (storefront da loja de joias BR)
+
+**Camada:** Template aplicado na instância joias.dominio.com (NÃO é o Lojeo)
+
+**Bloqueia:** Sprint 2 (storefront)
+
+**Solicitar:**
+- Sistema de design completo do template jewelry-v1 (independente da identidade Lojeo)
+- Design tokens do nicho joias premium: paleta, tipografia (3–5 combinações curadas conforme Sec 3.3), espaçamentos, sombras, raios
+- Layouts: homepage, PLP, PDP, carrinho, checkout (multi-step), conta do cliente, página de rastreamento branded, páginas estáticas
+- Estados: hover, foco, erro, vazio, loading, sucesso
+- Componentes: card de produto, galeria de imagens/vídeos, badge de urgência (pessoas vendo agora / vendas hoje / estoque baixo), avaliações com nota+foto, trust signals
+- **Slots reservados (preparação):**
+  - Galeria UGC na PDP (Sprint 10)
+  - Widget chatbot canto inferior direito (Sprint 9) — segue identidade do template, não do Lojeo
+  - Recomendações: `RelatedProducts`, `FrequentlyBoughtTogether`, `YouMayAlsoLike` (Sprint 11)
+  - Hero personalizado vs default (Sprint 12)
+- Formato de entrega: pacote `templates/jewelry-v1/` com tokens + especificações + Figma
+
+### 🎨 Design Checkpoint C — UX features de IA NO ADMIN (extensão do design system Lojeo)
+
+**Camada:** Lojeo (admin) — reusa tokens do Checkpoint A
+
+**Bloqueia:** Sprint 8 (IA Analyst), Sprint 10 (Editor compre o look), Sprint 11 (Estúdio criativo)
+
+**Solicitar:** (todos os componentes seguem identidade do Lojeo, NÃO de joias/café)
+- **IA Analyst (Sprint 8):**
+  - Interface conversacional (estilo chat) com input de pergunta + histórico
+  - Renderização de respostas: texto + gráficos inline (line, bar, donut, funnel)
+  - Cards de "ações sugeridas" ao final de cada análise
+  - Estados: gerando resposta (skeleton), erro de IA, sem dados suficientes
+  - Painel lateral: histórico de perguntas + favoritos
+- **Painel de uso de IA (Sprint 7+):**
+  - Visualização de consumo por feature (descrições, imagens, chatbot, analyst)
+  - Custo estimado em USD + alerta visual de teto
+  - Toggle modo econômico (Haiku vs Sonnet) com explicação clara do trade-off
+- **Estúdio criativo no admin (Sprint 11):**
+  - Fluxo de upload → configurar composição → visualizar resultado → salvar/descartar
+  - Estados de loading para geração (30–60s) — feedback de progresso
+  - Grid de resultados com comparador antes/depois
+  - Selector de estilo/cenário (presets + custom prompt)
+  - Histórico de gerações por produto
+- **Editor "compre o look" no admin (Sprint 10):**
+  - Canvas com foto UGC + tags posicionáveis (drag & drop)
+  - Search de produto inline para tagear
+  - Preview do hover/click do cliente
+- **Editor de homepage personalizada no admin (Sprint 12):**
+  - Editor de seções dinâmicas
+  - Variantes de hero (cliente novo, cliente recorrente, cliente VIP)
+  - Visualização "preview as user X" no admin
+- Formato de entrega: extensões do design system Lojeo + especificações + Figma
+
+### 🎨 Design Checkpoint D — Componentes IA no STOREFRONT do template jewelry-v1
+
+**Camada:** Template jewelry-v1 (storefront) — extensão do Checkpoint B
+
+**Bloqueia:** Sprint 9 (chatbot widget no storefront), Sprint 12 (homepage personalizada visual)
+
+**Solicitar:** (todos os componentes seguem identidade do template ativo, NÃO do Lojeo)
+- **Widget chatbot no storefront (Sprint 9):**
+  - Visual de bolha de chat + estados (minimizado, expandido, digitando, mensagem do bot, mensagem do humano após escalação)
+  - Cards de produto inline na conversa (quando bot sugere produto) — usando estilo de card do template
+  - Botão "falar com humano" (escalação visual)
+- **Homepage personalizada visual (Sprint 12):**
+  - Variações visuais do hero (cliente novo, cliente recorrente, cliente VIP) dentro do mood do template
+  - Componentes de recomendação visual (Frequentemente comprado junto, Você também pode gostar)
+- Formato de entrega: extensões do template `templates/jewelry-v1/` + Figma
+
+### 🎨 Design Checkpoint E — Template coffee-v1 (Fase 1.2)
+
+**Camada:** Template aplicado na instância coffee.domain.com (NÃO é o Lojeo, NÃO é jewelry-v1)
+
+**Bloqueia:** Sprint 14 (Fase 1.2)
+
+Briefing dedicado gerado quando Fase 1 joias estiver estável em produção. Identidade completamente diferente de jewelry-v1 — café artesanal internacional.
+
+---
+
+## Fase 1.2 — Template café + internacional (após Sprint 13)
 
 Após a loja de joias estável em produção por pelo menos 4 semanas:
 
 | Sprint | Tema | Destaque |
 |---|---|---|
-| 12 | Template café + internacionalização | i18n, endereço adaptativo, tipografia própria |
-| 13 | Pagamentos internacionais + fiscal | Stripe, PayPal, commercial invoice |
-| 14 | Plano de assinatura recorrente | Qualquer produto em ciclo recorrente |
-| 15 | Marketplaces iniciais | Google Shopping, Meta Catalog, Etsy |
-| 16 | Métricas estratégicas avançadas | CAC, LTV, coorte, NPS automático via FaqZap |
-| 17 | Afiliados + embaixadores | Painel dedicado, código pessoal, comissão |
+| 14 | Template café + internacionalização | i18n, endereço adaptativo, tipografia própria |
+| 15 | Pagamentos internacionais + fiscal | Stripe, PayPal, commercial invoice |
+| 16 | Plano de assinatura recorrente | Qualquer produto em ciclo recorrente |
+| 17 | Marketplaces iniciais | Google Shopping, Meta Catalog, Etsy, Amazon Handmade |
+| 18 | Métricas estratégicas avançadas | CAC, LTV, coorte, NPS automático via FaqZap |
+| 19 | Afiliados + embaixadores | Painel dedicado, código pessoal, comissão (reusa UGC + selo embaixador do Sprint 10) |
+| 20 | Send time optimization + precificação dinâmica | IA decide horário de envio + preço ótimo |
+
+---
+
+## Fase 2 — SaaS multi-tenant (after Fase 1.2)
+
+Funcionalidades reservadas para Fase 2 SaaS — **não implementar na Fase 1**:
+- Setup wizard com IA para onboarding (Seção 3.1 do doc) — só faz sentido com onboarding self-service
+- Marketplace de templates com comissão para designers externos
+- Planos com cota de IA + créditos pré-pagos
+- Upgrade automático de tenants (migrations multi-tenant)
+- Painel master para gerenciar tenants
 
 ---
 
@@ -432,7 +866,9 @@ Após a loja de joias estável em produção por pelo menos 4 semanas:
 | 0 | Apple Login no sprint 0 ou depois? | Custo $99/ano Apple Developer, burocracia |
 | 3 | Mercado Pago ou Pagar.me como primário? | Taxas, suporte, integração |
 | 4 | Bling ou Olist para NF-e? | Custo mensal, API, suporte |
-| 9 | Provider de geração de imagem? | Custo/qualidade/API (Ideogram, Flux, DALL-E 3) |
+| 8 | Monitoramento de concorrência fica neste sprint ou descopa? | Scraping pode ser frágil; descopar é seguro |
+| 11 | Provider de geração de imagem? | Custo/qualidade/API (Ideogram, Flux, DALL-E 3) |
+| 12 | Personalização de homepage: A/B test obrigatório no lançamento? | Decisão de produto + UX |
 
 ---
 
@@ -441,14 +877,50 @@ Após a loja de joias estável em produção por pelo menos 4 semanas:
 | Sprint | Complexidade | Justificativa |
 |---|---|---|
 | 0 | Média | Config intensiva, pouca lógica de negócio |
-| 1 | Média | Upload + variantes são as partes densas |
-| 2 | Alta | Design externo + template system + SSR |
+| 1 | Média-Alta | Catálogo + tracking foundation simultâneos |
+| 2 | Alta | Design externo + template system + SSR + instrumentação completa |
 | 3 | Alta | Webhooks + idempotência + sandbox tests |
 | 4 | Média-Alta | 3 integrações externas simultâneas |
-| 5 | Média | Admin CRUD + roles |
-| 6 | Alta | Fluxo de estados + logística reversa + fiscal |
+| 5 | Média-Alta | Admin CRUD + 4 features de retenção |
+| 6 | Alta | Fluxo de estados + logística reversa + fiscal + RFM |
 | 7 | Média | IA relativamente isolada, caching é o desafio |
-| 8 | Média | Muitas integrações mas padrão bem definido |
-| 9 | Alta | IA assíncrona + jobs longos + UX complexa |
-| 10 | Média | Muitos pixels mas padrão repetitivo |
-| 11 | Alta | Testes E2E + segurança não têm atalho |
+| 8 | Alta | IA Analyst (tool-calling) + heurísticas de churn/estoque |
+| 9 | Alta | FaqZap + chatbot tool-calling + tickets + rate limiting |
+| 10 | Média-Alta | Upload + moderação IA + compre o look + UI nova |
+| 11 | Alta | IA assíncrona + jobs longos + UX complexa + motor de recomendação |
+| 12 | Alta | Pixels + Clarity-IA + homepage personalizada (3 frentes) |
+| 13 | Alta | Testes E2E + segurança + auditoria não têm atalho |
+
+---
+
+## Custo estimado de IA — visão CFO (por loja, mês 1 de produção)
+
+| Feature | Modelo | Volume estimado | Custo/mês |
+|---|---|---|---|
+| Descrições + SEO (Sprint 7) | Sonnet | 50 produtos novos × 2 chamadas | $5–10 |
+| IA Analyst (Sprint 8) | Sonnet | 30 perguntas/mês com tool calls | $15–30 |
+| Chatbot storefront (Sprint 9) | Haiku | 500 sessões × 5 mensagens | $10–20 |
+| Moderação UGC (Sprint 10) | Claude vision | 100 imagens | <$1 |
+| Estúdio criativo (Sprint 11) | Provider externo | 20 gerações premium | $20–40 |
+| Recomendações (Sprint 11) | Embeddings | 1× por novo produto | <$2 |
+| Clarity insights (Sprint 12) | Sonnet | 1 análise/dia | $5–10 |
+| **Total estimado** | | | **$56–113/mês** |
+
+**Ponto de atenção:** com cache funcionando bem (esperado 60-80% hit rate em consultas repetidas), custo real fica na faixa baixa da estimativa. Sem cache, sobe para $150-250/mês — daí a obrigatoriedade do `@lojeo/ai` wrapper desde o Sprint 7.
+
+---
+
+## Mudanças desta revisão (vs versão original 2026-04-25)
+
+1. **Sprint 1 expandido:** adicionada tracking foundation (schema + SDK) — fundação não-negociável para personalização e IA Analyst
+2. **Sprint 2 estendido para 3 semanas:** instrumentação behavioral em todas as superfícies do storefront
+3. **Sprint 5 estendido para 3 semanas:** wishlist + gift card + back-in-stock + opção de presente (4 features de retenção, ROI alto)
+4. **Sprint 6 expandido:** segmentação RFM automática + sugestão de recompra
+5. **Sprint 8 NOVO:** IA Analyst (insights linguagem natural) + churn + previsão de estoque
+6. **Sprint 9 expandido:** chatbot storefront com tool-calling integrado ao FaqZap
+7. **Sprint 10 NOVO:** UGC completo (galeria + compre o look + moderação IA)
+8. **Sprint 11 expandido:** motor de recomendação (content + collaborative + behavioral)
+9. **Sprint 12 expandido:** Clarity+IA + homepage personalizada + sugestão de recompra storefront
+10. **Sprint 13 expandido:** validação de modo degradado para todos os serviços + auditoria de custo IA
+11. **Total Fase 1:** 24 → 30 semanas (+6 semanas, +25%)
+12. **Setup wizard com IA** explicitamente postergado para Fase 2 SaaS

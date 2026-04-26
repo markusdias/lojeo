@@ -1,0 +1,27 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Card</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin:0; padding:28px; background:var(--paper); font-family:var(--font-sans); color:var(--fg); display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  .badge { display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:500; line-height:1.4; }
+  .dot { width:6px; height:6px; border-radius:999px; background:currentColor; }
+  .success { background:#ECFDF5; color:#047857; }
+  .warn    { background:#FFFBEB; color:#B45309; }
+  .err     { background:#FEF2F2; color:#B91C1C; }
+  .info    { background:#EFF6FF; color:#1D4ED8; }
+  .neutral { background:#F5F5F5; color:#404040; }
+  .accent  { background:#E6EFEC; color:#00553D; }
+  .ai { background: linear-gradient(135deg, rgba(0,85,61,0.10), rgba(52,199,150,0.18)); color:#00553D; border:1px solid rgba(0,85,61,0.15); }
+  .oauth { background:#fff; color:#047857; border:1px solid #D1FAE5; }
+</style></head><body>
+  <span class="badge success"><span class="dot"></span>Pago</span>
+  <span class="badge warn"><span class="dot"></span>Aguardando envio</span>
+  <span class="badge err"><span class="dot"></span>Estoque zerado</span>
+  <span class="badge info"><span class="dot"></span>Em trânsito</span>
+  <span class="badge neutral">Rascunho</span>
+  <span class="badge accent">Destaque</span>
+  <span class="badge ai">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"/></svg>
+    IA
+  </span>
+  <span class="badge oauth"><span class="dot" style="background:#10B981"></span>Conectado via OAuth</span>
+</body></html>

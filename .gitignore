@@ -3,13 +3,31 @@
 .AppleDouble
 .LSOverride
 
-# Node
+# Node / pnpm
 node_modules/
+.pnpm-store/
+.pnpm-debug.log*
+
+# Build outputs
 .next/
 .turbo/
 dist/
 build/
+out/
 .cache/
+*.tsbuildinfo
+
+# Tests / coverage
+coverage/
+playwright-report/
+test-results/
+.vitest-cache/
+
+# Local storage adapter
+.local-storage/
+
+# Drizzle artefatos temporários
+drizzle/meta/_journal.tmp.json
 
 # Environment
 .env

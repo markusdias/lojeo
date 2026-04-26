@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lojeo Admin — UI kit</title>
+<link rel="stylesheet" href="../../colors_and_type.css">
+<link rel="stylesheet" href="admin.css">
+<link rel="stylesheet" href="dashboard.css">
+<link rel="stylesheet" href="screens.css">
+<link rel="stylesheet" href="screens-extra.css">
+<style>
+  .screen-tabs {
+    position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); z-index: 100;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 999px;
+    padding: 4px; display: flex; gap: 2px; box-shadow: var(--shadow-md);
+    max-width: calc(100vw - 24px); overflow-x: auto;
+  }
+  .screen-tabs button {
+    height: 28px; padding: 0 12px; border-radius: 99px; border: 0; background: transparent;
+    font: inherit; font-size: 11px; font-weight: 500; cursor: pointer; color: var(--neutral-600);
+    white-space: nowrap;
+  }
+  .screen-tabs button.active { background: var(--neutral-900); color: white; }
+  .screen-tabs .sep { width: 1px; background: var(--border); margin: 4px 4px; align-self: stretch; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="Sidebar.jsx"></script>
+<script type="text/babel" src="Dashboard.jsx"></script>
+<script type="text/babel" src="Screens.jsx"></script>
+<script type="text/babel" src="Settings.jsx"></script>
+<script type="text/babel" src="Team.jsx"></script>
+<script type="text/babel" src="Queues.jsx"></script>
+<script type="text/babel" src="Customer.jsx"></script>
+<script type="text/babel" src="Wishlist.jsx"></script>
+<script type="text/babel" src="Empty.jsx"></script>
+<script type="text/babel" src="Appearance.jsx"></script>
+<script type="text/babel" src="ABEditor.jsx"></script>
+<script type="text/babel" src="Tickets.jsx"></script>
+<link rel="stylesheet" href="appearance.css"/>
+<link rel="stylesheet" href="ab-editor.css"/>
+<link rel="stylesheet" href="tickets.css"/>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+// Read URL hash for darkmode-only renders (used in iframes for dark compare)
+const params = new URLSearchParams(window.location.search);
+const forcedTheme = params.get('theme'); // 'dark' | 'light' | null
+const forcedScreen = params.get('screen');
+
+function App() {
+  const [screen, setScreen] = useState(forcedScreen || 'dashboard');
+  const [theme, setTheme] = useState(forcedTheme || 'light');
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
+  const screens = [
+    { id: 'dashboard',  label: 'Dashboard', crumbs: ['Loja', 'Dashboard'], group: 'Principais' },
+    { id: 'orders',     label: 'Pedido',    crumbs: ['Pedidos', 'PED-00184'], group: 'Principais' },
+    { id: 'products',   label: 'Produtos',  crumbs: ['Catálogo', 'Produtos'], group: 'Principais' },
+    { id: 'customer',   label: 'Cliente',   crumbs: ['Clientes', 'Beatriz Lima'], group: 'Principais' },
+    { id: 'settings',   label: 'Settings',  crumbs: ['Configurações', 'Gateways'], group: 'Operação' },
+    { id: 'team',       label: 'Equipe',    crumbs: ['Configurações', 'Equipe'], group: 'Operação' },
+    { id: 'queues',     label: 'Filas',     crumbs: ['Operação', 'Filas'], group: 'Operação' },
+    { id: 'wishlist',   label: 'Wishlist',  crumbs: ['Marketing', 'Wishlist e gift cards'], group: 'Operação' },
+    { id: 'appearance', label: 'Aparência', crumbs: ['Loja', 'Aparência'], group: 'Operação' },
+    { id: 'abtest',     label: 'A/B Tests', crumbs: ['Marketing', 'Experimentos A/B'], group: 'Operação' },
+    { id: 'tickets',    label: 'Tickets',   crumbs: ['Atendimento', 'Tickets'], group: 'Operação' },
+    { id: 'darkcompare', label: 'Dark', crumbs: [], group: 'Sistema' },
+    { id: 'empty-orders',    label: '∅ Pedidos',    crumbs: ['Pedidos'], group: 'Vazios' },
+    { id: 'empty-products',  label: '∅ Produtos',   crumbs: ['Catálogo','Produtos'], group: 'Vazios' },
+    { id: 'empty-customers', label: '∅ Clientes',   crumbs: ['Clientes'], group: 'Vazios' },
+    { id: 'empty-reviews',   label: '∅ Avaliações', crumbs: ['Operação','Avaliações'], group: 'Vazios' },
+    { id: 'login',           label: 'Login',        crumbs: [], group: 'Sistema' },
+  ];
+
+  const current = screens.find(s => s.id === screen) || screens[0];
+  const sidebarMap = {
+    dashboard: 'dashboard', orders: 'orders', products: 'products',
+    customer: 'customers', settings: 'settings', team: 'settings',
+    queues: 'ugc', wishlist: 'analytics',
+    'empty-orders': 'orders', 'empty-products': 'products',
+    'empty-customers': 'customers', 'empty-reviews': 'ugc', appearance: 'theme',
+    abtest: 'analytics', tickets: 'ugc',
+  };
+
+  if (screen === 'login') {
+    return (
+      <>
+        <Login/>
+        <Tabs screen={screen} setScreen={setScreen} screens={screens}/>
+      </>
+    );
+  }
+
+  if (screen === 'darkcompare') {
+    return <>
+      <DarkCompare/>
+      <Tabs screen={screen} setScreen={setScreen} screens={screens}/>
+    </>;
+  }
+
+  const screenContent = {
+    dashboard: <Dashboard/>,
+    orders: <Orders/>,
+    products: <Products/>,
+    customer: <Customer/>,
+    settings: <Settings onNavTeam={() => setScreen('team')}/>,
+    team: <Team/>,
+    queues: <Queues/>,
+    wishlist: <Wishlist/>,
+    appearance: <Appearance/>,
+    abtest: <ABEditor/>,
+    tickets: <Tickets/>,
+    'empty-orders': <EmptyOrders/>,
+    'empty-products': <EmptyProducts/>,
+    'empty-customers': <EmptyCustomers/>,
+    'empty-reviews': <EmptyReviews/>,
+  }[screen];
+
+  return (
+    <>
+      <div className="app" data-screen-label={current.label}>
+        <Sidebar active={sidebarMap[screen] || screen} onNav={(id) => {
+          // sidebar id -> screen id
+          const map = { dashboard: 'dashboard', orders: 'orders', products: 'products',
+            customers: 'customer', analytics: 'wishlist', settings: 'settings',
+            ugc: 'queues', 'ai-analyst': 'dashboard', theme: 'appearance' };
+          setScreen(map[id] || screen);
+        }}/>
+        <div style={{ position: 'relative' }}>
+          <Topbar crumbs={current.crumbs}>
+            <UserMenuTrigger theme={theme} setTheme={setTheme} open={menuOpen} setOpen={setMenuOpen}/>
+          </Topbar>
+          {menuOpen && <UserMenuPanel theme={theme} setTheme={setTheme} onClose={() => setMenuOpen(false)} onNav={setScreen}/>}
+          {screenContent}
+        </div>
+      </div>
+      <Tabs screen={screen} setScreen={setScreen} screens={screens}/>
+    </>
+  );
+}
+
+// Override Topbar to host children at the right slot
+function Topbar({ crumbs, children }) {
+  return (
+    <header className="topbar">
+      <div className="crumbs">
+        {crumbs.map((c, i) => (
+          <span key={i}>
+            {i > 0 && <span style={{margin:'0 8px',color:'var(--neutral-300)'}}>/</span>}
+            {i === crumbs.length - 1 ? <strong>{c}</strong> : c}
+          </span>
+        ))}
+      </div>
+      <div className="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input placeholder="Pedido, cliente, SKU…"/>
+      </div>
+      <div className="actions">
+        <button className="icon-btn" title="Notificações">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+          <span className="pip"/>
+        </button>
+        {children}
+      </div>
+    </header>
+  );
+}
+
+function UserMenuTrigger({ theme, setTheme, open, setOpen }) {
+  return (
+    <button className="user-menu-trigger" onClick={() => setOpen(o => !o)}>
+      <div className="avatar-sm">MC</div>
+      <span className="name">Marina</span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+  );
+}
+
+function UserMenuPanel({ theme, setTheme, onClose, onNav }) {
+  return (
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 49 }}/>
+      <div className="user-menu">
+        <div className="header">
+          <div className="avatar-sm" style={{ width: 36, height: 36, fontSize: 12 }}>MC</div>
+          <div>
+            <div className="name">Marina Castro</div>
+            <div className="sub">marina@atelierverde.com · Proprietária</div>
+          </div>
+        </div>
+        <div className="item" onClick={() => { onNav('settings'); onClose(); }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v2"/></svg>
+          Meu perfil
+        </div>
+        <div className="item" onClick={() => { onNav('settings'); onClose(); }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Configurações da loja
+        </div>
+        <div className="item" onClick={() => { onNav('team'); onClose(); }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M3 20a6 6 0 0 1 12 0"/><circle cx="17" cy="9" r="2.5"/><path d="M14 20a4 4 0 0 1 7 0"/></svg>
+          Equipe
+        </div>
+        <hr/>
+        <div className="group-label">Aparência</div>
+        <div className="item toggle-row">
+          <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            Modo escuro
+          </span>
+          <SettingsToggle on={theme === 'dark'} onChange={(v) => setTheme(v ? 'dark' : 'light')}/>
+        </div>
+        <div className="item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3 1.8 5.4L19 10l-5.2 1.6L12 17l-1.8-5.4L5 10l5.2-1.6z"/></svg>
+          Acompanhar sistema
+        </div>
+        <hr/>
+        <div className="item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
+          Central de ajuda
+        </div>
+        <div className="item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2"/><path d="M16 12h6m-3-3 3 3-3 3"/></svg>
+          Sair
+        </div>
+      </div>
+    </>
+  );
+}
+
+function DarkCompare() {
+  // Inline mock — both modes side-by-side, no iframes (more reliable in embedded previews).
+  const Mock = ({ mode }) => (
+    <div className="dc-mock" data-theme={mode}>
+      <div className="dc-mock-inner">
+        <div className="dc-topbar">
+          <div className="dc-crumbs">Loja · Dashboard</div>
+          <div className="dc-search">Pedido, cliente, SKU…</div>
+          <div className="dc-avatar">MC</div>
+        </div>
+        <div className="dc-body">
+          <h2 className="dc-h1">Tudo certo, Marina <span style={{filter:'grayscale(0)'}}>👋</span></h2>
+          <p className="dc-sub">Aqui está um resumo da sua loja hoje, 25 de abril.</p>
+          <div className="dc-metrics">
+            {[
+              { label: 'Receita hoje', value: 'R$ 4.280,90', delta: '▲ 12,4%', up: true },
+              { label: 'Pedidos', value: '28', delta: '▲ 3', up: true },
+              { label: 'Conversão', value: '2,8%', delta: '▼ 0,4%', up: false },
+              { label: 'Margem média', value: '42,3%', delta: '▲ 1,1%', up: true },
+            ].map(m => (
+              <div className="dc-metric" key={m.label}>
+                <div className="dc-metric-head">
+                  <span className="dc-label">{m.label}</span>
+                  <span className={`dc-delta ${m.up ? 'up' : 'down'}`}>{m.delta}</span>
+                </div>
+                <div className="dc-value">{m.value}</div>
+                <svg className="dc-spark" width="100%" height="22" viewBox="0 0 100 22" preserveAspectRatio="none">
+                  <polyline fill="none" stroke="var(--accent)" strokeWidth="1.5" points="0,16 14,14 28,15 42,11 56,12 70,7 84,9 100,4"/>
+                </svg>
+              </div>
+            ))}
+          </div>
+          <div className="dc-grid2">
+            <div className="dc-card dc-chart">
+              <div className="dc-card-head">
+                <strong>Receita · últimos 7 dias</strong>
+                <span className="dc-muted">vs. semana anterior</span>
+              </div>
+              <svg width="100%" height="120" viewBox="0 0 300 120" preserveAspectRatio="none">
+                <polyline fill="none" stroke="var(--border)" strokeWidth="1" strokeDasharray="2 4" points="0,60 300,60"/>
+                <polyline fill="none" stroke="var(--neutral-300)" strokeWidth="1.5" strokeDasharray="3 3" points="0,80 50,75 100,72 150,68 200,70 250,65 300,62"/>
+                <polyline fill="none" stroke="var(--accent)" strokeWidth="2" points="0,72 50,60 100,55 150,50 200,30 250,40 300,20"/>
+              </svg>
+            </div>
+            <div className="dc-card">
+              <div className="dc-card-head"><strong>Saúde das integrações</strong></div>
+              {[
+                { name: 'Mercado Pago', status: 'OK', tone: 'ok' },
+                { name: 'Melhor Envio', status: 'OK', tone: 'ok' },
+                { name: 'Bling NF-e', status: 'Lento', tone: 'warn' },
+                { name: 'Resend e-mail', status: 'OK', tone: 'ok' },
+                { name: 'Pixel Meta', status: 'Reconectar', tone: 'err' },
+              ].map(h => (
+                <div className="dc-health-row" key={h.name}>
+                  <span className={`dc-dot ${h.tone}`}/>
+                  <span className="dc-health-name">{h.name}</span>
+                  <span className={`dc-pill ${h.tone}`}>{h.status}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+      <div style={{ padding: '24px 24px 0' }}>
+        <h1 style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-0.02em', margin: 0 }}>Dark mode · validação de contraste</h1>
+        <p style={{ color: 'var(--fg-secondary)', fontSize: 14, marginTop: 4 }}>Mesma tela em ambos modos. Toggle vive no menu do usuário (canto superior direito).</p>
+      </div>
+      <div className="dark-compare">
+        <div className="frame">
+          <div className="frame-label">Light · padrão</div>
+          <Mock mode="light"/>
+        </div>
+        <div className="frame">
+          <div className="frame-label">Dark · #0A0A0A</div>
+          <Mock mode="dark"/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Tabs({ screen, setScreen, screens }) {
+  const grouped = {};
+  screens.forEach(s => { (grouped[s.group] = grouped[s.group] || []).push(s); });
+  const keys = Object.keys(grouped);
+  return (
+    <div className="screen-tabs">
+      {keys.map((g, gi) => (
+        <React.Fragment key={g}>
+          {gi > 0 && <span className="sep"/>}
+          {grouped[g].map(s => (
+            <button key={s.id} className={screen === s.id ? 'active' : ''} onClick={() => setScreen(s.id)}>
+              {s.label}
+            </button>
+          ))}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

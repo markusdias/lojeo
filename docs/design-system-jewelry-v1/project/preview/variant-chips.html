@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><title>Variant chips</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{padding:24px; font-family:var(--font-body); background:var(--bg);}
+  .group{margin-bottom:20px;}
+  .label{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-secondary); margin-bottom:8px;}
+  .row{display:flex; gap:8px; flex-wrap:wrap;}
+  .chip{padding:10px 16px; font-size:13px; border:1px solid var(--divider); background:var(--surface); border-radius:2px; color:var(--text-primary); cursor:pointer;}
+  .chip.active{border:1.5px solid var(--text-primary);}
+  .chip.disabled{color:var(--text-muted); text-decoration:line-through; cursor:not-allowed;}
+  .swatch{width:32px; height:32px; border-radius:999px; border:1px solid var(--divider); cursor:pointer; display:inline-block;}
+  .swatch.active{outline:1.5px solid var(--text-primary); outline-offset:2px;}
+</style></head>
+<body>
+  <div class="group">
+    <div class="label">Material</div>
+    <div class="row">
+      <span class="swatch active" style="background:#B8956A" title="ouro amarelo"></span>
+      <span class="swatch" style="background:#E5E5E5" title="ouro branco"></span>
+      <span class="swatch" style="background:#C8A28C" title="rosé"></span>
+      <span class="swatch" style="background:#9AA0A6" title="prata"></span>
+    </div>
+  </div>
+  <div class="group">
+    <div class="label">Aro</div>
+    <div class="row">
+      <span class="chip">12</span>
+      <span class="chip active">14</span>
+      <span class="chip">16</span>
+      <span class="chip disabled">18</span>
+      <span class="chip">20</span>
+    </div>
+  </div>
+</body></html>

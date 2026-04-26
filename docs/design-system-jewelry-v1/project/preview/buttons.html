@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><title>Buttons</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{padding:24px; font-family:var(--font-body); background:var(--bg);}
+  .row{display:flex; flex-wrap:wrap; gap:12px; align-items:center;}
+  .btn{
+    font-family:var(--font-body); font-size:14px; font-weight:500;
+    padding:14px 28px; border-radius:8px; border:none; cursor:pointer;
+    letter-spacing:0.02em; transition:all 240ms cubic-bezier(.22,1,.36,1);
+  }
+  .btn-primary{background:var(--text-primary); color:var(--text-on-dark);}
+  .btn-primary:hover{background:#000;}
+  .btn-accent{background:var(--accent); color:#fff;}
+  .btn-accent:hover{background:var(--accent-hover);}
+  .btn-ghost{background:transparent; color:var(--text-primary); border:1px solid var(--text-primary);}
+  .btn-ghost:hover{background:rgba(26,22,18,0.04);}
+  .btn-link{background:none; color:var(--text-primary); padding:14px 0; border-bottom:1px solid var(--text-primary); border-radius:0;}
+  .btn-disabled{background:var(--text-primary); color:#fff; opacity:.4; cursor:not-allowed;}
+</style></head>
+<body>
+  <div class="row">
+    <button class="btn btn-primary">Adicionar à sacola</button>
+    <button class="btn btn-accent">Comprar agora</button>
+    <button class="btn btn-ghost">Avise-me quando voltar</button>
+    <button class="btn btn-link">Ver coleção →</button>
+    <button class="btn btn-disabled" disabled>Esgotado</button>
+  </div>
+</body></html>

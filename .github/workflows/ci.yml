@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+env:
+  NODE_VERSION: 20.18.1
+  PNPM_VERSION: 9.15.9
+
+jobs:
+  ci:
+    name: lint + typecheck + test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: lojeo
+          POSTGRES_PASSWORD: lojeo
+          POSTGRES_DB: lojeo
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lojeo -d lojeo"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgres://lojeo:lojeo@localhost:5432/lojeo
+      AUTH_SECRET: ci-secret-32-chars-minimum-please
+      TENANT_ID: 00000000-0000-0000-0000-000000000001
+      TEMPLATE_ID: jewelry-v1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Habilitar pgvector
+        run: psql "$DATABASE_URL" -c 'CREATE EXTENSION IF NOT EXISTS "vector"; CREATE EXTENSION IF NOT EXISTS "uuid-ossp"; CREATE EXTENSION IF NOT EXISTS "pgcrypto";'
+
+      - name: Generate migrations
+        run: pnpm db:generate
+
+      - name: Apply migrations
+        run: pnpm db:migrate
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build

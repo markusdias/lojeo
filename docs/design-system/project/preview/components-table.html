@@ -1,0 +1,24 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Card</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin:0; padding:20px; background:var(--paper); font-family:var(--font-sans); color:var(--fg); }
+  .table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border:1px solid #E5E5E5; border-radius:12px; overflow:hidden; box-shadow: 0 1px 3px rgba(10,10,10,0.04); }
+  th, td { text-align:left; padding:12px 16px; font-size:13px; border-bottom:1px solid #F5F5F5; }
+  th { background:#FAFAF7; font-weight:500; color:#737373; font-size:12px; text-transform:uppercase; letter-spacing:0.04em; }
+  tr:last-child td { border-bottom:0; }
+  td.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .badge { display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:500; }
+  .dot { width:5px; height:5px; border-radius:999px; background:currentColor; }
+  .b-pago { background:#ECFDF5; color:#047857; }
+  .b-env  { background:#FFFBEB; color:#B45309; }
+  .b-tran { background:#EFF6FF; color:#1D4ED8; }
+</style></head><body>
+  <table class="table">
+    <thead><tr><th>Pedido</th><th>Cliente</th><th>Status</th><th style="text-align:right">Total</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">#PED-00184</td><td>Marina Castro</td><td><span class="badge b-pago"><span class="dot"></span>Pago</span></td><td class="mono" style="text-align:right">R$ 2.490,00</td></tr>
+      <tr><td class="mono">#PED-00183</td><td>Lucas Andrade</td><td><span class="badge b-env"><span class="dot"></span>Aguardando envio</span></td><td class="mono" style="text-align:right">R$ 480,00</td></tr>
+      <tr><td class="mono">#PED-00182</td><td>Beatriz Lima</td><td><span class="badge b-tran"><span class="dot"></span>Em trânsito</span></td><td class="mono" style="text-align:right">R$ 1.180,90</td></tr>
+    </tbody>
+  </table>
+</body></html>

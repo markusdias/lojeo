@@ -1,0 +1,18 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Card</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 32px; background: var(--paper); font-family: var(--font-sans); color: var(--fg); }
+  .row { display: flex; gap: 16px; align-items: stretch; }
+  .swatch { flex: 1; border-radius: var(--radius-md); aspect-ratio: 1.4; display: flex; flex-direction: column; justify-content: flex-end; padding: 12px; box-shadow: var(--shadow-xs); border: 1px solid var(--border); }
+  .swatch .label { font-size: 11px; font-weight: 600; letter-spacing: -0.01em; }
+  .swatch .hex { font-family: var(--font-mono); font-size: 10px; opacity: 0.75; margin-top: 2px; }
+  .light .label { color: #fff; } .light .hex { color: rgba(255,255,255,0.85); }
+  .dark .label { color: #0A0A0A; } .dark .hex { color: rgba(10,10,10,0.65); }
+</style></head><body>
+<div class="row">
+  <div class="swatch light" style="background:#00553D"><div class="label">Accent</div><div class="hex">#00553D</div></div>
+  <div class="swatch light" style="background:#007A57"><div class="label">Hover</div><div class="hex">#007A57</div></div>
+  <div class="swatch light" style="background:#00302A"><div class="label">Pressed</div><div class="hex">#00302A</div></div>
+  <div class="swatch dark"  style="background:#E6EFEC"><div class="label">Accent soft</div><div class="hex">#E6EFEC</div></div>
+</div>
+</body></html>

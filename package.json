@@ -1,0 +1,31 @@
+{
+  "name": "lojeo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Motor único de e-commerce adaptável via templates",
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=20.11.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "db:generate": "pnpm --filter @lojeo/db generate",
+    "db:migrate": "pnpm --filter @lojeo/db migrate",
+    "db:studio": "pnpm --filter @lojeo/db studio",
+    "db:seed": "pnpm --filter @lojeo/db seed"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  }
+}

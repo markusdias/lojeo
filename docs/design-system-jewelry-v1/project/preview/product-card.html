@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><title>Product card</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{padding:24px; font-family:var(--font-body); background:var(--bg);}
+  .grid{display:grid; grid-template-columns: repeat(2,1fr); gap:24px;}
+  .card{background:var(--surface); border-radius:8px; overflow:hidden;}
+  .card .img{aspect-ratio:1/1; background:#F4F1E9; display:grid; place-items:center; position:relative;}
+  .card .img svg{width:60%;}
+  .card .badge{position:absolute; top:10px; left:10px; background:var(--surface); font-size:10px; letter-spacing:.12em; text-transform:uppercase; padding:5px 10px; border-radius:999px; color:var(--text-secondary);}
+  .card .meta{padding:14px 4px;}
+  .card .name{font-family:var(--font-display); font-size:18px; margin:0; color:var(--text-primary);}
+  .card .desc{font-size:12px; color:var(--text-secondary); margin:3px 0 8px;}
+  .card .price{font-size:14px; color:var(--text-primary);}
+</style></head>
+<body>
+  <div class="grid">
+    <div class="card">
+      <div class="img">
+        <span class="badge">Acabou de chegar</span>
+        <img src="../assets/product-placeholder.svg" alt="" style="width:100%; height:100%; object-fit:cover;">
+      </div>
+      <div class="meta">
+        <h3 class="name">Aliança Solitário</h3>
+        <div class="desc">Ouro 18k · diamante 0,15ct</div>
+        <div class="price">R$ 2.890</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="img">
+        <span class="badge" style="color:var(--accent)">Best-seller</span>
+        <img src="../assets/product-placeholder.svg" alt="" style="width:100%; height:100%; object-fit:cover;">
+      </div>
+      <div class="meta">
+        <h3 class="name">Brinco Linha</h3>
+        <div class="desc">Prata 925 · acabamento fosco</div>
+        <div class="price">R$ 480</div>
+      </div>
+    </div>
+  </div>
+</body></html>

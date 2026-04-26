@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" width="320" height="80">
+  <title>lojeo · logo lockup — dark bg</title>
+  <g transform="translate(8, 12)">
+    <path d="M8 8 H44 V44 H20 a12 12 0 0 1 -12 -12 Z" fill="#34C796"></path>
+    <circle cx="34" cy="20" r="4" fill="#0A0A0A"></circle>
+  </g>
+  <text x="80" y="52" font-family="Inter, -apple-system, BlinkMacSystemFont, system-ui, sans-serif" font-size="36" font-weight="600" letter-spacing="-1.4" fill="#FAFAF7">lojeo</text>
+</svg>

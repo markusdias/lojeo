@@ -1,0 +1,4 @@
+{
+  "extends": "@lojeo/config/tsconfig/node",
+  "include": ["src/**/*"]
+}

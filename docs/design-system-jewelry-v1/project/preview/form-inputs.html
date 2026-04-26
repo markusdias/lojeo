@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><title>Form inputs</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{padding:24px; font-family:var(--font-body); background:var(--bg);}
+  .grid{display:grid; grid-template-columns: 1fr 1fr; gap:18px;}
+  .field{display:flex; flex-direction:column; gap:6px;}
+  .field label{font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-secondary);}
+  .field input, .field select{
+    font-family:var(--font-body); font-size:15px; color:var(--text-primary);
+    padding:12px 14px; background:var(--surface);
+    border:1px solid var(--divider); border-radius:2px; outline:none;
+    transition:border-color 120ms;
+  }
+  .field input:focus{border-color:var(--text-primary);}
+  .help{font-size:11px; color:var(--text-muted);}
+  .err input{border-color:var(--error);}
+  .err .help{color:var(--error);}
+</style></head>
+<body>
+  <div class="grid">
+    <div class="field"><label>Nome</label><input value="Maria Silveira"><span class="help">como aparece no cartão</span></div>
+    <div class="field"><label>CEP</label><input value="04534-000"><span class="help">enviamos para todo o Brasil</span></div>
+    <div class="field"><label>Tamanho do aro</label><select><option>14</option><option>15</option><option>16</option></select><span class="help">não sabe? mande medir</span></div>
+    <div class="field err"><label>Email</label><input value="maria@"><span class="help">email parece incompleto</span></div>
+  </div>
+</body></html>

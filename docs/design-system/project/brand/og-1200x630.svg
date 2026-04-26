@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <title>lojeo · social card</title>
+  
+  <rect width="1200" height="630" fill="#FAFAF7"></rect>
+
+  
+  <g opacity="0.05">
+    <line x1="0" y1="180" x2="1200" y2="180" stroke="#0A0A0A" strokeWidth="1"></line>
+    <line x1="0" y1="450" x2="1200" y2="450" stroke="#0A0A0A" strokeWidth="1"></line>
+    <line x1="80" y1="0" x2="80" y2="630" stroke="#0A0A0A" strokeWidth="1"></line>
+    <line x1="1120" y1="0" x2="1120" y2="630" stroke="#0A0A0A" strokeWidth="1"></line>
+  </g>
+
+  
+  <g transform="translate(80, 200) scale(3.214)">
+    <path d="M8 8 H44 V44 H20 a12 12 0 0 1 -12 -12 Z" fill="#00553D"></path>
+    <circle cx="34" cy="20" r="4" fill="#FAFAF7"></circle>
+  </g>
+
+  
+  <text x="295" y="320" font-family="Inter, -apple-system, BlinkMacSystemFont, system-ui, sans-serif" font-size="120" font-weight="600" letter-spacing="-4" fill="#0A0A0A">lojeo</text>
+
+  
+  <text x="80" y="430" font-family="Inter, system-ui, sans-serif" font-size="32" font-weight="400" letter-spacing="-0.5" fill="#525252">sua loja, do seu jeito.</text>
+
+  
+  <text x="80" y="560" font-family="JetBrains Mono, ui-monospace, monospace" font-size="14" font-weight="500" letter-spacing="2" fill="#737373">PLATAFORMA · BRASIL</text>
+  <text x="1120" y="560" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace" font-size="14" font-weight="500" letter-spacing="2" fill="#737373">lojeo.com.br</text>
+</svg>
