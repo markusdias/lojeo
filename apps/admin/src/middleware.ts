@@ -48,9 +48,44 @@ function csrfCheck(req: NextRequest): NextResponse | null {
   return null;
 }
 
+// 2FA enforcement (Sprint 5)
+// Paths que NÃO exigem 2FA verificado (mesmo com 2FA habilitado):
+// - /login e /api/auth/* (fluxo de signIn)
+// - /api/2fa/challenge (a própria verificação)
+// - /login/2fa-challenge (a página do challenge)
+// - /api/health, /api/migrate (já liberados pelo matcher)
+const TWO_FA_BYPASS_PREFIXES = [
+  '/login',
+  '/api/auth',
+  '/api/2fa/challenge',
+];
+
+function needs2FAGate(pathname: string): boolean {
+  for (const prefix of TWO_FA_BYPASS_PREFIXES) {
+    if (pathname === prefix || pathname.startsWith(prefix + '/')) return false;
+  }
+  return true;
+}
+
 export default auth((req) => {
   const csrfBlock = csrfCheck(req);
   if (csrfBlock) return csrfBlock;
+
+  // 2FA enforcement: usuários com 2FA habilitado precisam ter verificado
+  // a sessão (cookie lojeo_2fa_verified=1) antes de acessar rotas protegidas.
+  const session = req.auth;
+  const requires2FA = session?.user?.requires2FA === true;
+  const pathname = req.nextUrl.pathname;
+  if (session?.user && requires2FA && needs2FAGate(pathname)) {
+    const verified = req.cookies.get('lojeo_2fa_verified')?.value === '1';
+    if (!verified) {
+      const url = req.nextUrl.clone();
+      url.pathname = '/login/2fa-challenge';
+      url.searchParams.set('returnTo', pathname + (req.nextUrl.search || ''));
+      return NextResponse.redirect(url);
+    }
+  }
+
   // delega ao auth handler default (sessão)
   return undefined as unknown as NextResponse;
 });

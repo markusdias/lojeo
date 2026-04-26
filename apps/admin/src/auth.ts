@@ -1,9 +1,30 @@
 import NextAuth, { type NextAuthResult } from 'next-auth';
+import 'next-auth/jwt';
 import Google from 'next-auth/providers/google';
 import Credentials from 'next-auth/providers/credentials';
 import { DrizzleAdapter } from '@auth/drizzle-adapter';
-import { db, users, accounts, sessions, verificationTokens } from '@lojeo/db';
+import { db, users, accounts, sessions, verificationTokens, userTwoFactor } from '@lojeo/db';
 import { eq } from 'drizzle-orm';
+
+// Estender tipos de sessão/JWT para carregar requires2FA (Sprint 5: 2FA enforcement)
+declare module 'next-auth' {
+  interface Session {
+    user: {
+      id?: string;
+      email?: string | null;
+      name?: string | null;
+      image?: string | null;
+      requires2FA?: boolean;
+    };
+  }
+}
+
+declare module 'next-auth/jwt' {
+  interface JWT {
+    uid?: string;
+    requires2FA?: boolean;
+  }
+}
 
 const providers = [];
 
@@ -58,6 +79,38 @@ const result: NextAuthResult = NextAuth({
       const isLogin = request.nextUrl.pathname.startsWith('/login');
       if (isLogin) return true;
       return isLogged;
+    },
+    // JWT callback — roda em Node runtime no signIn e em refreshes.
+    // Embed `requires2FA` no token para evitar DB lookup a cada request no middleware (edge).
+    async jwt({ token, user, trigger }) {
+      // Carregar user.id no signIn (user vem populado apenas aqui)
+      if (user?.id) {
+        token.uid = user.id;
+      }
+      // Carregar/recarregar requires2FA quando: signIn (user presente) ou update explícito
+      const shouldLoad2fa = !!user || trigger === 'update' || token.requires2FA === undefined;
+      const userId = (token.uid as string | undefined) ?? (typeof token.sub === 'string' ? token.sub : undefined);
+      if (shouldLoad2fa && userId) {
+        try {
+          const [row] = await db
+            .select({ enabled: userTwoFactor.enabled })
+            .from(userTwoFactor)
+            .where(eq(userTwoFactor.userId, userId))
+            .limit(1);
+          token.requires2FA = row?.enabled === 'true';
+        } catch {
+          // Em caso de falha (DB indisponível), não bloquear login — degradar para false
+          token.requires2FA = token.requires2FA ?? false;
+        }
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        if (typeof token.uid === 'string') session.user.id = token.uid;
+        session.user.requires2FA = !!token.requires2FA;
+      }
+      return session;
     },
   },
 });

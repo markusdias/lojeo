@@ -66,6 +66,8 @@ Em **Configurações > Usuários**, crie acessos para sua equipe sem compartilha
 
 Em **Configurações > Segurança**, **2FA é obrigatório** para Owner e Gerente. Use Google Authenticator, Authy ou 1Password.
 
+Após habilitar, **2FA passa a ser exigido em todo login**: depois de autenticar com Google/senha você verá uma tela pedindo o código de 6 dígitos do app antes de acessar o painel. Se perder acesso ao app, use um **código de recuperação** (formato `xxxxx-xxxxx`) na mesma tela — cada código funciona uma vez. A verificação vale por 8 horas; após esse prazo, será solicitada novamente.
+
 > ⚠️ **Atenção:** Guarde os **códigos de recuperação** num local seguro. Sem eles e sem o app 2FA, você perde acesso.
 
 ## 6.9 Logs de auditoria
