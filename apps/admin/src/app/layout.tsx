@@ -13,6 +13,7 @@ const NAV = [
   { href: '/products', label: 'Produtos', icon: '◆' },
   { href: '/inventory', label: 'Estoque', icon: '◻' },
   { href: '/collections', label: 'Coleções', icon: '▦' },
+  { href: '/settings', label: 'Configurações', icon: '⚙' },
 ];
 
 export default function RootLayout({ children }: { children: ReactNode }) {
