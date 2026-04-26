@@ -43,6 +43,13 @@
       "when": 1777213402338,
       "tag": "0005_empty_chamber",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1777214010437,
+      "tag": "0006_charming_sugar_man",
+      "breakpoints": true
     }
   ]
 }

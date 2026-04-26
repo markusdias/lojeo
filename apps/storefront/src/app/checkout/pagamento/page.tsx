@@ -89,6 +89,7 @@ export default function PagamentoPage() {
             unitPriceCents: i.priceCents,
             qty: i.qty,
           })),
+          customerEmail: state.customerEmail || null,
           shippingAddress: state.address,
           shipping: state.shipping,
           paymentMethod: method,

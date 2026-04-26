@@ -13,6 +13,7 @@
     "clean": "rm -rf .next .turbo"
   },
   "dependencies": {
+    "@auth/drizzle-adapter": "^1.7.4",
     "@lojeo/db": "workspace:*",
     "@lojeo/engine": "workspace:*",
     "@lojeo/logger": "workspace:*",
@@ -21,6 +22,7 @@
     "@lojeo/ui": "workspace:*",
     "drizzle-orm": "^0.38.3",
     "next": "^15.1.3",
+    "next-auth": "5.0.0-beta.25",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

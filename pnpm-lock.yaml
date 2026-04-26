@@ -99,6 +99,9 @@ importers:
 
   apps/storefront:
     dependencies:
+      '@auth/drizzle-adapter':
+        specifier: ^1.7.4
+        version: 1.11.2
       '@lojeo/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -123,6 +126,9 @@ importers:
       next:
         specifier: ^15.1.3
         version: 15.5.15(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+      next-auth:
+        specifier: 5.0.0-beta.25
+        version: 5.0.0-beta.25(next@15.5.15(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(react@19.2.5)
       react:
         specifier: ^19.0.0
         version: 19.2.5

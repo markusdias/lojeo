@@ -26,6 +26,7 @@ export interface ShippingOption {
 export interface CheckoutState {
   step: 'endereco' | 'frete' | 'pagamento' | 'confirmacao';
   address: Partial<CheckoutAddress>;
+  customerEmail: string;
   shipping: ShippingOption | null;
   paymentMethod: 'pix' | 'credit_card' | 'boleto' | null;
   isGift: boolean;
@@ -36,6 +37,7 @@ export interface CheckoutState {
 
 type CheckoutAction =
   | { type: 'SET_ADDRESS'; payload: Partial<CheckoutAddress> }
+  | { type: 'SET_CUSTOMER_EMAIL'; payload: string }
   | { type: 'SET_SHIPPING'; payload: ShippingOption }
   | { type: 'SET_PAYMENT_METHOD'; payload: CheckoutState['paymentMethod'] }
   | { type: 'SET_GIFT'; payload: { isGift: boolean; giftMessage: string } }
@@ -46,6 +48,7 @@ type CheckoutAction =
 const initialState: CheckoutState = {
   step: 'endereco',
   address: {},
+  customerEmail: '',
   shipping: null,
   paymentMethod: null,
   isGift: false,
@@ -57,6 +60,7 @@ const initialState: CheckoutState = {
 function reducer(state: CheckoutState, action: CheckoutAction): CheckoutState {
   switch (action.type) {
     case 'SET_ADDRESS': return { ...state, address: { ...state.address, ...action.payload } };
+    case 'SET_CUSTOMER_EMAIL': return { ...state, customerEmail: action.payload };
     case 'SET_SHIPPING': return { ...state, shipping: action.payload };
     case 'SET_PAYMENT_METHOD': return { ...state, paymentMethod: action.payload };
     case 'SET_GIFT': return { ...state, isGift: action.payload.isGift, giftMessage: action.payload.giftMessage };
@@ -72,6 +76,7 @@ const STORAGE_KEY = 'lojeo_checkout';
 interface CheckoutContextValue {
   state: CheckoutState;
   setAddress: (addr: Partial<CheckoutAddress>) => void;
+  setCustomerEmail: (email: string) => void;
   setShipping: (opt: ShippingOption) => void;
   setPaymentMethod: (m: CheckoutState['paymentMethod']) => void;
   setGift: (isGift: boolean, giftMessage: string) => void;
@@ -106,6 +111,7 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
   const value: CheckoutContextValue = {
     state,
     setAddress: (addr) => dispatch({ type: 'SET_ADDRESS', payload: addr }),
+    setCustomerEmail: (email) => dispatch({ type: 'SET_CUSTOMER_EMAIL', payload: email }),
     setShipping: (opt) => dispatch({ type: 'SET_SHIPPING', payload: opt }),
     setPaymentMethod: (m) => dispatch({ type: 'SET_PAYMENT_METHOD', payload: m }),
     setGift: (isGift, giftMessage) => dispatch({ type: 'SET_GIFT', payload: { isGift, giftMessage } }),

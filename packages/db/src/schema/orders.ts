@@ -90,6 +90,8 @@ export const orders = pgTable(
     isGift: boolean('is_gift').default(false).notNull(),
     giftMessage: text('gift_message'),
     giftPackagingCents: integer('gift_packaging_cents').default(0),
+    // Customer email — set on both guest and logged-in orders for lookup
+    customerEmail: varchar('customer_email', { length: 300 }),
     // Metadata for extensibility
     metadata: jsonb('metadata').default({}).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -101,6 +103,7 @@ export const orders = pgTable(
     orderNumberIdx: index('idx_orders_number').on(t.tenantId, t.orderNumber),
     gatewayIdx: index('idx_orders_gateway_payment').on(t.gatewayPaymentId),
     userIdx: index('idx_orders_user').on(t.userId),
+    emailIdx: index('idx_orders_customer_email').on(t.tenantId, t.customerEmail),
   })
 );
 

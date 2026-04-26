@@ -41,7 +41,7 @@ function Input({ style, ...props }: React.InputHTMLAttributes<HTMLInputElement>)
 
 export default function EnderecoPage() {
   const router = useRouter();
-  const { state, setAddress, setStep } = useCheckout();
+  const { state, setAddress, setCustomerEmail, setStep } = useCheckout();
   const { items, subtotalCents } = useCart();
   const tracker = useTracker();
 
@@ -57,7 +57,8 @@ export default function EnderecoPage() {
     state: '',
     ...state.address,
   });
-  const [errors, setErrors] = useState<Partial<Record<keyof CheckoutAddress, string>>>({});
+  const [email, setEmail] = useState(state.customerEmail ?? '');
+  const [errors, setErrors] = useState<Partial<Record<keyof CheckoutAddress | 'email', string>>>({});
   const [cepLoading, setCepLoading] = useState(false);
   const [cepError, setCepError] = useState('');
 
@@ -112,6 +113,7 @@ export default function EnderecoPage() {
     if (!form.number?.trim()) e.number = 'Obrigatório';
     if (!form.city?.trim()) e.city = 'Obrigatório';
     if (!form.state?.trim()) e.state = 'Obrigatório';
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = 'Email inválido';
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -120,6 +122,7 @@ export default function EnderecoPage() {
     e.preventDefault();
     if (!validate()) return;
     setAddress(form);
+    setCustomerEmail(email);
     setStep('frete');
     tracker?.track({ type: 'checkout_step_complete', entityType: 'checkout', entityId: 'endereco', metadata: { step: 1 } });
     router.push('/checkout/frete');
@@ -136,6 +139,16 @@ export default function EnderecoPage() {
         <h2 style={{ marginBottom: 32, fontSize: 22 }}>Endereço de entrega</h2>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <Field label="Email" error={errors.email}>
+            <Input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="para acompanhar seu pedido"
+              autoComplete="email"
+            />
+          </Field>
+
           <Field label="Nome do destinatário" error={errors.recipientName}>
             <Input
               value={form.recipientName ?? ''}

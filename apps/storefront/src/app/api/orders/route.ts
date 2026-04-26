@@ -48,6 +48,7 @@ interface CreateOrderBody {
     label: string;
   };
   paymentMethod: 'pix' | 'credit_card' | 'boleto';
+  customerEmail?: string | null;
   couponCode?: string;
   anonymousId?: string;
   utm?: { source?: string | null; medium?: string | null; campaign?: string | null } | null;
@@ -81,6 +82,7 @@ export async function POST(req: Request) {
     const inserted = await db.insert(orders).values({
       tenantId: tid,
       orderNumber,
+      customerEmail: body.customerEmail?.toLowerCase().trim() ?? null,
       anonymousId: body.anonymousId,
       status: 'pending',
       shippingAddress: body.shippingAddress,
