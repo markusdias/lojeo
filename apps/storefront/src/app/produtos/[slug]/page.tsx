@@ -4,6 +4,7 @@ import { db, products, productVariants, productImages, inventoryStock, behaviorE
 import { eq, and, gte, count, sql } from 'drizzle-orm';
 import { getActiveTemplate } from '../../../template';
 import { PDPClient } from './pdp-client';
+import { ReviewSection } from '../../../components/reviews/review-section';
 
 export const dynamic = 'force-dynamic';
 
@@ -125,6 +126,9 @@ export default async function PDPPage({ params }: PDPProps) {
         totalStock={totalStock}
         currency={tpl.currency}
       />
+      <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '0 var(--container-pad) 80px' }}>
+        <ReviewSection productId={product.id} />
+      </div>
     </>
   );
 }

@@ -17,6 +17,7 @@ describe('schema', () => {
     expect(schema.wishlistItems).toBeDefined();
     expect(schema.restockNotifications).toBeDefined();
     expect(schema.giftCards).toBeDefined();
+    expect(schema.productReviews).toBeDefined();
   });
 
   it('garante coluna tenant_id em entidades multi-tenant', () => {

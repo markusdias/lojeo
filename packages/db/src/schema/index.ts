@@ -6,3 +6,4 @@ export * from './behavior';
 export * from './ai';
 export * from './orders';
 export * from './retention';
+export * from './reviews';
