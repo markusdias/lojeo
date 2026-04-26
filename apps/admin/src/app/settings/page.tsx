@@ -159,107 +159,216 @@ export default function SettingsPage() {
     <main style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }} className="min-h-screen space-y-6">
       <header>
         <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginBottom: 'var(--space-2)' }}>Configurações da loja</h1>
-        <p className="text-sm text-neutral-500 mt-1">
-          Template: <code className="bg-neutral-100 px-1 rounded">{settings.templateId}</code>
-          {settings.domain && <> · Domínio: <code className="bg-neutral-100 px-1 rounded">{settings.domain}</code></>}
+        <p className="body-s">
+          Template: <code className="mono" style={{ background: 'var(--bg-subtle)', padding: '1px 6px', borderRadius: 'var(--radius-xs)' }}>{settings.templateId}</code>
+          {settings.domain && <> · Domínio: <code className="mono" style={{ background: 'var(--bg-subtle)', padding: '1px 6px', borderRadius: 'var(--radius-xs)' }}>{settings.domain}</code></>}
         </p>
-        <nav className="flex gap-3 text-sm mt-3">
-          <a href="/settings/users" className="text-indigo-600 hover:underline">👥 Usuários e papéis</a>
-          <a href="/settings/2fa" className="text-indigo-600 hover:underline">🔐 2FA</a>
-          <a href="/settings/audit" className="text-indigo-600 hover:underline">🔍 Logs de auditoria</a>
+        <nav style={{ display: 'flex', gap: 'var(--space-3)', marginTop: 'var(--space-3)', flexWrap: 'wrap' }}>
+          <a href="/settings/users" style={{ fontSize: 'var(--text-caption)', color: 'var(--accent)', textDecoration: 'none', fontWeight: 'var(--w-medium)' }}>Usuários e papéis →</a>
+          <a href="/settings/2fa" style={{ fontSize: 'var(--text-caption)', color: 'var(--accent)', textDecoration: 'none', fontWeight: 'var(--w-medium)' }}>2FA →</a>
+          <a href="/settings/audit" style={{ fontSize: 'var(--text-caption)', color: 'var(--accent)', textDecoration: 'none', fontWeight: 'var(--w-medium)' }}>Logs de auditoria →</a>
+          <a href="/settings/onboarding" style={{ fontSize: 'var(--text-caption)', color: 'var(--accent)', textDecoration: 'none', fontWeight: 'var(--w-medium)' }}>Onboarding →</a>
         </nav>
       </header>
 
       <form onSubmit={handleSave} className="space-y-8">
         {/* Identidade */}
-        <section className="bg-white rounded-lg shadow p-6 space-y-4">
-          <h2 className="font-semibold text-lg">Identidade</h2>
-          <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-1">Nome da loja</label>
-            <input
-              type="text"
-              value={settings.name}
-              onChange={e => setSettings(prev => prev ? { ...prev, name: e.target.value } : prev)}
-              className="w-full border rounded px-3 py-2 text-sm"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-1">Email de contato</label>
-            <input
-              type="email"
-              value={settings.config.contactEmail ?? ''}
-              onChange={e => setConfig({ contactEmail: e.target.value })}
-              placeholder="contato@sujaloja.com.br"
-              className="w-full border rounded px-3 py-2 text-sm"
-            />
+        <section className="lj-card" style={{ padding: 'var(--space-6)' }}>
+          <h2 style={{ fontSize: 'var(--text-h4)', fontWeight: 'var(--w-semibold)', marginBottom: 'var(--space-4)' }}>Identidade</h2>
+          <div className="space-y-4">
+            <div>
+              <label className="eyebrow" style={{ display: 'block', marginBottom: 'var(--space-2)' }}>Nome da loja</label>
+              <input
+                type="text"
+                value={settings.name}
+                onChange={e => setSettings(prev => prev ? { ...prev, name: e.target.value } : prev)}
+                className="lj-input"
+                style={{ width: '100%' }}
+                required
+              />
+            </div>
+            <div>
+              <label className="eyebrow" style={{ display: 'block', marginBottom: 'var(--space-2)' }}>Email de contato</label>
+              <input
+                type="email"
+                value={settings.config.contactEmail ?? ''}
+                onChange={e => setConfig({ contactEmail: e.target.value })}
+                placeholder="contato@sualoja.com.br"
+                className="lj-input"
+                style={{ width: '100%' }}
+              />
+            </div>
           </div>
         </section>
 
         {/* Aparência */}
-        <section className="bg-white rounded-lg shadow p-6 space-y-4">
-          <div>
-            <h2 className="font-semibold text-lg">Aparência do template</h2>
-            <p className="text-xs text-neutral-500 mt-1">
+        <section className="lj-card" style={{ padding: 'var(--space-6)' }}>
+          <div style={{ marginBottom: 'var(--space-5)' }}>
+            <h2 style={{ fontSize: 'var(--text-h4)', fontWeight: 'var(--w-semibold)', marginBottom: 'var(--space-1)' }}>Aparência do storefront</h2>
+            <p className="body-s">
               Combine tipografia, cor de destaque, fundo, escala e raio de imagem. As mudanças se aplicam ao storefront após salvar.
             </p>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-1">
-                Tipografia
-                <InfoTooltip text="Combinação tipográfica do storefront. Mudança aplica imediatamente sem rebuild." />
-              </label>
-              <select
-                value={typo}
-                onChange={e => setAppearance({ typo: e.target.value })}
-                className="w-full border rounded px-3 py-2 text-sm"
-              >
-                {TYPO_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
+
+          {/* Tipografia (radio cards) */}
+          <div style={{ marginBottom: 'var(--space-5)' }}>
+            <label className="eyebrow" style={{ display: 'inline-flex', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
+              Combinação tipográfica
+              <InfoTooltip text="Combinação tipográfica do storefront. Mudança aplica imediatamente sem rebuild." />
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-3)' }}>
+              {TYPO_OPTIONS.map(o => {
+                const fp = TYPO_FONTS[o.value] ?? TYPO_FONT_DEFAULT;
+                const active = typo === o.value;
+                return (
+                  <button
+                    key={o.value}
+                    type="button"
+                    onClick={() => setAppearance({ typo: o.value })}
+                    style={{
+                      textAlign: 'left',
+                      padding: 'var(--space-3) var(--space-4)',
+                      borderRadius: 'var(--radius-md)',
+                      border: active ? `1.5px solid var(--accent)` : '1px solid var(--border)',
+                      background: active ? 'var(--accent-soft)' : 'var(--bg-elevated)',
+                      cursor: 'pointer',
+                      transition: 'background var(--dur-fast) var(--ease-out)',
+                    }}
+                  >
+                    <p style={{ fontFamily: fp.display, fontSize: 22, lineHeight: 1.1, marginBottom: 4 }}>Aa</p>
+                    <p style={{ fontSize: 'var(--text-caption)', color: active ? 'var(--accent)' : 'var(--fg-secondary)', fontWeight: 'var(--w-medium)' }}>{o.label}</p>
+                  </button>
+                );
+              })}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-1">Cor de destaque</label>
-              <select
-                value={accent}
-                onChange={e => setAppearance({ accent: e.target.value })}
-                className="w-full border rounded px-3 py-2 text-sm"
-              >
-                {ACCENT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
+          </div>
+
+          {/* Accent color (swatches) */}
+          <div style={{ marginBottom: 'var(--space-5)' }}>
+            <label className="eyebrow" style={{ display: 'block', marginBottom: 'var(--space-2)' }}>Cor de destaque</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+              {ACCENT_OPTIONS.map(o => {
+                const active = accent === o.value;
+                return (
+                  <button
+                    key={o.value}
+                    type="button"
+                    onClick={() => setAppearance({ accent: o.value })}
+                    title={o.label}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 'var(--space-2)',
+                      padding: '6px 10px 6px 6px',
+                      borderRadius: 'var(--radius-full)',
+                      border: active ? `1.5px solid var(--accent)` : '1px solid var(--border)',
+                      background: 'var(--bg-elevated)',
+                      cursor: 'pointer',
+                      fontSize: 'var(--text-caption)',
+                      fontWeight: 'var(--w-medium)',
+                      color: active ? 'var(--accent)' : 'var(--fg-secondary)',
+                    }}
+                  >
+                    <span aria-hidden style={{ width: 16, height: 16, borderRadius: '50%', background: o.swatch, display: 'inline-block', boxShadow: '0 0 0 1px var(--border)' }} />
+                    {o.label}
+                  </button>
+                );
+              })}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-1">Tom de fundo</label>
-              <select
-                value={bgTone}
-                onChange={e => setAppearance({ bgTone: e.target.value })}
-                className="w-full border rounded px-3 py-2 text-sm"
-              >
-                {BG_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
+          </div>
+
+          {/* BG tone (swatches) */}
+          <div style={{ marginBottom: 'var(--space-5)' }}>
+            <label className="eyebrow" style={{ display: 'block', marginBottom: 'var(--space-2)' }}>Tom de fundo</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+              {BG_OPTIONS.map(o => {
+                const active = bgTone === o.value;
+                return (
+                  <button
+                    key={o.value}
+                    type="button"
+                    onClick={() => setAppearance({ bgTone: o.value })}
+                    title={o.label}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 'var(--space-2)',
+                      padding: '6px 10px 6px 6px',
+                      borderRadius: 'var(--radius-full)',
+                      border: active ? `1.5px solid var(--accent)` : '1px solid var(--border)',
+                      background: 'var(--bg-elevated)',
+                      cursor: 'pointer',
+                      fontSize: 'var(--text-caption)',
+                      fontWeight: 'var(--w-medium)',
+                      color: active ? 'var(--accent)' : 'var(--fg-secondary)',
+                    }}
+                  >
+                    <span aria-hidden style={{ width: 16, height: 16, borderRadius: 4, background: o.swatch, display: 'inline-block', boxShadow: '0 0 0 1px var(--border)' }} />
+                    {o.label}
+                  </button>
+                );
+              })}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-1">
-                Raio de imagens
-                <InfoTooltip text="Quanto arredondar cantos de imagens de produto. 0 = quadrado, 16 = bem arredondado." />
-              </label>
-              <select
-                value={imgRadius}
-                onChange={e => setAppearance({ imgRadius: e.target.value as '0' | '8' | '16' })}
-                className="w-full border rounded px-3 py-2 text-sm"
-              >
-                {IMG_RADIUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
+          </div>
+
+          {/* Img radius (segmented) */}
+          <div style={{ marginBottom: 'var(--space-5)' }}>
+            <label className="eyebrow" style={{ display: 'inline-flex', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
+              Raio de imagens
+              <InfoTooltip text="Quanto arredondar cantos de imagens de produto. 0 = quadrado, 16 = bem arredondado." />
+            </label>
+            <div style={{ display: 'inline-flex', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border)' }}>
+              {IMG_RADIUS_OPTIONS.map(o => {
+                const active = imgRadius === o.value;
+                return (
+                  <button
+                    key={o.value}
+                    type="button"
+                    onClick={() => setAppearance({ imgRadius: o.value })}
+                    style={{
+                      padding: 'var(--space-2) var(--space-4)',
+                      background: active ? 'var(--accent)' : 'var(--bg-elevated)',
+                      color: active ? 'var(--fg-on-accent)' : 'var(--fg)',
+                      fontSize: 'var(--text-caption)',
+                      fontWeight: 'var(--w-medium)',
+                      border: 'none',
+                      borderLeft: o.value !== '0' ? '1px solid var(--border)' : 'none',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {o.label}
+                  </button>
+                );
+              })}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-1">Escala tipográfica</label>
-              <select
-                value={typeScale}
-                onChange={e => setAppearance({ typeScale: e.target.value as 'default' | 'larger' | 'smaller' })}
-                className="w-full border rounded px-3 py-2 text-sm"
-              >
-                {TYPE_SCALE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
+          </div>
+
+          {/* Type scale (segmented) */}
+          <div style={{ marginBottom: 'var(--space-5)' }}>
+            <label className="eyebrow" style={{ display: 'block', marginBottom: 'var(--space-2)' }}>Escala tipográfica</label>
+            <div style={{ display: 'inline-flex', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border)' }}>
+              {TYPE_SCALE_OPTIONS.map((o, i) => {
+                const active = typeScale === o.value;
+                return (
+                  <button
+                    key={o.value}
+                    type="button"
+                    onClick={() => setAppearance({ typeScale: o.value })}
+                    style={{
+                      padding: 'var(--space-2) var(--space-4)',
+                      background: active ? 'var(--accent)' : 'var(--bg-elevated)',
+                      color: active ? 'var(--fg-on-accent)' : 'var(--fg)',
+                      fontSize: 'var(--text-caption)',
+                      fontWeight: 'var(--w-medium)',
+                      border: 'none',
+                      borderLeft: i > 0 ? '1px solid var(--border)' : 'none',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {o.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
