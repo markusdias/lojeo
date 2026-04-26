@@ -3,7 +3,7 @@ import { db, products, collections } from '@lojeo/db';
 import { eq, and, desc } from 'drizzle-orm';
 import { getActiveTemplate } from '../template';
 import { ProductCard } from '../components/ui/product-card';
-import { HeroExperiment } from '../components/marketing/hero-experiment';
+import { PersonalizedHero } from '../components/marketing/personalized-hero';
 import { RecommendedForYouSection } from '../components/products/recommended-for-you';
 
 export const dynamic = 'force-dynamic';
@@ -57,7 +57,7 @@ export default async function HomePage() {
             position: 'absolute', left: 'clamp(24px, 5vw, 80px)',
             top: '50%', transform: 'translateY(-50%)',
           }}>
-            <HeroExperiment
+            <PersonalizedHero
               defaultHeadline="Peças que ficam."
               defaultSubheadline="Joalheria contemporânea, finalizada à mão no nosso ateliê. Ouro 18k e prata 925 com garantia de um ano."
               defaultCta={{ label: 'Ver coleção', href: '/produtos' }}
