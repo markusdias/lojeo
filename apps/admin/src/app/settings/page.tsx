@@ -23,6 +23,14 @@ interface TenantConfig {
     accent?: string;
     bgTone?: string;
   };
+  pixels?: {
+    gaTrackingId?: string;     // G-XXXXXXXXXX
+    gtmId?: string;             // GTM-XXXXXX
+    metaPixelId?: string;       // 12345...
+    tiktokPixelId?: string;     // C12345...
+    clarityProjectId?: string;  // ABCDE12345
+    googleAdsConversionId?: string; // AW-XXXX
+  };
   brandGuide?: BrandGuide;
 }
 
@@ -315,6 +323,70 @@ export default function SettingsPage() {
         </section>
 
         {/* Robots.txt */}
+        {/* Pixels & Analytics */}
+        <section className="bg-white rounded-lg shadow p-6 space-y-3">
+          <h2 className="font-semibold text-lg">Pixels e Analytics</h2>
+          <p className="text-xs text-neutral-500">
+            IDs dos pixels de marketing. Deixe em branco para desativar. Os scripts respeitam o consentimento LGPD do cliente.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="text-sm">
+              <span className="text-xs text-neutral-600">Google Tag Manager (GTM-XXXXXX)</span>
+              <input
+                value={settings.config.pixels?.gtmId ?? ''}
+                onChange={e => setConfig({ pixels: { ...settings.config.pixels, gtmId: e.target.value || undefined } })}
+                placeholder="GTM-XXXXXX"
+                className="w-full border rounded px-3 py-2 text-sm font-mono mt-1"
+              />
+            </label>
+            <label className="text-sm">
+              <span className="text-xs text-neutral-600">Google Analytics 4 (G-XXXXXXXXXX)</span>
+              <input
+                value={settings.config.pixels?.gaTrackingId ?? ''}
+                onChange={e => setConfig({ pixels: { ...settings.config.pixels, gaTrackingId: e.target.value || undefined } })}
+                placeholder="G-XXXXXXXXXX"
+                className="w-full border rounded px-3 py-2 text-sm font-mono mt-1"
+              />
+            </label>
+            <label className="text-sm">
+              <span className="text-xs text-neutral-600">Meta Pixel ID</span>
+              <input
+                value={settings.config.pixels?.metaPixelId ?? ''}
+                onChange={e => setConfig({ pixels: { ...settings.config.pixels, metaPixelId: e.target.value || undefined } })}
+                placeholder="1234567890"
+                className="w-full border rounded px-3 py-2 text-sm font-mono mt-1"
+              />
+            </label>
+            <label className="text-sm">
+              <span className="text-xs text-neutral-600">TikTok Pixel ID</span>
+              <input
+                value={settings.config.pixels?.tiktokPixelId ?? ''}
+                onChange={e => setConfig({ pixels: { ...settings.config.pixels, tiktokPixelId: e.target.value || undefined } })}
+                placeholder="C12345..."
+                className="w-full border rounded px-3 py-2 text-sm font-mono mt-1"
+              />
+            </label>
+            <label className="text-sm">
+              <span className="text-xs text-neutral-600">Microsoft Clarity Project ID</span>
+              <input
+                value={settings.config.pixels?.clarityProjectId ?? ''}
+                onChange={e => setConfig({ pixels: { ...settings.config.pixels, clarityProjectId: e.target.value || undefined } })}
+                placeholder="abcde12345"
+                className="w-full border rounded px-3 py-2 text-sm font-mono mt-1"
+              />
+            </label>
+            <label className="text-sm">
+              <span className="text-xs text-neutral-600">Google Ads Conversion (AW-XXX)</span>
+              <input
+                value={settings.config.pixels?.googleAdsConversionId ?? ''}
+                onChange={e => setConfig({ pixels: { ...settings.config.pixels, googleAdsConversionId: e.target.value || undefined } })}
+                placeholder="AW-1234567890"
+                className="w-full border rounded px-3 py-2 text-sm font-mono mt-1"
+              />
+            </label>
+          </div>
+        </section>
+
         <section className="bg-white rounded-lg shadow p-6 space-y-3">
           <h2 className="font-semibold text-lg">Robots.txt</h2>
           <p className="text-xs text-neutral-500">

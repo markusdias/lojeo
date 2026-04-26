@@ -46,7 +46,12 @@ export function setConsent(c: Partial<ConsentState>): void {
     analytics: !!c.analytics,
     marketing: !!c.marketing,
   };
-  if (typeof localStorage !== 'undefined') localStorage.setItem(CONSENT_KEY, JSON.stringify(next));
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(CONSENT_KEY, JSON.stringify(next));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('lojeo:consent-change', { detail: next }));
+    }
+  }
 }
 
 export interface TrackerConfig {

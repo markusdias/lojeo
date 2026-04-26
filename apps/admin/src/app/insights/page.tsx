@@ -49,14 +49,32 @@ const ALERT_BADGE: Record<string, { bg: string; text: string }> = {
   no_data:  { bg: '#F9FAFB', text: '#6B7280' },
 };
 
+interface FunnelStage {
+  key: string;
+  label: string;
+  uniqueSessions: number;
+  previousStageSessions: number;
+  dropoff: number;
+  conversionFromPrevious: number;
+  conversionFromTop: number;
+}
+
+interface FunnelData {
+  windowDays: number;
+  stages: FunnelStage[];
+  totalConversion: number;
+}
+
 export default function InsightsPage() {
   const [churn, setChurn] = useState<ChurnData | null>(null);
   const [forecast, setForecast] = useState<ForecastData | null>(null);
-  const [tab, setTab] = useState<'churn' | 'estoque'>('churn');
+  const [funnel, setFunnel] = useState<FunnelData | null>(null);
+  const [tab, setTab] = useState<'churn' | 'estoque' | 'funil'>('churn');
 
   useEffect(() => {
     fetch('/api/customers/churn').then(r => r.json()).then(setChurn);
     fetch('/api/inventory/forecast').then(r => r.json()).then(setForecast);
+    fetch('/api/funnel?days=30').then(r => r.json()).then(setFunnel);
   }, []);
 
   const tabStyle = (active: boolean) => ({
@@ -92,7 +110,58 @@ export default function InsightsPage() {
       <div style={{ borderBottom: '1px solid #E5E7EB', marginBottom: 24, display: 'flex', gap: 4 }}>
         <button style={tabStyle(tab === 'churn')} onClick={() => setTab('churn')}>Risco de Churn</button>
         <button style={tabStyle(tab === 'estoque')} onClick={() => setTab('estoque')}>Previsão de Estoque</button>
+        <button style={tabStyle(tab === 'funil')} onClick={() => setTab('funil')}>Funil de Conversão</button>
       </div>
+
+      {/* Funil tab */}
+      {tab === 'funil' && (
+        <div>
+          {!funnel ? (
+            <p style={{ fontSize: 13, color: '#6B7280' }}>Carregando funil...</p>
+          ) : funnel.stages.every(s => s.uniqueSessions === 0) ? (
+            <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', padding: 16, borderRadius: 8, fontSize: 14, color: '#92400E' }}>
+              Sem dados de comportamento ainda nos últimos {funnel.windowDays} dias. Eventos chegarão à medida que clientes navegarem.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <p style={{ fontSize: 13, color: '#6B7280' }}>
+                Janela: {funnel.windowDays} dias · Conversão geral: <strong>{(funnel.totalConversion * 100).toFixed(2)}%</strong>
+              </p>
+              {funnel.stages.map((stage, i) => {
+                const top = funnel.stages[0]?.uniqueSessions ?? 1;
+                const widthPct = top > 0 ? (stage.uniqueSessions / top) * 100 : 0;
+                const conversionPct = (stage.conversionFromPrevious * 100).toFixed(1);
+                const fromTopPct = (stage.conversionFromTop * 100).toFixed(1);
+                return (
+                  <div key={stage.key} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 180, fontSize: 14 }}>
+                      <p style={{ fontWeight: 500 }}>{stage.label}</p>
+                      <p style={{ fontSize: 11, color: '#6B7280' }}>{stage.uniqueSessions} sessões</p>
+                    </div>
+                    <div style={{ flex: 1, height: 32, background: '#F3F4F6', borderRadius: 4, position: 'relative', overflow: 'hidden' }}>
+                      <div style={{
+                        width: `${widthPct}%`,
+                        height: '100%',
+                        background: i === 0 ? '#3B82F6' : i === funnel.stages.length - 1 ? '#10B981' : '#6366F1',
+                        transition: 'width 200ms',
+                      }} />
+                      <span style={{ position: 'absolute', right: 8, top: 6, fontSize: 12, fontWeight: 600, color: '#1F2937' }}>
+                        {fromTopPct}%
+                      </span>
+                    </div>
+                    {i > 0 && (
+                      <div style={{ width: 100, fontSize: 12, color: stage.conversionFromPrevious < 0.3 ? '#991B1B' : '#6B7280' }}>
+                        ↓ {conversionPct}% <br />
+                        <span style={{ fontSize: 10 }}>−{stage.dropoff} sessões</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Churn tab */}
       {tab === 'churn' && (

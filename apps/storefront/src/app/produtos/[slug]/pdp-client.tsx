@@ -6,6 +6,7 @@ import { Icon } from '../../../components/ui/icon';
 import { useCart } from '../../../components/cart/cart-provider';
 import { useTracker } from '../../../components/tracker-provider';
 import { HeartButton } from '../../../components/wishlist/heart-button';
+import { useTrackRecentlyViewed } from '../../../components/products/recently-viewed';
 
 type UrgencyKind = 'none' | 'viewing' | 'low-stock';
 
@@ -146,6 +147,15 @@ export function PDPClient({ product, variants, images, urgency, viewersNow, tota
   const tracker = useTracker();
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrolledDepths = useRef<Set<number>>(new Set());
+
+  // Track in localStorage 'recently viewed'
+  useTrackRecentlyViewed({
+    productId: product.id,
+    slug: product.slug,
+    name: product.name,
+    priceCents: product.priceCents,
+    imageUrl: images[0]?.url,
+  });
 
   const selectedVariant = variants.find(v => v.id === selectedVariantId) ?? variants[0];
   const effectivePrice = selectedVariant?.priceCents ?? product.priceCents;
