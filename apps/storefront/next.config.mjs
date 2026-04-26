@@ -30,7 +30,11 @@ const nextConfig = {
       {
         source: '/:path*',
         headers: [
-          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          // X-Frame-Options omitido — substituído por CSP frame-ancestors abaixo (mais granular)
+          {
+            key: 'Content-Security-Policy',
+            value: "frame-ancestors 'self' https://apps-lojeo-admin.m9axtw.easypanel.host https://*.lojeo.com https://*.lojeo.app",
+          },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           {
