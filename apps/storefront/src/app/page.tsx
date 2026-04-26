@@ -5,6 +5,7 @@ import { getActiveTemplate } from '../template';
 import { ProductCard } from '../components/ui/product-card';
 import { PersonalizedHero } from '../components/marketing/personalized-hero';
 import { RecommendedForYouSection } from '../components/products/recommended-for-you';
+import { AnonAffinitySection } from '../components/products/anon-affinity-section';
 
 export const dynamic = 'force-dynamic';
 
@@ -95,8 +96,11 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── PARA VOCÊ (cliente recorrente, server) ── */}
+      {/* ── PARA VOCÊ (cliente logado recorrente, server) ── */}
       <RecommendedForYouSection currency={tpl.currency} />
+
+      {/* ── CONTINUE EXPLORANDO (anônimo recorrente, client por anonymousId) ── */}
+      <AnonAffinitySection currency={tpl.currency} />
 
       {/* ── NOVIDADES ── */}
       {newArrivals.length > 0 && (

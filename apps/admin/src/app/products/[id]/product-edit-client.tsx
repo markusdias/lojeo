@@ -78,31 +78,40 @@ export function ProductEditClient({ product }: { product: ProductData }) {
     }
   }
 
-  const inputStyle = {
-    width: '100%', padding: '8px 12px', border: '1px solid #E5E7EB', borderRadius: 6,
-    fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' as const,
+  const labelStyle: React.CSSProperties = {
+    fontSize: 'var(--text-caption)',
+    fontWeight: 'var(--w-medium)',
+    color: 'var(--fg-secondary)',
+    display: 'block',
+    marginBottom: 'var(--space-2)',
+    textTransform: 'uppercase',
+    letterSpacing: 'var(--track-wide)',
   };
-  const labelStyle = { fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
       {/* Campos básicos read-only */}
-      <div style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 8, padding: 16 }}>
-        <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 8 }}>Preço: <strong>{(product.priceCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</strong></p>
-        <p style={{ fontSize: 13, color: '#6B7280', margin: 0 }}>Status: <strong>{product.status}</strong></p>
+      <div className="lj-card" style={{ padding: 'var(--space-5)' }}>
+        <p className="body-s" style={{ marginBottom: 'var(--space-2)' }}>
+          Preço: <strong className="numeric">{(product.priceCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</strong>
+        </p>
+        <p className="body-s" style={{ margin: 0 }}>
+          Status: <span className="lj-badge lj-badge-accent">{product.status}</span>
+        </p>
         {Object.keys(product.customFields).length > 0 && (
-          <p style={{ fontSize: 13, color: '#6B7280', marginTop: 8, margin: '8px 0 0' }}>
+          <p className="body-s" style={{ margin: 'var(--space-2) 0 0', color: 'var(--fg-secondary)' }}>
             Campos custom: {Object.entries(product.customFields).map(([k, v]) => `${k}: ${String(v)}`).join(', ')}
           </p>
         )}
       </div>
 
-      {/* Gerador IA */}
-      <div style={{ border: '1px solid #DBEAFE', borderRadius: 8, padding: 20, background: '#EFF6FF' }}>
-        <p style={{ fontSize: 14, fontWeight: 600, color: '#1E40AF', marginBottom: 16 }}>
-          ✦ Gerar com IA
-        </p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, marginBottom: 12 }}>
+      {/* Gerador IA — banner verde claro */}
+      <div className="lj-ai-banner" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+        <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
+          <span aria-hidden style={{ fontSize: 18, color: 'var(--accent)' }}>✦</span>
+          <p className="lj-ai-eyebrow">IA · GERADOR DE COPY</p>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
           <div>
             <label style={labelStyle}>Keyword primária (opcional)</label>
             <input
@@ -110,12 +119,13 @@ export function ProductEditClient({ product }: { product: ProductData }) {
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               placeholder="ex: anel de ouro 18k"
-              style={inputStyle}
+              className="lj-input"
+              style={{ width: '100%' }}
             />
           </div>
           <div>
             <label style={labelStyle}>Modelo</label>
-            <select value={tier} onChange={(e) => setTier(e.target.value as 'sonnet' | 'haiku')} style={{ ...inputStyle, width: 'auto' }}>
+            <select value={tier} onChange={(e) => setTier(e.target.value as 'sonnet' | 'haiku')} className="lj-input" style={{ width: 'auto' }}>
               <option value="sonnet">Sonnet (padrão)</option>
               <option value="haiku">Haiku (econômico)</option>
             </select>
@@ -124,17 +134,14 @@ export function ProductEditClient({ product }: { product: ProductData }) {
         <button
           onClick={handleGenerate}
           disabled={generating}
-          style={{
-            background: generating ? '#93C5FD' : '#2563EB', color: 'white',
-            border: 'none', borderRadius: 6, padding: '10px 20px', fontSize: 14,
-            fontWeight: 500, cursor: generating ? 'wait' : 'pointer',
-          }}
+          className="lj-btn-primary"
+          style={{ alignSelf: 'flex-start' }}
         >
           {generating ? 'Gerando...' : 'Gerar descrição + SEO'}
         </button>
         {aiCost && (
-          <p style={{ fontSize: 12, color: '#6B7280', marginTop: 8 }}>
-            Modelo: {aiCost.model} · {aiCost.cached ? 'Cache ✓' : 'Nova geração'} · Custo: ${(aiCost.costUsdMicro / 1_000_000).toFixed(5)}
+          <p className="caption" style={{ marginTop: 'var(--space-2)' }}>
+            Modelo: <span className="mono">{aiCost.model}</span> · {aiCost.cached ? 'Cache ✓' : 'Nova geração'} · Custo: <span className="numeric">${(aiCost.costUsdMicro / 1_000_000).toFixed(5)}</span>
           </p>
         )}
       </div>
@@ -146,43 +153,55 @@ export function ProductEditClient({ product }: { product: ProductData }) {
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={8}
-          style={{ ...inputStyle, resize: 'vertical' as const }}
+          className="lj-input"
+          style={{ width: '100%', resize: 'vertical' }}
         />
-        <p style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>{description.length} chars</p>
+        <p className="caption" style={{ marginTop: 'var(--space-1)' }}>{description.length} chars</p>
       </div>
 
       {/* SEO */}
       <div>
-        <label style={labelStyle}>SEO title <span style={{ fontWeight: 400, color: '#9CA3AF' }}>({seoTitle.length}/60 chars)</span></label>
+        <label style={labelStyle}>
+          SEO title <span style={{ fontWeight: 'var(--w-regular)', color: 'var(--fg-muted)', textTransform: 'none', letterSpacing: 0 }}>
+            ({seoTitle.length}/60 chars)
+          </span>
+        </label>
         <input
           type="text"
           value={seoTitle}
           onChange={(e) => setSeoTitle(e.target.value)}
           maxLength={70}
-          style={{ ...inputStyle, borderColor: seoTitle.length > 60 ? '#EF4444' : '#E5E7EB' }}
+          className="lj-input"
+          style={{ width: '100%', borderColor: seoTitle.length > 60 ? 'var(--error)' : undefined }}
         />
       </div>
 
       <div>
-        <label style={labelStyle}>Meta description <span style={{ fontWeight: 400, color: '#9CA3AF' }}>({seoDescription.length}/160 chars)</span></label>
+        <label style={labelStyle}>
+          Meta description <span style={{ fontWeight: 'var(--w-regular)', color: 'var(--fg-muted)', textTransform: 'none', letterSpacing: 0 }}>
+            ({seoDescription.length}/160 chars)
+          </span>
+        </label>
         <textarea
           value={seoDescription}
           onChange={(e) => setSeoDescription(e.target.value)}
           rows={3}
           maxLength={180}
-          style={{ ...inputStyle, resize: 'vertical' as const, borderColor: seoDescription.length > 160 ? '#EF4444' : '#E5E7EB' }}
+          className="lj-input"
+          style={{ width: '100%', resize: 'vertical', borderColor: seoDescription.length > 160 ? 'var(--error)' : undefined }}
         />
       </div>
 
       {/* Mensagem feedback */}
       {message && (
-        <div style={{
-          padding: '10px 16px', borderRadius: 6, fontSize: 14,
-          background: message.type === 'ok' ? '#F0FDF4' : '#FEF2F2',
-          color: message.type === 'ok' ? '#166534' : '#991B1B',
-          border: `1px solid ${message.type === 'ok' ? '#BBF7D0' : '#FECACA'}`,
+        <div className="lj-card" style={{
+          padding: 'var(--space-3) var(--space-4)',
+          background: message.type === 'ok' ? 'var(--success-soft)' : 'var(--error-soft)',
+          borderColor: message.type === 'ok' ? 'var(--success)' : 'var(--error)',
         }}>
-          {message.text}
+          <p className="body-s" style={{ color: message.type === 'ok' ? 'var(--success)' : 'var(--error)' }}>
+            {message.text}
+          </p>
         </div>
       )}
 
@@ -191,11 +210,7 @@ export function ProductEditClient({ product }: { product: ProductData }) {
         <button
           onClick={handleSave}
           disabled={saving}
-          style={{
-            background: saving ? '#9CA3AF' : '#111827', color: 'white',
-            border: 'none', borderRadius: 6, padding: '10px 24px', fontSize: 14,
-            fontWeight: 500, cursor: saving ? 'wait' : 'pointer',
-          }}
+          className="lj-btn-primary"
         >
           {saving ? 'Salvando...' : 'Salvar alterações'}
         </button>

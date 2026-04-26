@@ -20,16 +20,17 @@ export default async function ProductEditPage({ params }: { params: Promise<{ id
   if (!product) notFound();
 
   return (
-    <div className="p-8 max-w-3xl">
-      <div style={{ marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12 }}>
-        <Link href="/products" style={{ color: '#6B7280', textDecoration: 'none', fontSize: 14 }}>
-          ← Produtos
-        </Link>
-        <span style={{ color: '#D1D5DB' }}>/</span>
-        <span style={{ fontSize: 14, color: '#111827', fontWeight: 500 }}>{product.name}</span>
-      </div>
+    <div style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }}>
+      <Link href="/products" style={{ fontSize: 'var(--text-caption)', color: 'var(--fg-secondary)', textDecoration: 'none' }}>
+        ← Produtos
+      </Link>
 
-      <h1 style={{ fontSize: 22, fontWeight: 600, marginBottom: 32 }}>{product.name}</h1>
+      <header style={{ marginTop: 'var(--space-2)', marginBottom: 'var(--space-6)' }}>
+        <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginBottom: 'var(--space-1)' }}>
+          {product.name}
+        </h1>
+        <p className="caption mono">{product.id.slice(0, 8)}</p>
+      </header>
 
       <ProductEditClient product={{
         id: product.id,
