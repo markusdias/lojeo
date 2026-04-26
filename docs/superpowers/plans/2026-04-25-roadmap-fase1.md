@@ -251,9 +251,9 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 - [ ] Aviso VAT/taxas alfandegárias no checkout — Sprint 4
 - [ ] Email transacional via Resend — BLOQUEADO: Resend API key
 - [ ] Detecção básica de fraude — Sprint 4 (pós-MP)
-- [ ] Cupons de desconto no admin — Sprint 4
+- [x] Cupons de desconto no admin — schema `coupons` (code unique, type percent/fixed/free_shipping, min_order, max_uses, valid window), API CRUD admin + audit logs, API storefront `/api/coupons/validate`, UI `/cupons`. Integração checkout v2 pendente (lookup + apply + increment usesCount)
 - [ ] Relatório de abandono por etapa — dados existem (behavior_events), UI Sprint 5
-- [ ] Testes E2E Playwright — Sprint 4 (pós-integração MP sandbox)
+- [x] Testes E2E Playwright — `apps/storefront/tests/storefront-flow.spec.ts` cobre 9 specs: homepage hero+nav, PLP filtros, páginas estáticas (sobre/trocas/privacidade/termos), /rastreio form, auth gate /conta/*, PWA manifest+sw, SEO Product JSON-LD, /status. Setup playwright config existing (Sprint 13 axe-core)
 
 **Bloqueadores externos:**
 - Conta Mercado Pago com acesso à API (sandbox + produção)
@@ -421,14 +421,14 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 
 **Critérios de pronto:**
 
-**IA Analyst (insights em linguagem natural):** ⚠️ PENDENTE — bloqueado sem Anthropic API key em prod
-- [ ] Interface de chat no admin: lojista digita pergunta
-- [ ] Pattern tool-calling: Claude tem ferramentas para consultar `revenue_by_period`, `top_products`, `conversion_funnel`, `behavior_aggregates`, `customer_segments`, `cohort_analysis`
-- [ ] Respostas com texto + gráfico inline (Recharts)
-- [ ] Sugestões de ação ao final de cada análise ("baseado nisso, sugiro testar X")
-- [ ] Histórico de perguntas + respostas (lojista pode voltar e ver)
-- [ ] Cache: pergunta similar em janela de 24h reutiliza resposta
-- [ ] Limite: N perguntas/dia por usuário (rate limit configurável)
+**IA Analyst (insights em linguagem natural):** ✅ v1 ENTREGUE com modo degradado mock
+- [x] Interface de chat no admin: `/ia-analyst` client component, markdown renderer simples (negrito/itálico/código/listas/tabelas), histórico sessionStorage, chips de sugestão, Cmd+Enter, badges de tools
+- [x] Pattern tool-calling: 5 tools em `/api/ai-analyst` — `revenue_by_period`, `top_products`, `conversion_funnel`, `customer_segments` (RFM via @lojeo/engine), `behavior_aggregates`. Loop tool-calling Claude Sonnet 4.5 (5 iterações máx). Modo degradado sem ANTHROPIC_API_KEY: mockResponse() com markdown + tabela
+- [ ] Respostas com gráfico inline (Recharts) — v2
+- [ ] Sugestões de ação automáticas — v2 (parcial: chips iniciais já)
+- [x] Histórico de perguntas+respostas via sessionStorage (cliente)
+- [ ] Cache server-side por hash similarity 24h — v2
+- [ ] Rate limit configurável por usuário — v2
 
 **Predição de churn:** ✅ IMPLEMENTADO
 - [x] Heurística v1 (sem ML): recencyRatio × 60 + frequencyPenalty × 40 = score 0-100

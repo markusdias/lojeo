@@ -1415,3 +1415,71 @@ Antes de marcar promessas como concluídas, validei via Playwright nas URLs reai
 - Conversions API server-side Meta/TikTok — OAuth tokens
 
 **31 commits totais sessão** (acumulado), **73 testes verdes**, **19 migrações idempotentes em prod**, **zero regressão**.
+
+---
+
+## 2026-04-26 — Iteração paralela 4: 5 features Sprint 4/5/8/13
+
+**Despacho paralelo (3 subagents + 3 features eu):**
+
+1. **Sprint 8 — IA Analyst v1 com mock** (subagent A, commit 7e4bb93):
+   - `/api/ai-analyst`: loop tool-calling Claude Sonnet 4.5 (5 iterações máx)
+   - 5 tools DB real: `revenue_by_period`, `top_products`, `conversion_funnel` (replica /api/funnel), `customer_segments` (RFM via @lojeo/engine), `behavior_aggregates`
+   - `/ia-analyst` page: markdown renderer simples (bold/italic/code/lists/tables), histórico sessionStorage, chips de sugestão, atalho Cmd+Enter, badges de tools
+   - **Modo degradado** sem ANTHROPIC_API_KEY: `mockResponse()` retorna markdown + tabela exemplo (Pedidos/Receita/Ticket médio 7d/30d) + 3 ações sugeridas
+
+2. **Sprint 4 — Cupons de desconto** (subagent B, commit db292d7):
+   - Schema `coupons`: code unique por tenant, type `percent|fixed|free_shipping`, min_order_cents, max_uses (null=ilimitado), uses_count, valid window (starts/ends), active boolean
+   - Helper `calcCouponDiscountCents` no schema
+   - API admin `/api/coupons` GET/POST + `[id]` PATCH/DELETE com permissão orders+write + audit `coupon.create/update/disable`
+   - DELETE = soft-delete via active=false (preserva histórico de orders que usaram)
+   - API storefront `/api/coupons/validate?code=&subtotalCents=` retorna `{valid, type, value, discountCents, freeShipping, reason}`
+   - UI admin `/cupons` lista+form inline com badges Ativo/Agendado/Expirado/Esgotado/Desativado, lj-card+lj-btn-primary
+   - Validação: regex code `^[A-Z0-9_-]{2,60}$`, type-aware value (percent 1-100, fixed≥1, free_shipping=0), endsAt > startsAt, PATCH bloqueia maxUses < usesCount
+   - Sidebar 🎟 Cupons após /pedidos
+   - Integração checkout v2 PENDENTE: `/api/orders` aceita couponCode mas não consulta tabela; lookup+apply+atomic increment usesCount entra em iteração futura
+
+3. **Sprint 5 — InfoTooltip espalhar** (subagent C, commit f3b3d73):
+   - 15 tooltips em 6 pages: insights (3 tabs), ia-uso (3 cards), atribuicao (2), integracoes (3 categorias), garantias (status header), experiments (3)
+   - products/[id] verificado mas pulado (sem campos warrantyMonths/ncm no editor atual)
+
+4. **Sprint 5 — A/B results dashboard** (commit 732e080, eu):
+   - API `/api/experiments/[id]/results`: variants stats (exposures, conversions, conversionRate, liftVsControl%), daily series últimos 30d, summary com significantSampleSize (≥1000 expo/variante)
+   - UI `/experiments/[id]/results`: 4 summary cards, bar chart horizontal por variante com winner badge 🏆 (só quando sample size suficiente), lift coloring (success/error/muted), banner amber quando sample insuficiente
+
+5. **Sprint 4 — Webhook stubs** (commit 71874ed, eu):
+   - 4 endpoints: `/api/webhooks/{mercado-pago|bling|melhor-envio|resend}`
+   - Mercado Pago: HMAC SHA-256 manifest validation com MERCADO_PAGO_WEBHOOK_SECRET
+   - Resend: Svix HMAC SHA-256 base64 com RESEND_WEBHOOK_SECRET (whsec_ format)
+   - Modo dev (sem secret): aceita sem verificar, log warning
+   - Resposta imediata 200 para evitar retries do provider
+   - V1 stub apenas — processamento real em Sprint 4 v2
+
+6. **Sprint 13 — Testes E2E smoke** (commit af094c2, eu):
+   - `apps/storefront/tests/storefront-flow.spec.ts` 9 specs:
+     - Homepage hero+nav+footer
+     - PLP filtros visíveis
+     - Páginas estáticas h1
+     - /rastreio form
+     - Auth gate /conta/* → /entrar
+     - PWA manifest+sw payload válido
+     - SEO Product JSON-LD na PDP
+     - /status renderiza serviços
+   - Reusa setup playwright config existing (axe-core)
+
+**Decisões coordenação multi-agent — lições adicionais:**
+- **Hooks reverteram PWA push stub** — meus arquivos foram criados mas hooks/linter os removeu durante stash/pop de outros agentes. Lição: cuidado com Write em arquivos que outros agentes podem stash. Solução: commit imediato após Write para "fixar" no histórico
+- **Subagent B coordenação stash/pop salvou trabalho** — recebeu 2 stashes paralelos (de A IA Analyst e meus arquivos), recriou sua estrutura sem perda
+- **`.next/types` stale cache** — Next.js gera tipos por rota; rotas novas que não estão no cache geram TS2307. Solução: `rm -rf .next` antes de typecheck quando criar nova rota /api
+
+**Total iteração:** 6 commits (3 subagents + 3 eu), 73 testes verdes, zero regressão. +1 migrate op (coupons).
+
+**Bloqueadores Sprint 4/5/8/13 restantes:**
+- Cupons aplicação no checkout — Sprint 4 v2
+- IA Analyst gráficos inline (Recharts) — v2
+- IA Analyst cache server-side similarity — v2
+- IA Analyst rate limit por usuário — v2
+- Webhooks processamento real (orders status, NF-e, tracking, email events) — Sprint 4 v2
+- E2E expandido (checkout flow, login completo, A/B variant rendering) — Sprint 13 v2
+
+**37 commits totais sessão**, **73 testes globais verdes**, **20 migrações idempotentes em prod** (coupons aplicado), **zero regressão**.
