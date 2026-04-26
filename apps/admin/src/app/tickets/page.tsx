@@ -70,7 +70,7 @@ export default function TicketsPage() {
           <h1 style={{ fontSize: 22, fontWeight: 600 }}>Suporte</h1>
           <p style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>Tickets de atendimento ao cliente</p>
         </div>
-        <div style={{ display: 'flex', gap: 12 }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           {openCount > 0 && (
             <span style={{ background: '#EFF6FF', color: '#1D4ED8', fontSize: 13, fontWeight: 600, padding: '4px 12px', borderRadius: 99 }}>
               {openCount} aberto{openCount !== 1 ? 's' : ''}
@@ -81,6 +81,9 @@ export default function TicketsPage() {
               {urgentCount} urgente{urgentCount !== 1 ? 's' : ''}
             </span>
           )}
+          <Link href="/tickets/templates" style={{ fontSize: 13, color: '#6B7280', textDecoration: 'none', border: '1px solid #E5E7EB', borderRadius: 6, padding: '4px 12px' }}>
+            📋 Templates
+          </Link>
         </div>
       </div>
 
