@@ -1921,3 +1921,44 @@ Antes de marcar promessas como concluídas, validei via Playwright nas URLs reai
 - Cron backup VPS produção (precisa SSH)
 
 **73 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão**.
+
+---
+
+## 2026-04-26 — Iteração 14: Refactor /chatbot /tickets/templates + rate limit Sprint 13
+
+**Commits:**
+
+1. **aff16a5** — refactor /chatbot + /tickets/templates tokens
+   - /chatbot: 4 cards summary com .eyebrow + numeric tabular-nums + Resolvidas var(--success) + Escaladas var(--warning); barra progresso bg var(--bg-subtle) fill var(--accent); empty state com color-mix(var(--warning) 12%) sem hex; loading body-s
+   - /tickets/templates: form 2 inputs lj-input + Cancelar lj-btn-secondary; links Editar/voltar var(--accent), Excluir var(--error); labels var(--fg-secondary)
+
+2. **04830e1** — feat sprint13 rate limit /api/orders + /api/coupons/validate
+   - **`apps/storefront/src/lib/rate-limit.ts`** NOVO: helper in-memory checkRateLimit({ key, max, windowMs }) + getClientIp(req)
+   - **/api/orders POST**: 10 pedidos/15min/IP — anti-fraude/bot
+   - **/api/coupons/validate GET**: 60 validações/15min/IP — anti-brute-force
+   - 429 com header Retry-After
+   - Limitação: per-instance (não global multi-replica), sem persistência → Fase 1 single-instance OK; v2 Redis/Upstash
+   - **/conta/privacidade**: botão excluir conta com tokens var(--danger)/var(--text-muted) substituindo hex hardcoded
+
+**Decisões:**
+- **Rate limit in-memory** vs Redis upfront: simplicidade primeiro, scale-out depois. EasyPanel single-instance não precisa Redis ainda.
+- **Limites generosos** (10 orders/15min, 60 coupons/15min) — não bloqueiam usuário legítimo, apenas bot/fraude. Cliente comum faz 1-2 pedidos por sessão.
+- **Helper centralizado** vs inline em cada handler — DRY, padroniza response shape (rate_limit reason + Retry-After), facilita futuro upgrade pra Redis.
+- **/conta/privacidade fix tokens com fallback hex** — pages do storefront usam tokens próprios (var(--danger), var(--text-muted)) que podem não estar no template ativo; fallback CSS garante render mesmo sem token.
+
+**Sprint 13 progresso:**
+- [x] Backup automático + restore (iter 9)
+- [x] Rate limit expandido (parcial: chat, orders, coupons; falta /api/track + sanitização Zod ampliada)
+- [ ] LGPD banner cookies — auditar
+- [ ] Modo degradado validado (manual)
+
+**Próximo ciclo:**
+- /api/track POST rate limit
+- Rate limit em /api/recently-viewed POST
+- /atribuicao mover lj-ai-banner pra topo
+- Sanitização Zod ampliada nos handlers admin
+- Storefront /conta sub-pages refactor (já 75% limpas, 1 hex fix feito)
+- Cron backup VPS produção (precisa SSH)
+- LGPD banner cookies audit
+
+**75 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão**.
