@@ -1768,3 +1768,45 @@ Antes de marcar promessas como concluídas, validei via Playwright nas URLs reai
 - Sparklines "Últimos pedidos" no dashboard quando houver dados reais
 
 **63 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão**.
+
+---
+
+## 2026-04-26 — Iteração 11: Sprint 12 v2 PersonalizedHero + refactor pages internas
+
+**Commits:**
+
+1. **37343e1** — feat sprint12 PersonalizedHero por segmento RFM
+   - `apps/storefront/src/components/marketing/personalized-hero.tsx` server component
+   - auth() → email → query orders pagos → scoreCustomers() → profile.segment
+   - SEGMENT_COPY map (champions/loyal/at_risk/lost/new/promising) com headline+subheadline+CTA por segmento mantendo tom editorial jewelry-v1
+   - Champions: "De volta ao ateliê" + CTA novidades exclusivas
+   - At_risk: "Sentimos sua falta" + frete grátis hint
+   - Lost: "Voltou" + CTA conhecer ateliê
+   - Passa props customizadas pro HeroExperiment existente (preserva A/B override)
+   - Modo degradado: try/catch em auth + DB → defaults gerais
+   - Roadmap Sprint 12 [x] PersonalizedHero por RFM
+
+2. **b2b9486** — refactor /devolucoes substitui text-gray-* por tokens
+   - 8 ocorrências text-gray-{500,600} Tailwind ad-hoc → caption/eyebrow/body-s + var(--fg-secondary)
+   - bg-amber-50/border-amber-200/text-amber-800 → lj-card + var(--warning-soft)/var(--warning)
+   - Tabela tokens preservados (já usavam var(--neutral-*))
+
+3. **70038a8** — refactor /collections /inventory /tickets — hex genéricos → tokens (via subagent paralelo)
+   - 26 substituições: #6B7280 → var(--fg-secondary), #9CA3AF → var(--fg-muted), #D1D5DB → var(--fg-secondary), #111827 → var(--neutral-900) ou var(--fg), #E5E7EB → var(--border), #F3F4F6 → var(--neutral-50)
+   - Status/priority badges semânticos preservados (cores intencionais do role mapping)
+   - Subagent terminou em ~98s vs ~30min sequencial
+
+**Decisões:**
+- **Server component PersonalizedHero** decide hero antes do cliente carregar — evita FOUC/flash de hero genérico antes do personalizado. Custo: 1 query DB por SSR. Trade-off aceito (cache do Next.js vai dedupe entre requests rápidos).
+- **Subagent paralelo seguro** quando tarefa = N edits independentes em arquivos disjuntos com contrato simples (mapa hex → token). Validação typecheck no final.
+- **Status badges preservados** — não substituir cores que carregam significado semântico (paid=verde, cancelled=cinza). Refactor cosmético não pode quebrar visualização de estado.
+
+**Próximo ciclo:**
+- A/B test PersonalizedHero vs default → uplift conversão (depende behavior_events `recommendation_*` já entregues + assignment expo)
+- Cliente anônimo recorrente por fingerprint
+- /ugc galeria moderação + tokens
+- /products/[id] editor refactor (parametrizado fields)
+- Sprint 13 cron backup VPS produção (precisa SSH)
+- /atribuicao mover lj-ai-banner pra antes do form (atualmente abaixo)
+
+**67 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão**.
