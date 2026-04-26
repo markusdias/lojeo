@@ -74,23 +74,23 @@ export default function ChatbotStatsPage() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-4 gap-3">
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <div className="lj-card p-4">
           <p className="text-xs text-gray-500 uppercase tracking-wide">Conversas</p>
           <p className="text-2xl font-semibold mt-1">{stats.total}</p>
         </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <div className="lj-card p-4">
           <p className="text-xs text-gray-500 uppercase tracking-wide">Resolvidas</p>
           <p className="text-2xl font-semibold mt-1 text-green-600">
             {stats.resolved} <span className="text-sm text-gray-400">({(stats.resolutionRate * 100).toFixed(0)}%)</span>
           </p>
         </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <div className="lj-card p-4">
           <p className="text-xs text-gray-500 uppercase tracking-wide">Escaladas</p>
           <p className="text-2xl font-semibold mt-1 text-amber-600">
             {stats.escalated} <span className="text-sm text-gray-400">({(stats.escalationRate * 100).toFixed(0)}%)</span>
           </p>
         </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <div className="lj-card p-4">
           <p className="text-xs text-gray-500 uppercase tracking-wide">Custo IA</p>
           <p className="text-2xl font-semibold mt-1">${costUsd.toFixed(4)}</p>
           <p className="text-xs text-gray-400 mt-0.5">
@@ -100,7 +100,7 @@ export default function ChatbotStatsPage() {
       </div>
 
       {/* Top tools */}
-      <div className="bg-white border border-gray-200 rounded-lg p-5">
+      <div className="lj-card p-5">
         <h2 className="text-sm font-semibold text-gray-700 mb-3">Tópicos mais consultados</h2>
         {stats.topTopics.length === 0 ? (
           <p className="text-sm text-gray-500">Nenhuma conversa ainda nos últimos {stats.windowDays} dias.</p>

@@ -130,14 +130,14 @@ export default function ExperimentsPage() {
         </div>
         <button
           onClick={() => setShowForm(s => !s)}
-          className="bg-indigo-600 text-white text-sm px-4 py-2 rounded hover:bg-indigo-700"
+          className="lj-btn-primary"
         >
           {showForm ? 'Cancelar' : '+ Novo experimento'}
         </button>
       </header>
 
       {showForm && (
-        <form onSubmit={handleCreate} className="bg-white border border-gray-200 rounded-lg p-5 space-y-3">
+        <form onSubmit={handleCreate} className="lj-card p-5 space-y-3">
           <div>
             <label className="block text-xs text-gray-600 mb-1">Key (única, identificador legível)</label>
             <input
@@ -183,7 +183,7 @@ export default function ExperimentsPage() {
           <button
             type="submit"
             disabled={saving}
-            className="bg-indigo-600 text-white text-sm px-4 py-2 rounded hover:bg-indigo-700 disabled:opacity-50"
+            className="lj-btn-primary"
           >
             {saving ? 'Criando...' : 'Criar experimento'}
           </button>
@@ -202,7 +202,7 @@ export default function ExperimentsPage() {
             const sc = STATUS_COLOR[exp.status] ?? STATUS_COLOR['draft']!;
             const expStats = stats[exp.id] ?? {};
             return (
-              <div key={exp.id} className="bg-white border border-gray-200 rounded-lg p-5">
+              <div key={exp.id} className="lj-card p-5">
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">

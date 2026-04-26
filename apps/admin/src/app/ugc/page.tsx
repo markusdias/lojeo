@@ -111,7 +111,7 @@ export default function UgcModerationPage() {
           {posts.map(p => {
             const sc = STATUS_COLOR[p.status] ?? STATUS_COLOR['pending']!;
             return (
-              <div key={p.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <div key={p.id} className="lj-card overflow-hidden">
                 <div className="aspect-square bg-gray-100 relative">
                   <img
                     src={p.thumbnailUrl ?? p.imageUrl}
