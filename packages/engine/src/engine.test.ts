@@ -83,7 +83,7 @@ describe('rfm', () => {
   it('scoreCustomers retorna um profile por cliente', () => {
     const result = scoreCustomers(customers, now);
     expect(result).toHaveLength(5);
-    expect(result[0].email).toBe('champion@test.com');
+    expect(result[0]?.email).toBe('champion@test.com');
   });
 
   it('scoreCustomers calcula daysSinceLastOrder corretamente', () => {
