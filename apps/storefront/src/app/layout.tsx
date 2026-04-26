@@ -35,28 +35,46 @@ interface PixelConfig {
   googleAdsConversionId?: string;
 }
 
-async function getPixelConfig(tenantId: string): Promise<PixelConfig> {
+interface AppearanceConfig {
+  typo?: string;
+  accent?: string;
+  bgTone?: string;
+  imgRadius?: '0' | '8' | '16';
+  typeScale?: 'default' | 'larger' | 'smaller';
+}
+
+interface TenantRuntimeConfig {
+  pixels: PixelConfig;
+  appearance: AppearanceConfig;
+}
+
+async function getTenantRuntimeConfig(tenantId: string): Promise<TenantRuntimeConfig> {
   try {
     const [tenant] = await db.select({ config: tenants.config }).from(tenants).where(eq(tenants.id, tenantId)).limit(1);
-    const cfg = (tenant?.config ?? {}) as { pixels?: PixelConfig };
-    return cfg.pixels ?? {};
+    const cfg = (tenant?.config ?? {}) as { pixels?: PixelConfig; appearance?: AppearanceConfig };
+    return { pixels: cfg.pixels ?? {}, appearance: cfg.appearance ?? {} };
   } catch {
-    return {};
+    return { pixels: {}, appearance: {} };
   }
 }
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const tpl = await getActiveTemplate();
   const tenantId = process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
-  const pixelConfig = await getPixelConfig(tenantId);
+  const { pixels: pixelConfig, appearance } = await getTenantRuntimeConfig(tenantId);
+  const typo = appearance.typo ?? 'a';
+  const accent = appearance.accent ?? 'champagne';
+  const bgTone = appearance.bgTone ?? 'warm';
+  const imgRadius = appearance.imgRadius ?? '8';
+  const typeScale = appearance.typeScale ?? 'default';
   return (
     <html
       lang={tpl.locale}
-      data-typo="a"
-      data-accent="champagne"
-      data-bg-tone="warm"
-      data-img-radius="8"
-      data-type-scale="default"
+      data-typo={typo}
+      data-accent={accent}
+      data-bg-tone={bgTone}
+      data-img-radius={imgRadius}
+      data-type-scale={typeScale}
     >
       <body>
         <Pixels config={pixelConfig} />
