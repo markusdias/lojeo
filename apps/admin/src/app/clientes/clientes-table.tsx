@@ -20,8 +20,13 @@ const SEGMENT_LABELS: Record<RfmSegment, string> = {
 };
 
 const SEGMENT_COLORS: Record<RfmSegment, string> = {
-  champions: '#16a34a', loyal: '#2563eb', at_risk: '#d97706',
-  lost: '#dc2626', new: '#7c3aed', promising: '#0891b2', other: '#6b7280',
+  champions: 'var(--success)',
+  loyal: 'var(--info)',
+  at_risk: 'var(--warning)',
+  lost: 'var(--error)',
+  new: 'var(--accent)',
+  promising: 'var(--info)',
+  other: 'var(--fg-muted)',
 };
 
 function fmt(cents: number) {
@@ -42,62 +47,97 @@ export function ClientesTable({ customers }: { customers: CustomerRow[] }) {
 
   return (
     <>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 24 }}>
-        {ALL_SEGMENTS.map(seg => (
-          <button
-            key={seg}
-            onClick={() => setFilter(seg)}
-            style={{
-              padding: '4px 12px', fontSize: 12, borderRadius: 20, cursor: 'pointer',
-              border: filter === seg ? 'none' : '1px solid #374151',
-              background: filter === seg ? (seg === 'all' ? '#374151' : SEGMENT_COLORS[seg]) : 'transparent',
-              color: filter === seg ? '#fff' : '#9ca3af',
-              fontWeight: filter === seg ? 600 : 400,
-            }}
-          >
-            {seg === 'all' ? 'Todos' : SEGMENT_LABELS[seg]} ({counts[seg] ?? 0})
-          </button>
-        ))}
+      <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+        {ALL_SEGMENTS.map(seg => {
+          const active = filter === seg;
+          return (
+            <button
+              key={seg}
+              onClick={() => setFilter(seg)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 'var(--space-2)',
+                padding: '6px 12px',
+                borderRadius: 'var(--radius-full)',
+                fontSize: 'var(--text-body-s)',
+                fontWeight: 'var(--w-medium)',
+                cursor: 'pointer',
+                background: active ? 'var(--neutral-900)' : 'var(--bg-elevated)',
+                color: active ? 'var(--surface)' : 'var(--fg)',
+                border: active ? '1px solid var(--neutral-900)' : '1px solid var(--border-strong)',
+              }}
+            >
+              {seg !== 'all' && (
+                <span aria-hidden style={{
+                  width: 6, height: 6, borderRadius: '50%',
+                  background: SEGMENT_COLORS[seg],
+                  display: 'inline-block',
+                }} />
+              )}
+              {seg === 'all' ? 'Todos' : SEGMENT_LABELS[seg]}
+              <span className="numeric" style={{ color: active ? 'var(--surface)' : 'var(--fg-secondary)', fontWeight: 'var(--w-regular)' }}>
+                {counts[seg] ?? 0}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-        <thead>
-          <tr style={{ borderBottom: '1px solid #1f2937' }}>
-            {['Cliente', 'Segmento', 'Pedidos', 'LTV', 'Último pedido', 'R', 'F', 'M'].map(h => (
-              <th key={h} style={{ textAlign: 'left', padding: '8px 12px', color: '#6b7280', fontWeight: 500 }}>{h}</th>
+      <div className="lj-card" style={{ overflow: 'hidden' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-body-s)' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-subtle)' }}>
+              {['Cliente', 'Segmento', 'Pedidos', 'LTV', 'Último pedido', 'R', 'F', 'M'].map(h => (
+                <th key={h} style={{ textAlign: 'left', padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)', fontWeight: 'var(--w-medium)' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {visible.map(c => (
+              <tr key={c.email} style={{ borderBottom: '1px solid var(--border)' }}>
+                <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
+                  <Link href={`/clientes/${encodeURIComponent(c.email)}`} style={{ color: 'var(--fg)', textDecoration: 'none', fontWeight: 'var(--w-medium)' }}>
+                    {c.email}
+                  </Link>
+                </td>
+                <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '2px 8px',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: 'var(--text-caption)',
+                    fontWeight: 'var(--w-medium)',
+                    color: SEGMENT_COLORS[c.segment],
+                    background: 'transparent',
+                    border: `1px solid ${SEGMENT_COLORS[c.segment]}`,
+                  }}>
+                    <span aria-hidden style={{ width: 5, height: 5, borderRadius: '50%', background: SEGMENT_COLORS[c.segment] }} />
+                    {SEGMENT_LABELS[c.segment]}
+                  </span>
+                </td>
+                <td className="numeric" style={{ padding: 'var(--space-3) var(--space-4)' }}>{c.orderCount}</td>
+                <td className="numeric" style={{ padding: 'var(--space-3) var(--space-4)' }}>{fmt(c.totalCents)}</td>
+                <td className="numeric" style={{ padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)' }}>
+                  {c.daysSinceLastOrder === 0 ? 'hoje' : `${c.daysSinceLastOrder}d atrás`}
+                </td>
+                <td className="numeric" style={{ padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)' }}>{c.rfm.recency}</td>
+                <td className="numeric" style={{ padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)' }}>{c.rfm.frequency}</td>
+                <td className="numeric" style={{ padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)' }}>{c.rfm.monetary}</td>
+              </tr>
             ))}
-          </tr>
-        </thead>
-        <tbody>
-          {visible.map(c => (
-            <tr key={c.email} style={{ borderBottom: '1px solid #111827' }}>
-              <td style={{ padding: '10px 12px' }}>
-                <Link href={`/clientes/${encodeURIComponent(c.email)}`} style={{ color: '#e5e7eb', textDecoration: 'none', fontWeight: 500 }}>
-                  {c.email}
-                </Link>
-              </td>
-              <td style={{ padding: '10px 12px' }}>
-                <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600, background: SEGMENT_COLORS[c.segment] + '22', color: SEGMENT_COLORS[c.segment] }}>
-                  {SEGMENT_LABELS[c.segment]}
-                </span>
-              </td>
-              <td style={{ padding: '10px 12px', color: '#d1d5db' }}>{c.orderCount}</td>
-              <td style={{ padding: '10px 12px', color: '#d1d5db' }}>{fmt(c.totalCents)}</td>
-              <td style={{ padding: '10px 12px', color: '#9ca3af' }}>{c.daysSinceLastOrder === 0 ? 'hoje' : `${c.daysSinceLastOrder}d atrás`}</td>
-              <td style={{ padding: '10px 12px', color: '#6b7280' }}>{c.rfm.recency}</td>
-              <td style={{ padding: '10px 12px', color: '#6b7280' }}>{c.rfm.frequency}</td>
-              <td style={{ padding: '10px 12px', color: '#6b7280' }}>{c.rfm.monetary}</td>
-            </tr>
-          ))}
-          {visible.length === 0 && (
-            <tr>
-              <td colSpan={8} style={{ padding: '32px', textAlign: 'center', color: '#4b5563' }}>
-                Nenhum cliente neste segmento.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+            {visible.length === 0 && (
+              <tr>
+                <td colSpan={8} style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--fg-secondary)' }}>
+                  Nenhum cliente neste segmento.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </>
   );
 }

@@ -45,10 +45,10 @@ export default async function ClientesPage() {
 
   return (
     <div style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }} className="space-y-6">
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 24 }}>
+      <header>
         <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginBottom: 'var(--space-2)' }}>Clientes</h1>
-        <span style={{ fontSize: 13, color: '#6b7280' }}>{profiles.length} clientes</span>
-      </div>
+        <p className="body-s">{profiles.length} cliente{profiles.length === 1 ? '' : 's'} segmentados via RFM (Recency × Frequency × Monetary)</p>
+      </header>
       <ClientesTable customers={profiles} />
     </div>
   );
