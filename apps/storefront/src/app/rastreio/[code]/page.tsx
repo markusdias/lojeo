@@ -1,6 +1,7 @@
 import { db, orders, orderEvents } from '@lojeo/db';
 import { and, asc, eq } from 'drizzle-orm';
 import Link from 'next/link';
+import { TrackingMap } from '../../../components/tracking/tracking-map';
 
 export const dynamic = 'force-dynamic';
 
@@ -150,9 +151,13 @@ export default async function RastreioCodePage({ params }: PageProps) {
   const currentStatus = order.status as TrackingStep | 'cancelled';
   const currentIndex = TRACKING_STEPS.indexOf(currentStatus as TrackingStep);
 
-  const shipping = order.shippingAddress as { recipientName?: string } | null;
+  const shipping = order.shippingAddress as { recipientName?: string; city?: string; state?: string } | null;
   const customerName = maskName(shipping?.recipientName);
   const customerEmail = maskEmail(order.customerEmail);
+
+  // Origem do mapa: estado/cidade do tenant (atelier). Sem config, fallback SP.
+  const originCity = process.env.NEXT_PUBLIC_TENANT_CITY ?? 'São Paulo';
+  const originState = process.env.NEXT_PUBLIC_TENANT_STATE ?? 'SP';
 
   const isCancelled = order.status === 'cancelled';
   const trackingDescription = !isCancelled && currentIndex >= 0
@@ -225,8 +230,16 @@ export default async function RastreioCodePage({ params }: PageProps) {
           </div>
         )}
 
+        {/* Mapa branded — match Account.jsx Tracking */}
+        {!isCancelled && shipping?.state && (
+          <TrackingMap
+            origin={{ city: originCity, state: originState }}
+            destination={{ city: shipping.city, state: shipping.state }}
+          />
+        )}
+
         {/* Timeline visual */}
-        <section style={{ marginBottom: 40 }}>
+        <section style={{ marginBottom: 40, marginTop: shipping?.state ? 32 : 0 }}>
           <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 24 }}>
             Linha do tempo
           </h2>
