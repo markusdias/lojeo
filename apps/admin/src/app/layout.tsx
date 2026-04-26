@@ -21,6 +21,7 @@ const NAV = [
   { href: '/avaliacoes', label: 'Avaliações', icon: '★' },
   { href: '/clientes', label: 'Clientes', icon: '◉' },
   { href: '/insights', label: 'Insights', icon: '◬' },
+  { href: '/atribuicao', label: 'Atribuição', icon: '◉' },
   { href: '/ia-uso', label: 'Uso de IA', icon: '✦' },
   { href: '/settings', label: 'Configurações', icon: '⚙' },
 ];
