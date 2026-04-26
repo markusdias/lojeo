@@ -13,6 +13,7 @@
     "clean": "rm -rf .next .turbo"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
     "@auth/drizzle-adapter": "^1.7.4",
     "@lojeo/ai": "workspace:*",
     "@lojeo/db": "workspace:*",
