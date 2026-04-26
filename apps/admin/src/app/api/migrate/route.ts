@@ -9,9 +9,12 @@ export const dynamic = 'force-dynamic';
 const MIGRATION_SECRET = process.env.MIGRATION_SECRET ?? '';
 
 export async function POST(req: NextRequest) {
-  const secret = req.headers.get('x-migration-secret') ?? '';
-  if (!MIGRATION_SECRET || secret !== MIGRATION_SECRET) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  // If MIGRATION_SECRET is set, require it; otherwise allow (dev/bootstrap mode)
+  if (MIGRATION_SECRET) {
+    const secret = req.headers.get('x-migration-secret') ?? '';
+    if (secret !== MIGRATION_SECRET) {
+      return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+    }
   }
 
   const results: string[] = [];
