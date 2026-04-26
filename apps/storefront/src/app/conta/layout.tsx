@@ -9,6 +9,7 @@ const NAV = [
   { href: '/conta/enderecos', label: 'Endereços' },
   { href: '/conta/galeria', label: 'Minhas fotos' },
   { href: '/wishlist', label: 'Lista de desejos' },
+  { href: '/conta/privacidade', label: 'Privacidade' },
 ];
 
 export default async function ContaLayout({ children }: { children: ReactNode }) {
