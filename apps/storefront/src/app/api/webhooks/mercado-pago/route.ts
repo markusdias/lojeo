@@ -4,7 +4,7 @@ import crypto from 'node:crypto';
 
 export const dynamic = 'force-dynamic';
 
-function verifySignature(req: NextRequest, body: string): boolean {
+function verifySignature(req: NextRequest, _body: string): boolean {
   const secret = process.env.MERCADO_PAGO_WEBHOOK_SECRET;
   if (!secret) return true; // sem secret = aceitar (dev)
   const xSignature = req.headers.get('x-signature') ?? '';

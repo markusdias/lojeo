@@ -1,8 +1,7 @@
 import { db, products } from '@lojeo/db';
-import { eq, and, lte, asc, desc, like, or, ilike } from 'drizzle-orm';
+import { eq, and, asc, desc, or, ilike } from 'drizzle-orm';
 import type { Metadata } from 'next';
 import { getActiveTemplate } from '../../template';
-import { ProductCard } from '../../components/ui/product-card';
 import { PLPFilters } from './plp-filters';
 
 export const dynamic = 'force-dynamic';
@@ -36,7 +35,7 @@ export default async function PLP({ searchParams }: PLPProps) {
   const categoria = param(sp['categoria']);
   const ordenar = param(sp['ordenar']) ?? 'novidades';
   const q = param(sp['q']);
-  const page = Math.max(1, parseInt(param(sp['pagina']) ?? '1', 10));
+  const _page = Math.max(1, parseInt(param(sp['pagina']) ?? '1', 10));
 
   const catLabels: Record<string, string> = {
     aneis: 'Anéis', brincos: 'Brincos', colares: 'Colares', pulseiras: 'Pulseiras',

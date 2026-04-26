@@ -54,16 +54,16 @@ export default async function DashboardPage() {
   const dayMs = 24 * 60 * 60 * 1000;
   const since30d = new Date(now - 30 * dayMs);
   const between60and30d = new Date(now - 60 * dayMs);
-  const since14d = new Date(now - 14 * dayMs);
+  const _since14d = new Date(now - 14 * dayMs);
 
   let tenantName = '';
   let templateId = '';
-  let productCount = 0;
+  let _productCount = 0;
   let orderCount = 0;
   let revenueCents = 0;
   let pendingCount = 0;
   let prevOrderCount = 0;
-  let prevRevenueCents = 0;
+  let _prevRevenueCents = 0;
   // Receita de hoje vs ontem (cards do topo) — janelas de 24h por dia local.
   let revenueToday = 0;
   let revenueYesterday = 0;
@@ -95,7 +95,7 @@ export default async function DashboardPage() {
 
   try {
     const [pr] = await db.select({ c: sql<number>`COUNT(*)::int` }).from(products).where(eq(products.tenantId, tid));
-    productCount = Number(pr?.c ?? 0);
+    _productCount = Number(pr?.c ?? 0);
   } catch { /* DB indisponível */ }
 
   try {
@@ -128,7 +128,7 @@ export default async function DashboardPage() {
         }
       } else {
         prevOrderCount++;
-        prevRevenueCents += r.totalCents ?? 0;
+        _prevRevenueCents += r.totalCents ?? 0;
       }
     }
   } catch { /* DB indisponível */ }

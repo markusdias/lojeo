@@ -25,7 +25,7 @@ export default [
       ...tsPlugin.configs.recommended.rules,
       // TypeScript already checks for undefined vars — disable to avoid false positives with TS namespaces
       'no-undef': 'off',
-      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
       '@typescript-eslint/no-explicit-any': 'warn',
       'no-console': ['warn', { allow: ['warn', 'error'] }],
     },

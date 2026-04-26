@@ -102,16 +102,6 @@ function UrgencyBadge({ urgency, viewersNow, totalStock }: { urgency: UrgencyKin
   return null;
 }
 
-function Stars({ value = 5 }: { value?: number }) {
-  return (
-    <div style={{ display: 'flex', gap: 2 }}>
-      {[1, 2, 3, 4, 5].map(i => (
-        <Icon key={i} name={i <= value ? 'star-filled' : 'star'} size={14} style={{ color: 'var(--accent)' }} />
-      ))}
-    </div>
-  );
-}
-
 function RestockButton({ productId, variantId }: { productId: string; variantId: string }) {
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);

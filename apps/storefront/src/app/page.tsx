@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { db, products, collections } from '@lojeo/db';
+import { db, products } from '@lojeo/db';
 import { eq, and, desc } from 'drizzle-orm';
 import { getActiveTemplate } from '../template';
 import { ProductCard } from '../components/ui/product-card';
@@ -81,9 +81,6 @@ export default async function HomePage() {
       .orderBy(desc(products.createdAt))
       .limit(4),
   ]);
-
-  const formatPrice = (cents: number) =>
-    (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: tpl.currency });
 
   return (
     <>

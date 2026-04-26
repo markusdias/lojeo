@@ -39,7 +39,7 @@ function couponReasonPT(reason: string | undefined, minOrderCents: number | unde
 
 export default function PagamentoPage() {
   const router = useRouter();
-  const { state, setPaymentMethod, setGift, setOrder, setStep, setCoupon, reset } = useCheckout();
+  const { state, setPaymentMethod, setGift, setOrder, setStep, setCoupon } = useCheckout();
   const { subtotalCents, items, clear } = useCart();
   const tracker = useTracker();
   const [method, setMethod] = useState<'pix' | 'credit_card' | 'boleto'>(state.paymentMethod ?? 'pix');

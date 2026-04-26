@@ -21,10 +21,6 @@ const STATUS_LABEL: Record<string, string> = {
 
 const OPEN_STATUSES = new Set(['pending', 'paid', 'preparing', 'shipped']);
 
-function fmtCents(cents: number) {
-  return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
-
 function fmtDate(d: Date) {
   return d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' });
 }

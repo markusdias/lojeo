@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { eq, and, inArray, ne, sql } from 'drizzle-orm';
-import { db, products, collections, productCollections } from '@lojeo/db';
+import { db, products, productCollections } from '@lojeo/db';
 
 export const dynamic = 'force-dynamic';
 

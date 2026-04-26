@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db, orders, orderItems, orderEvents, inventoryStock, coupons, calcCouponDiscountCents } from '@lojeo/db';
+import { db, orders, orderItems, orderEvents, coupons, calcCouponDiscountCents } from '@lojeo/db';
 import { eq, and, sql } from 'drizzle-orm';
 import { checkRateLimit, getClientIp } from '../../../lib/rate-limit';
 

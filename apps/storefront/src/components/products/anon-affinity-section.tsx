@@ -24,7 +24,6 @@ interface Props {
  */
 export function AnonAffinitySection({ currency }: Props) {
   const [items, setItems] = useState<Suggestion[] | null>(null);
-  const [reason, setReason] = useState<string>('');
 
   useEffect(() => {
     const anonId = getAnonId();
@@ -36,7 +35,6 @@ export function AnonAffinitySection({ currency }: Props) {
       .then(r => r.json())
       .then((d: { products?: Suggestion[]; reason?: string }) => {
         setItems(d.products ?? []);
-        setReason(d.reason ?? '');
       })
       .catch(() => setItems([]));
   }, []);

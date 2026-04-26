@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { auth } from '../../../../auth';
 import { db, orders, orderItems, orderEvents } from '@lojeo/db';
-import { eq, and, desc, or } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
