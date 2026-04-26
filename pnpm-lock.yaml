@@ -114,9 +114,15 @@ importers:
 
   apps/storefront:
     dependencies:
+      '@anthropic-ai/sdk':
+        specifier: ^0.32.1
+        version: 0.32.1
       '@auth/drizzle-adapter':
         specifier: ^1.7.4
         version: 1.11.2
+      '@lojeo/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
       '@lojeo/db':
         specifier: workspace:*
         version: link:../../packages/db

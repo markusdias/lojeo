@@ -626,3 +626,40 @@ Decisões técnicas relevantes registradas com data e justificativa.
 - Churn thresholds v1 são heurísticos — calibrar com dados reais após 30d em produção
 - `customFields.stock` como campo temporário para estoque — migrar para tabela `inventory` dedicada no Sprint 9
 - Rating padrão 4.9 em produtos sem review é cosmético — corrigir quando reviews reais existirem
+
+---
+
+## 2026-04-26 — Sprint 9 (parcial): Tickets + Research + Páginas Admin
+
+**Objetivo Sprint 9:** FaqZap + chatbot storefront + tickets.
+
+**Entregável desta sessão:**
+
+1. **Sistema de tickets de suporte (admin):**
+   - Schema: `support_tickets`, `ticket_messages`, `ticket_templates` — migração `0007_awesome_gorgon.sql`
+   - API admin: `GET/POST /api/tickets`, `GET/PATCH /api/tickets/[id]`, `GET/POST /api/tickets/[id]/messages`
+   - UI admin: `/tickets` (lista com filtros status/prioridade + SLA badges) + `/tickets/[id]` (thread + notas internas + sidebar de ações)
+   - Rota `/api/migrate` para aplicar schema sem acesso externo ao PostgreSQL
+
+2. **Research doc Sprint 9:** `docs/research/sprint-9-storefront-chatbot.md`
+   - Referências: Shopify Sidekick, Klaviyo K:AI, Tidio Lyro (Claude), Intercom Fin
+   - Decisão: RAG Híbrido + Tool-calling (Opção C)
+   - 6 tools: `search_products`, `get_product_details`, `check_stock`, `get_shipping_estimate`, `get_faq_answer`, `escalate_to_human`
+   - Custo estimado Haiku: ~$0.0075/conversa; com tiering 70/30: ~$0.010/conversa
+
+3. **Fix PDP storefront:** removido rating placeholder "4.9 · 0 avaliações"
+
+4. **Páginas admin novas:** `/inventory` (estoque) e `/collections` (coleções)
+
+**Decisões técnicas:**
+
+- `ticket_messages.isInternal=true` = nota interna (fundo âmbar, não enviada ao cliente)
+- Auto-status: ao responder (não nota), ticket muda de `open` → `in_progress`
+- SLA default: 24h; deadline calculado em `created_at + sla_hours`
+- Sem FK para `orders` no schema de prod (criado via rota de migração) — FK existe no Drizzle schema local mas não na DB prod para evitar erros de resolução de schema
+- Rota `/api/migrate` sem secret = bootstrap mode; com `MIGRATION_SECRET` env = autenticada
+
+**Bloqueadores Sprint 9 restantes:**
+- Widget chatbot UI: requer Design D (briefing pendente)
+- FaqZap: requer conta + API
+- Chatbot backend (tool-calling): próxima implementação sem bloqueador externo
