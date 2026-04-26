@@ -4,6 +4,7 @@ import {
   tenants,
   products,
   productVariants,
+  productImages,
   collections,
   productCollections,
   inventoryStock,
@@ -37,6 +38,10 @@ import {
   GET as listStock,
   POST as adjustStockApi,
 } from './app/api/inventory/route';
+import {
+  POST as uploadImage,
+  GET as listImages,
+} from './app/api/products/[id]/images/route';
 import { POST as track } from './app/api/track/route';
 import { GET as health } from './app/api/health/route';
 
@@ -51,6 +56,7 @@ const ANON_ID = `anon-${RUN_ID}`;
 let productId = '';
 let variantId = '';
 let collectionId = '';
+let imageId = '';
 
 beforeAll(async () => {
   await db
@@ -77,6 +83,7 @@ afterAll(async () => {
       .where(eq(productCollections.productId, productId))
       .catch(() => {});
     await db.delete(productVariants).where(eq(productVariants.productId, productId)).catch(() => {});
+    await db.delete(productImages).where(eq(productImages.productId, productId)).catch(() => {});
     await db.delete(products).where(eq(products.id, productId)).catch(() => {});
   }
   if (collectionId) {
@@ -237,6 +244,45 @@ describe('dogfood — caso de uso completo', () => {
       jsonReq('http://t/api/products', 'POST', { name: 'x', priceCents: -1 }),
     );
     expect(res.status).toBe(400);
+  });
+
+  it('upload imagem WebP', async () => {
+    // PNG 1x1 pixel mínimo (válido para sharp)
+    const png1x1 = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      'base64',
+    );
+    const form = new FormData();
+    form.append('file', new Blob([png1x1], { type: 'image/png' }), 'test.png');
+    form.append('position', '0');
+    const res = await uploadImage(
+      new Request(`http://t/api/products/${productId}/images`, {
+        method: 'POST',
+        headers: { 'x-tenant-id': TENANT_ID },
+        body: form,
+      }),
+      params({ id: productId }),
+    );
+    expect(res.status).toBe(201);
+    const json = await res.json();
+    imageId = json.image.id;
+    expect(imageId).toBeTruthy();
+    expect(json.thumbnails).toHaveProperty('sm');
+    expect(json.thumbnails).toHaveProperty('md');
+    expect(json.thumbnails).toHaveProperty('lg');
+  });
+
+  it('lista imagens do produto', async () => {
+    const res = await listImages(
+      new Request(`http://t/api/products/${productId}/images`, {
+        method: 'GET',
+        headers: { 'x-tenant-id': TENANT_ID },
+      }),
+      params({ id: productId }),
+    );
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.images.some((img: { id: string }) => img.id === imageId)).toBe(true);
   });
 
   it('tracking ingest grava evento', async () => {
