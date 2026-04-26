@@ -23,6 +23,14 @@ export interface ShippingOption {
   label: string;
 }
 
+export interface CheckoutCoupon {
+  code: string;
+  type: string;
+  value: number;
+  discountCents: number;
+  freeShipping: boolean;
+}
+
 export interface CheckoutState {
   step: 'endereco' | 'frete' | 'pagamento' | 'confirmacao';
   address: Partial<CheckoutAddress>;
@@ -33,6 +41,7 @@ export interface CheckoutState {
   giftMessage: string;
   orderId: string | null;
   orderNumber: string | null;
+  coupon: CheckoutCoupon | null;
 }
 
 type CheckoutAction =
@@ -43,6 +52,7 @@ type CheckoutAction =
   | { type: 'SET_GIFT'; payload: { isGift: boolean; giftMessage: string } }
   | { type: 'SET_STEP'; payload: CheckoutState['step'] }
   | { type: 'SET_ORDER'; payload: { orderId: string; orderNumber: string } }
+  | { type: 'SET_COUPON'; payload: CheckoutCoupon | null }
   | { type: 'RESET' };
 
 const initialState: CheckoutState = {
@@ -55,6 +65,7 @@ const initialState: CheckoutState = {
   giftMessage: '',
   orderId: null,
   orderNumber: null,
+  coupon: null,
 };
 
 function reducer(state: CheckoutState, action: CheckoutAction): CheckoutState {
@@ -66,6 +77,7 @@ function reducer(state: CheckoutState, action: CheckoutAction): CheckoutState {
     case 'SET_GIFT': return { ...state, isGift: action.payload.isGift, giftMessage: action.payload.giftMessage };
     case 'SET_STEP': return { ...state, step: action.payload };
     case 'SET_ORDER': return { ...state, orderId: action.payload.orderId, orderNumber: action.payload.orderNumber };
+    case 'SET_COUPON': return { ...state, coupon: action.payload };
     case 'RESET': return initialState;
     default: return state;
   }
@@ -82,6 +94,7 @@ interface CheckoutContextValue {
   setGift: (isGift: boolean, giftMessage: string) => void;
   setStep: (s: CheckoutState['step']) => void;
   setOrder: (id: string, number: string) => void;
+  setCoupon: (c: CheckoutCoupon | null) => void;
   reset: () => void;
 }
 
@@ -117,6 +130,7 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
     setGift: (isGift, giftMessage) => dispatch({ type: 'SET_GIFT', payload: { isGift, giftMessage } }),
     setStep: (s) => dispatch({ type: 'SET_STEP', payload: s }),
     setOrder: (id, number) => dispatch({ type: 'SET_ORDER', payload: { orderId: id, orderNumber: number } }),
+    setCoupon: (c) => dispatch({ type: 'SET_COUPON', payload: c }),
     reset: () => dispatch({ type: 'RESET' }),
   };
 

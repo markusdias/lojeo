@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db, orders, orderItems, orderEvents, inventoryStock } from '@lojeo/db';
+import { db, orders, orderItems, orderEvents, inventoryStock, coupons, calcCouponDiscountCents } from '@lojeo/db';
 import { eq, and, sql } from 'drizzle-orm';
 
 const tenantId = () => process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
@@ -72,10 +72,76 @@ export async function POST(req: Request) {
 
     const subtotalCents = body.items.reduce((s, i) => s + i.unitPriceCents * i.qty, 0);
     const freeShipping = subtotalCents >= FREE_SHIPPING_ABOVE;
-    const shippingCents = freeShipping ? 0 : body.shipping.priceCents;
+    let shippingCents = freeShipping ? 0 : body.shipping.priceCents;
     // Pix gets 5% discount
     const pixDiscount = body.paymentMethod === 'pix' ? Math.round(subtotalCents * 0.05) : 0;
-    const totalCents = subtotalCents - pixDiscount + shippingCents;
+
+    // ── Coupon lookup + atomic increment ────────────────────────────────────
+    let couponDiscountCents = 0;
+    let couponCodePersisted: string | null = null;
+    const rawCouponCode = body.couponCode?.trim().toUpperCase();
+    if (rawCouponCode && rawCouponCode.length >= 2) {
+      // Lookup case-insensitive (codes stored uppercased)
+      const [coupon] = await db
+        .select()
+        .from(coupons)
+        .where(and(eq(coupons.tenantId, tid), sql`LOWER(${coupons.code}) = LOWER(${rawCouponCode})`))
+        .limit(1);
+
+      if (!coupon) {
+        return NextResponse.json({ error: 'coupon_invalid', reason: 'not_found' }, { status: 400 });
+      }
+      if (!coupon.active) {
+        return NextResponse.json({ error: 'coupon_invalid', reason: 'inactive' }, { status: 400 });
+      }
+      const now = Date.now();
+      if (coupon.startsAt && coupon.startsAt.getTime() > now) {
+        return NextResponse.json({ error: 'coupon_invalid', reason: 'not_started' }, { status: 400 });
+      }
+      if (coupon.endsAt && coupon.endsAt.getTime() <= now) {
+        return NextResponse.json({ error: 'coupon_invalid', reason: 'expired' }, { status: 400 });
+      }
+      if (coupon.maxUses !== null && coupon.maxUses !== undefined && coupon.usesCount >= coupon.maxUses) {
+        return NextResponse.json({ error: 'coupon_invalid', reason: 'exhausted' }, { status: 400 });
+      }
+      if (coupon.minOrderCents > 0 && subtotalCents < coupon.minOrderCents) {
+        return NextResponse.json(
+          { error: 'coupon_invalid', reason: 'below_minimum', minOrderCents: coupon.minOrderCents },
+          { status: 400 },
+        );
+      }
+
+      // Atomic increment: prevents race conditions on maxUses.
+      // The UPDATE only succeeds if the row still satisfies the cap at write time.
+      const claimed = await db.execute(sql`
+        UPDATE coupons
+        SET uses_count = uses_count + 1, updated_at = NOW()
+        WHERE id = ${coupon.id}
+          AND active = TRUE
+          AND (max_uses IS NULL OR uses_count < max_uses)
+        RETURNING id
+      `);
+      const claimedRows = (claimed as unknown as { rows?: unknown[] }).rows
+        ?? (Array.isArray(claimed) ? (claimed as unknown[]) : []);
+      if (!claimedRows || claimedRows.length === 0) {
+        return NextResponse.json(
+          { error: 'coupon_race_condition', reason: 'exhausted' },
+          { status: 409 },
+        );
+      }
+
+      // Apply discount
+      if (coupon.type === 'free_shipping') {
+        // Zero out shipping; couponDiscountCents stays 0 (discount lives in the freight column)
+        shippingCents = 0;
+        couponDiscountCents = 0;
+      } else {
+        couponDiscountCents = calcCouponDiscountCents(coupon.type, coupon.value, subtotalCents);
+      }
+      couponCodePersisted = coupon.code;
+    }
+
+    const totalCents = Math.max(0, subtotalCents - pixDiscount - couponDiscountCents + shippingCents);
 
     const orderNumber = await nextOrderNumber(tid);
 
@@ -91,11 +157,12 @@ export async function POST(req: Request) {
       shippingDeadlineDays: body.shipping.deadlineDays,
       shippingCents,
       subtotalCents,
-      discountCents: pixDiscount,
+      discountCents: pixDiscount + couponDiscountCents,
       totalCents,
       paymentMethod: body.paymentMethod,
       paymentGateway: 'mercadopago',
-      couponDiscountCents: 0,
+      couponCode: couponCodePersisted,
+      couponDiscountCents,
       utmSource: body.utm?.source ?? null,
       utmMedium: body.utm?.medium ?? null,
       utmCampaign: body.utm?.campaign ?? null,

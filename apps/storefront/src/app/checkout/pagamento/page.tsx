@@ -16,9 +16,29 @@ function fmt(cents: number) {
   return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: CURRENCY });
 }
 
+const COUPON_REASON_PT: Record<string, string> = {
+  not_found: 'Cupom não encontrado',
+  inactive: 'Cupom inativo',
+  not_started: 'Cupom ainda não iniciou',
+  expired: 'Cupom expirado',
+  exhausted: 'Cupom esgotado',
+  max_uses_reached: 'Cupom esgotado',
+  below_minimum: 'Pedido abaixo do mínimo exigido',
+  min_order_not_met: 'Pedido abaixo do mínimo exigido',
+  invalid_code: 'Código inválido',
+};
+
+function couponReasonPT(reason: string | undefined, minOrderCents: number | undefined): string {
+  if (!reason) return 'Cupom inválido';
+  if ((reason === 'below_minimum' || reason === 'min_order_not_met') && minOrderCents) {
+    return `Pedido mínimo ${(minOrderCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+  }
+  return COUPON_REASON_PT[reason] ?? 'Cupom inválido';
+}
+
 export default function PagamentoPage() {
   const router = useRouter();
-  const { state, setPaymentMethod, setGift, setOrder, setStep, reset } = useCheckout();
+  const { state, setPaymentMethod, setGift, setOrder, setStep, setCoupon, reset } = useCheckout();
   const { subtotalCents, items, clear } = useCart();
   const tracker = useTracker();
   const [method, setMethod] = useState<'pix' | 'credit_card' | 'boleto'>(state.paymentMethod ?? 'pix');
@@ -26,6 +46,9 @@ export default function PagamentoPage() {
   const [giftMessage, setGiftMessage] = useState(state.giftMessage);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [couponInput, setCouponInput] = useState(state.coupon?.code ?? '');
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState('');
 
   useEffect(() => {
     if (!state.address.postalCode || !state.shipping) {
@@ -37,9 +60,49 @@ export default function PagamentoPage() {
 
   if (!state.address.postalCode || !state.shipping) return null;
 
-  const freeShipping = subtotalCents >= FREE_SHIPPING_ABOVE;
+  const baseFreeShipping = subtotalCents >= FREE_SHIPPING_ABOVE;
+  const couponFreeShipping = state.coupon?.freeShipping ?? false;
+  const freeShipping = baseFreeShipping || couponFreeShipping;
   const shippingCents = freeShipping ? 0 : (state.shipping?.priceCents ?? 0);
-  const totalCents = subtotalCents + shippingCents;
+  const couponDiscountCents = state.coupon?.discountCents ?? 0;
+  const totalCents = Math.max(0, subtotalCents - couponDiscountCents + shippingCents);
+
+  async function applyCoupon() {
+    const code = couponInput.trim().toUpperCase();
+    if (!code) {
+      setCouponError('Informe um código');
+      return;
+    }
+    setCouponLoading(true);
+    setCouponError('');
+    try {
+      const res = await fetch(`/api/coupons/validate?code=${encodeURIComponent(code)}&subtotalCents=${subtotalCents}`);
+      const data = await res.json();
+      if (!res.ok || !data.valid) {
+        setCoupon(null);
+        setCouponError(couponReasonPT(data.reason, data.minOrderCents));
+        return;
+      }
+      setCoupon({
+        code: data.code ?? code,
+        type: data.type,
+        value: data.value,
+        discountCents: data.discountCents ?? 0,
+        freeShipping: data.freeShipping ?? false,
+      });
+      setCouponInput(data.code ?? code);
+    } catch {
+      setCouponError('Erro ao validar cupom');
+    } finally {
+      setCouponLoading(false);
+    }
+  }
+
+  function removeCoupon() {
+    setCoupon(null);
+    setCouponInput('');
+    setCouponError('');
+  }
 
   const METHODS = [
     {
@@ -94,6 +157,7 @@ export default function PagamentoPage() {
           shippingAddress: state.address,
           shipping: state.shipping,
           paymentMethod: method,
+          couponCode: state.coupon?.code ?? undefined,
           utm,
           gift: isGift ? { isGift: true, message: giftMessage || null } : null,
         }),
@@ -202,6 +266,73 @@ export default function PagamentoPage() {
           ))}
         </div>
 
+        {/* Coupon input */}
+        <div style={{ marginBottom: 24, padding: '16px 20px', border: '1px solid var(--divider)', borderRadius: 8 }}>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 10 }}>
+            Código de desconto
+          </label>
+          {state.coupon ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{
+                  fontSize: 12, padding: '4px 10px', borderRadius: 99,
+                  background: 'var(--accent-soft)', color: 'var(--accent)', fontWeight: 600,
+                  letterSpacing: '0.5px',
+                }}>
+                  {state.coupon.code}
+                </span>
+                <span style={{ fontSize: 13, color: '#1E6B22' }}>
+                  {state.coupon.freeShipping
+                    ? 'Frete grátis aplicado'
+                    : `Desconto de ${fmt(state.coupon.discountCents)} aplicado`}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={removeCoupon}
+                style={{
+                  fontSize: 12, color: 'var(--text-muted)', background: 'transparent',
+                  border: 'none', cursor: 'pointer', textDecoration: 'underline',
+                }}
+              >
+                Remover
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                type="text"
+                value={couponInput}
+                onChange={e => { setCouponInput(e.target.value); setCouponError(''); }}
+                placeholder="Ex.: BEMVINDO10"
+                aria-label="Código de desconto"
+                style={{
+                  flex: 1, padding: '10px 12px', fontSize: 13, borderRadius: 4,
+                  border: '1px solid var(--divider)', background: 'var(--surface)',
+                  color: 'var(--text-primary)', fontFamily: 'var(--font-body)',
+                  textTransform: 'uppercase', letterSpacing: '0.5px',
+                }}
+              />
+              <button
+                type="button"
+                onClick={applyCoupon}
+                disabled={couponLoading}
+                style={{
+                  padding: '10px 18px', fontSize: 13, fontWeight: 500,
+                  borderRadius: 4, border: '1px solid var(--text-primary)',
+                  background: couponLoading ? 'var(--divider)' : 'var(--surface)',
+                  color: 'var(--text-primary)', cursor: couponLoading ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {couponLoading ? 'Validando…' : 'Aplicar'}
+              </button>
+            </div>
+          )}
+          {couponError && (
+            <p style={{ marginTop: 8, fontSize: 12, color: '#E53E3E' }}>{couponError}</p>
+          )}
+        </div>
+
         {/* Pix discount info */}
         {method === 'pix' && (
           <div style={{
@@ -263,7 +394,12 @@ export default function PagamentoPage() {
         </div>
       </form>
 
-      <CheckoutSummary subtotalCents={subtotalCents} shippingCents={shippingCents} />
+      <CheckoutSummary
+        subtotalCents={subtotalCents}
+        shippingCents={shippingCents}
+        discountCents={couponDiscountCents}
+        freeShipping={freeShipping}
+      />
     </div>
   );
 }

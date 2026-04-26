@@ -14,13 +14,14 @@ interface CheckoutSummaryProps {
   subtotalCents: number;
   shippingCents?: number;
   discountCents?: number;
+  freeShipping?: boolean;
 }
 
-export function CheckoutSummary({ subtotalCents, shippingCents = 0, discountCents = 0 }: CheckoutSummaryProps) {
+export function CheckoutSummary({ subtotalCents, shippingCents = 0, discountCents = 0, freeShipping: freeShippingProp }: CheckoutSummaryProps) {
   const { items, count } = useCart();
-  const freeShipping = subtotalCents >= FREE_SHIPPING_ABOVE;
+  const freeShipping = freeShippingProp ?? subtotalCents >= FREE_SHIPPING_ABOVE;
   const effectiveShipping = freeShipping ? 0 : shippingCents;
-  const total = subtotalCents - discountCents + effectiveShipping;
+  const total = Math.max(0, subtotalCents - discountCents + effectiveShipping);
 
   return (
     <div style={{
