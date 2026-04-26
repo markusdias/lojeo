@@ -1,0 +1,189 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+
+interface ChurnData {
+  total: number;
+  critical: number;
+  high: number;
+  customers: Array<{
+    email: string;
+    churnScore: number;
+    churnRisk: string;
+    daysSinceLastOrder: number;
+    orderCount: number;
+    suggestedAction: string;
+  }>;
+}
+
+interface ForecastData {
+  total: number;
+  critical: number;
+  warning: number;
+  items: Array<{
+    productId: string;
+    productName: string;
+    sku?: string | null;
+    currentStock: number;
+    dailyVelocity: number;
+    daysUntilStockout: number;
+    alert: string;
+    alertMessage: string;
+  }>;
+}
+
+const RISK_BADGE: Record<string, { bg: string; text: string; label: string }> = {
+  critical: { bg: '#FEF2F2', text: '#991B1B', label: 'Crítico' },
+  high:     { bg: '#FFF7ED', text: '#92400E', label: 'Alto' },
+  medium:   { bg: '#FEFCE8', text: '#854D0E', label: 'Médio' },
+  low:      { bg: '#F0FDF4', text: '#166534', label: 'Baixo' },
+  active:   { bg: '#EFF6FF', text: '#1E40AF', label: 'Ativo' },
+};
+
+const ALERT_BADGE: Record<string, { bg: string; text: string }> = {
+  critical: { bg: '#FEF2F2', text: '#991B1B' },
+  warning:  { bg: '#FFF7ED', text: '#92400E' },
+  monitor:  { bg: '#EFF6FF', text: '#1E40AF' },
+  stable:   { bg: '#F0FDF4', text: '#166534' },
+  no_data:  { bg: '#F9FAFB', text: '#6B7280' },
+};
+
+export default function InsightsPage() {
+  const [churn, setChurn] = useState<ChurnData | null>(null);
+  const [forecast, setForecast] = useState<ForecastData | null>(null);
+  const [tab, setTab] = useState<'churn' | 'estoque'>('churn');
+
+  useEffect(() => {
+    fetch('/api/customers/churn').then(r => r.json()).then(setChurn);
+    fetch('/api/inventory/forecast').then(r => r.json()).then(setForecast);
+  }, []);
+
+  const tabStyle = (active: boolean) => ({
+    padding: '8px 20px', fontSize: 14, fontWeight: 500, border: 'none',
+    borderBottom: active ? '2px solid #111827' : '2px solid transparent',
+    background: 'none', cursor: 'pointer',
+    color: active ? '#111827' : '#6B7280',
+  });
+
+  return (
+    <main className="p-8 max-w-5xl">
+      <header style={{ marginBottom: 24 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 600 }}>Insights</h1>
+        <p style={{ fontSize: 14, color: '#6B7280', marginTop: 4 }}>Churn de clientes e previsão de ruptura de estoque</p>
+      </header>
+
+      {/* Alertas rápidos */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
+        {[
+          { label: 'Clientes críticos', value: churn?.critical ?? '—', color: '#991B1B', bg: '#FEF2F2' },
+          { label: 'Clientes risco alto', value: churn?.high ?? '—', color: '#92400E', bg: '#FFF7ED' },
+          { label: 'Produtos críticos', value: forecast?.critical ?? '—', color: '#991B1B', bg: '#FEF2F2' },
+          { label: 'Produtos em alerta', value: forecast?.warning ?? '—', color: '#92400E', bg: '#FFF7ED' },
+        ].map(c => (
+          <div key={c.label} style={{ background: c.bg, border: `1px solid ${c.color}30`, borderRadius: 8, padding: '12px 16px' }}>
+            <p style={{ fontSize: 12, color: c.color, fontWeight: 600, marginBottom: 4 }}>{c.label}</p>
+            <p style={{ fontSize: 24, fontWeight: 700, color: c.color }}>{String(c.value)}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Tabs */}
+      <div style={{ borderBottom: '1px solid #E5E7EB', marginBottom: 24, display: 'flex', gap: 4 }}>
+        <button style={tabStyle(tab === 'churn')} onClick={() => setTab('churn')}>Risco de Churn</button>
+        <button style={tabStyle(tab === 'estoque')} onClick={() => setTab('estoque')}>Previsão de Estoque</button>
+      </div>
+
+      {/* Churn tab */}
+      {tab === 'churn' && (
+        <section>
+          {!churn ? (
+            <p style={{ color: '#6B7280' }}>Carregando…</p>
+          ) : churn.customers.length === 0 ? (
+            <p style={{ color: '#6B7280' }}>Nenhum dado de pedido disponível.</p>
+          ) : (
+            <table style={{ width: '100%', fontSize: 14, borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid #E5E7EB', textAlign: 'left' }}>
+                  <th style={{ padding: '8px 12px', fontWeight: 600 }}>Cliente</th>
+                  <th style={{ padding: '8px 12px', fontWeight: 600 }}>Risco</th>
+                  <th style={{ padding: '8px 12px', fontWeight: 600 }}>Score</th>
+                  <th style={{ padding: '8px 12px', fontWeight: 600 }}>Dias s/ compra</th>
+                  <th style={{ padding: '8px 12px', fontWeight: 600 }}>Pedidos</th>
+                  <th style={{ padding: '8px 12px', fontWeight: 600 }}>Ação sugerida</th>
+                </tr>
+              </thead>
+              <tbody>
+                {churn.customers.filter(c => c.churnRisk !== 'active').slice(0, 50).map(c => {
+                  const badge = RISK_BADGE[c.churnRisk] ?? RISK_BADGE['medium']!;
+                  return (
+                    <tr key={c.email} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                      <td style={{ padding: '10px 12px' }}>
+                        <Link href={`/clientes/${encodeURIComponent(c.email)}`} style={{ color: '#2563EB', textDecoration: 'none' }}>
+                          {c.email}
+                        </Link>
+                      </td>
+                      <td style={{ padding: '10px 12px' }}>
+                        <span style={{ background: badge.bg, color: badge.text, fontSize: 12, fontWeight: 600, padding: '2px 8px', borderRadius: 99 }}>
+                          {badge.label}
+                        </span>
+                      </td>
+                      <td style={{ padding: '10px 12px', fontWeight: 600 }}>{c.churnScore}</td>
+                      <td style={{ padding: '10px 12px', color: '#6B7280' }}>{c.daysSinceLastOrder}d</td>
+                      <td style={{ padding: '10px 12px' }}>{c.orderCount}</td>
+                      <td style={{ padding: '10px 12px', color: '#6B7280', fontSize: 13 }}>{c.suggestedAction}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </section>
+      )}
+
+      {/* Estoque tab */}
+      {tab === 'estoque' && (
+        <section>
+          {!forecast ? (
+            <p style={{ color: '#6B7280' }}>Carregando…</p>
+          ) : forecast.items.length === 0 ? (
+            <p style={{ color: '#6B7280' }}>Nenhum produto ativo encontrado.</p>
+          ) : (
+            <table style={{ width: '100%', fontSize: 14, borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid #E5E7EB', textAlign: 'left' }}>
+                  <th style={{ padding: '8px 12px', fontWeight: 600 }}>Produto</th>
+                  <th style={{ padding: '8px 12px', fontWeight: 600 }}>SKU</th>
+                  <th style={{ padding: '8px 12px', fontWeight: 600 }}>Estoque</th>
+                  <th style={{ padding: '8px 12px', fontWeight: 600 }}>Velocidade</th>
+                  <th style={{ padding: '8px 12px', fontWeight: 600 }}>Dias até ruptura</th>
+                  <th style={{ padding: '8px 12px', fontWeight: 600 }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {forecast.items.filter(f => f.alert !== 'stable' && f.alert !== 'no_data').slice(0, 50).map(f => {
+                  const badge = ALERT_BADGE[f.alert] ?? ALERT_BADGE['stable']!;
+                  const days = f.daysUntilStockout === Infinity ? '∞' : `${f.daysUntilStockout}d`;
+                  return (
+                    <tr key={f.productId} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                      <td style={{ padding: '10px 12px', fontWeight: 500 }}>{f.productName}</td>
+                      <td style={{ padding: '10px 12px', color: '#6B7280' }}>{f.sku ?? '—'}</td>
+                      <td style={{ padding: '10px 12px' }}>{f.currentStock}</td>
+                      <td style={{ padding: '10px 12px', color: '#6B7280' }}>{f.dailyVelocity}/dia</td>
+                      <td style={{ padding: '10px 12px', fontWeight: 600 }}>{days}</td>
+                      <td style={{ padding: '10px 12px' }}>
+                        <span style={{ background: badge.bg, color: badge.text, fontSize: 12, fontWeight: 600, padding: '2px 8px', borderRadius: 99 }}>
+                          {f.alertMessage}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </section>
+      )}
+    </main>
+  );
+}

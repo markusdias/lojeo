@@ -15,6 +15,7 @@ const NAV = [
   { href: '/collections', label: 'Coleções', icon: '▦' },
   { href: '/avaliacoes', label: 'Avaliações', icon: '★' },
   { href: '/clientes', label: 'Clientes', icon: '◉' },
+  { href: '/insights', label: 'Insights', icon: '◬' },
   { href: '/ia-uso', label: 'Uso de IA', icon: '✦' },
   { href: '/settings', label: 'Configurações', icon: '⚙' },
 ];

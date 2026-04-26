@@ -4,3 +4,5 @@ export * from './pricing';
 export * from './sku';
 export * from './inventory';
 export * from './rfm';
+export * from './churn';
+export * from './inventory-forecast';
