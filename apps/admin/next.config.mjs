@@ -19,9 +19,6 @@ const nextConfig = {
     '@lojeo/ai',
     '@lojeo/ui',
   ],
-  experimental: {
-    typedRoutes: true,
-  },
   async headers() {
     return [
       {
