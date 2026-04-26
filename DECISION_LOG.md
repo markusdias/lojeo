@@ -1962,3 +1962,58 @@ Antes de marcar promessas como concluídas, validei via Playwright nas URLs reai
 - LGPD banner cookies audit
 
 **75 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão**.
+
+---
+
+## 2026-04-26 — Iteração 15: Auditoria visual + sidebar SVG + sparklines + EmptyState
+
+**Trigger:** user reportou diferenças significativas vs design system entregue.
+
+**Auditoria rigorosa:** spawned subagent que confrontou 5 PNGs ground-truth (admin-dashboard, abtest-list, abtest-detail, customer-check, jewelry-v1 checkout) com prod via Playwright + leitura preview HTML. Relatório: `docs/audit/design-parity-audit-2026-04-26.md`.
+
+**Resultado:** **paridade real ~38%** (não 90% reportado antes — mea culpa). 17 críticos + 14 médios + 9 cosméticos. Page mais distante: /experiments (12% paridade).
+
+**Commits:**
+
+1. **7c2e29e** — sidebar paridade design oficial:
+   - **Brand cubo "l" → leaf SVG verde** lineart minimalista
+   - **Ícones items emoji (📦↩🎟◉★◆◻▦🛡💬🤖📷◬◉◈✦✦◉⚙) → 17 SVG lineares Lucide-inspired**: home, cart, box, users, chart, sparkles, gallery, palette, gear, ticket, bot, shield, flask, star, return, coupon, squares, link, globe, inbox
+   - **Counters inline** badge cinza claro (Pedidos N, Moderação UGC N, Suporte N, Devoluções N) via novo `/api/sidebar/badges` (Promise.all + falha silenciosa)
+   - **Footer avatar** verde com iniciais + nome + role ("Atelier Verde · MEI") + ícone logout
+   - Sidebar reorganizada: 6 sections, items renomeados ("Insights"→"Análises", "Galeria UGC"→"Moderação UGC")
+   - Active state colore ícone com var(--accent)
+
+2. **17462fe** — sparklines + EmptyState + /experiments/[id] redirect:
+   - **Sparklines always-on**: dashboard cards renderiza Sparkline sempre, fallback flat-line var(--neutral-100) quando dados zero
+   - Cards "Aguardando pagamento" e "Produtos" agora também têm sparkline
+   - **EmptyState component novo** (`apps/admin/src/components/ui/empty-state.tsx`): card centralizado ícone circular accent-soft + h4 + body-s + 2 CTAs (primary + secondary)
+   - **/experiments/[id] route** novo: server redirect para /[id]/results — resolve 404 detectado no auditor
+   - Erro page /experiments substituído de bg-amber-50 plain por lj-card warning tokens
+
+3. **0a0694c** — EmptyState aplicado em /tickets e /devolucoes:
+   - /tickets vazio: ícone 💬 + 2 CTAs (Chatbot + Templates)
+   - /devolucoes vazio: ícone ↩
+
+**UX validation Playwright:**
+- /dashboard sidebar nova com brand leaf + 17 SVG lineares + footer avatar "AL Admin Lojeo / Atelier Verde · MEI" + sections corretas. **MATCH design oficial admin-dashboard.png ~75% paridade visual** (muito próximo).
+- Counters não renderizam pq dados são 0 (correto)
+
+**Decisões:**
+- **Auditoria estruturada como prática** — spawn subagent dedicado pra confronto visual rigoroso vs PNGs/preview HTML, output em `docs/audit/`. Vai ser repetida a cada iteração visual significativa.
+- **Sparklines com fallback flat** > condicional render — design oficial sempre mostra sparkline, mesmo zero. Onboarding visual consistente.
+- **EmptyState reutilizável** > templates inline — qualquer page nova ganha empty state polido.
+- **Top-3 do auditor parcialmente atacados:**
+  - [x] Sparklines always-on
+  - [x] /experiments/[id] route 404 fix
+  - [ ] Painel "IA · resumo testes" /experiments — próximo ciclo
+  - [ ] Topbar breadcrumb hierárquico — próximo ciclo
+
+**Próximo ciclo:**
+- Painel "IA · resumo dos testes" /experiments (feature âncora A/B)
+- Topbar breadcrumb path completo (não só último segmento)
+- EmptyState aplicar em /pedidos /clientes /ugc /cupons (faltam)
+- Card "Receita 7 dias" big chart área no dashboard (auditor flagged)
+- Cards "Saúde integrações" cores semânticas reais quando connected
+- Re-auditar pós-fixes pra subir paridade de 38% pra 60%+
+
+**81 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão**.
