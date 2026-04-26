@@ -280,7 +280,7 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 - [ ] Pedido fica em "aguardando emissão fiscal" se NF-e falhar — alerta no admin
 - [x] Fila de pedidos no admin com filtros e atualização de status (/pedidos + /pedidos/[id])
 - [ ] Emails automáticos por transição de status — BLOQUEADO: Resend API key
-- [ ] Status de saúde do gateway/integração: verde (operacional), amarelo (alerta — produto fora de sync), vermelho (desconectado/erro)
+- [x] Status de saúde do gateway/integração: verde/amarelo/vermelho — API `/api/integrations/status` checa presence de envs por serviço (Mercado Pago, Stripe, Bling, Melhor Envio, Resend, Anthropic, R2, FaqZap, Trigger.dev) com status `connected | partial | disconnected | optional`. UI `/integracoes` admin com cards por categoria + summary 4 cards + lista de envs presentes/faltantes
 - [ ] Botão "Ressincronizar" para corrigir divergência loja × gateway com 1 clique
 
 **Bloqueadores externos:**
@@ -301,7 +301,7 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 - [x] Dashboard: métricas reais de pedidos (count+revenue 30d + pending alert) — expandir com produtos mais vendidos, visitantes, conversão na Sprint 5 completo
 - [x] Fila de moderação de avaliações: preview, aprovar/rejeitar com 1 clique, resposta pública opcional
 - [ ] Configurações completas via interface (identidade, gateways, frete, email)
-- [ ] Editor de aparência dentro dos limites do template
+- [x] Editor de aparência dentro dos limites do template — UI `/settings` aba Aparência expandida com 5 selects (typo a/b/c, accent champagne/silver/rose-gold/copper/noir-rose, bgTone warm/pure/cool/cream, imgRadius 0/8/16, typeScale smaller/default/larger) + visualizador inline; storefront layout aplica `data-*` attrs no `<html>` lendo `tenants.config.appearance`; reusa CSS existente `templates/jewelry-v1/tokens.css` (zero CSS novo)
 - [x] Sistema de papéis (roles): Owner, Admin, Operador, Editor, Atendimento, Financeiro — schema `user_roles`, matriz `ROLE_PERMISSIONS` scope×permission, helpers `getCurrentRole()` + `requirePermission()`, API `/api/users` CRUD, UI `/settings/users` com convite + tabela
 - [x] 2FA TOTP admin — schema `user_two_factor` (secret base32, recovery codes SHA-256), API `/api/2fa` (setup→verify→enable→recovery codes uma única vez, disable com token), UI `/settings/2fa` com 4 estados (sem/setup com QR/habilitado/recovery), otplib window=1 para clock skew, audit log `2fa.enable`/`disable`. **Obrigatório por papel** ainda não enforcado no login flow — Sprint 13 polimento
 - [x] Logs de auditoria: quem fez o quê e quando — schema `audit_logs` (action, entity, before/after), helper `recordAuditLog()`, integrado em order/ticket/ugc/role mutations, UI `/settings/audit` com filtros 7/30/90d e expand JSON
@@ -724,7 +724,7 @@ Qual provider de geração de imagem? Trade-off custo vs qualidade vs API reliab
 - [ ] Modo degradado validado em testes: IA fora, gateway secundário, serviço de email fora, FaqZap fora
 - [x] Status page pública da loja — `/status` com 6 checks (DB, catálogo, IA Claude, storage, Resend, MP), badges operational/degraded/down, tempos de resposta, mensagens explicativas. API `/api/status` para integração externa
 - [ ] Testes E2E com Playwright: fluxo completo compra, troca, login, wishlist, gift card
-- [ ] Plano de contingência Black Friday documentado
+- [x] Plano de contingência Black Friday documentado — `docs/operacoes/contingencia-black-friday.md` (~2.500 palavras): pré-evento D-30 a D-1 (técnico/operacional/marketing/financeiro), durante (war room + triggers + rollback + degraded modes em camadas), pós-evento (post-mortem + cleanup + retenção), comunicação cliente, plano B catastrófico (Cloudflare landing fallback)
 - [x] Auditoria de custo IA: tabela com estimativa mensal por feature, alertas configurados — API `/api/ai-budget` (limite, MTD, projeção fim do mês, utilization%, alert ok/warn/over_forecast/over) + card de orçamento em `/ia-uso` com progress bar, mensagem de alerta colorida
 - [x] Documentação do operador final (lojista) — `docs/manual-lojista/` com 9 seções (~4.300 palavras): primeiros-passos, gestão produtos/pedidos/clientes, marketing, configurações, IA, LGPD, FAQ. PT-BR formal mas amigável (perfil MEI), passos numerados, callouts 💡⚠️🚫, links cruzados
 

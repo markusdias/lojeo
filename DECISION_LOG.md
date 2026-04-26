@@ -1291,3 +1291,61 @@ Antes de marcar promessas como concluídas, validei via Playwright nas URLs reai
 **Total dessa iteração:** 9 commits (3 design tokens + 5 features + 1 budget enforcement), 73 testes verdes (engine 34→44, db 7, ai 7), zero regressão. ~30 min wall-clock vs 5h sequencial.
 
 **Próximo ciclo sem bloqueador:** Editor de aparência admin completo, A/B test live no hero homepage (usa engine A/B), instruções contextuais microcopy admin, validação Zod centralizada cross-API, sync recently_viewed → DB ao login, push notifications PWA, plano contingência Black Friday (docs).
+
+---
+
+## 2026-04-26 — Iteração paralela 2: 5 features Sprint 4/5/12/13
+
+**Despacho paralelo (3 subagents + 2 features eu):**
+
+1. **Sprint 5+12 — A/B test live no hero homepage** (subagent F, commit 70e533e):
+   - `<HeroExperiment defaultHeadline subheadline cta>` client component lê `lojeo_anon_id` via `getAnonId()` do `@lojeo/tracking`
+   - GET `/api/experiments?keys=homepage-hero&anonymousId=X` retorna assignment determinístico
+   - Variant payload: `{headline, subheadline, cta:{label, href}}`
+   - POST conversion no clique do CTA via fetch keepalive
+   - Skeleton durante load (mesma estrutura visual = sem flicker)
+   - Fallback para defaults quando experiment inativo
+   - Doc `docs/manual-lojista/05-marketing.md` ganha seção 5.5 com payload exemplo
+
+2. **Sprint 5 — Editor de aparência ampliado** (subagent G, commit 587151e):
+   - `TenantConfig.appearance` ganha `imgRadius` (0|8|16) e `typeScale` (smaller|default|larger)
+   - UI `/settings` aba Aparência com 5 selects + visualizador inline (chip mostrando como combo se aplica)
+   - Storefront layout aplica `data-typo/accent/bg-tone/img-radius/type-scale` no `<html>` lendo de `tenants.config.appearance`
+   - **Realinhamento de opções** — corrigi opções inexistentes (`platinum/midnight/ivory` → `silver/rose-gold/copper/noir-rose` reais do template)
+   - Zero CSS novo — `templates/jewelry-v1/tokens.css` já tinha todas as rules
+
+3. **Sprint 13 — Plano contingência Black Friday** (subagent H, commit 7cb6ec9):
+   - `docs/operacoes/contingencia-black-friday.md` (~2.500 palavras)
+   - 5 seções: pré (D-30..D-1), durante (sexta), pós (D+1..D+7), comunicação cliente, plano B catastrófico
+   - Triggers de alerta quantitativos (erro >1%, p99 >3s, escalation >30%, conv -20%)
+   - Modo degradado em camadas: chatbot → pixels → FBT → recommendations
+   - `docs/operacoes/README.md` índice operações
+
+4. **Sprint 13 — Validação Zod centralizada** (commit baff270, eu):
+   - `apps/admin/src/lib/validate.ts`: schemas primitives (uuid, email, slug, moneyCents), enums comuns (orderStatus, ticketStatus, ugcStatus, userRole, experimentStatus), domain shapes (productTagSchema, ugcPatchSchema, ticketPatchSchema, userInviteSchema)
+   - Helpers: `parseOrError(req, schema)` body JSON com NextResponse 400 padrão; `parseQueryOrError(url, schema)` query params com coerce
+   - Mensagens em PT-BR. Disponível para uso futuro em mutations
+
+5. **Sprint 4+13 — Integrations status admin** (commit e4d49d4, eu):
+   - API `/api/integrations/status` checa presence de envs por integração (9 serviços): Mercado Pago, Stripe, Bling, Melhor Envio, Resend, Anthropic, R2, FaqZap, Trigger.dev
+   - Status: `connected | partial | disconnected | optional`
+   - UI `/integracoes` admin: 4 cards summary + cards por categoria com env vars marcados ✓/✗
+   - Reusa tokens design system Lojeo (lj-card + var(--success/warning/error))
+   - Sidebar ◉ Integrações
+   - Antecipa preparação Black Friday (sentinela técnica do plano de contingência)
+
+**Decisões coordenação multi-agent (lições):**
+- **6 commits paralelos sem conflito** — cada subagent tocou arquivos disjuntos. WIP de outros foi stash/pop pelos subagents para não misturar
+- **Race em git pull --rebase** quando index sujo — solução: stash --keep-index, rebase, pop. Subagent G usou exatamente esse padrão
+- **Reportes "stashed e re-aplicado WIP"** — agentes maduros se coordenam sozinhos sem instrução explícita
+
+**Total iteração:** 5 commits, 73 testes verdes, zero regressão. Wall-clock ~10min vs ~3h sequencial.
+
+**Bloqueadores Sprint 4/5/12/13 restantes:**
+- Conversions API server-side Meta/TikTok — OAuth tokens
+- 2FA enforcement no login admin (UX login flow exige passo intermediário)
+- Acessibilidade WCAG 2.1 AA — auditoria axe-core + manual
+- Push notifications PWA — VAPID keys + server endpoint
+- Backup automático Neon — depende provider real prod
+
+**26 commits totais sessão**, **73 testes globais verdes** (engine 44, db 7, ai 7), **18 migrações idempotentes em prod**, **zero regressão**.
