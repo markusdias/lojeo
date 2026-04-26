@@ -82,79 +82,101 @@ export default async function PedidoDetailPage({ params }: PageProps) {
     revalidatePath('/pedidos');
   }
 
+  const statusBadgeClass =
+    order.status === 'paid' || order.status === 'delivered' ? 'lj-badge lj-badge-success' :
+    order.status === 'cancelled' ? 'lj-badge lj-badge-neutral' :
+    order.status === 'shipped' || order.status === 'preparing' ? 'lj-badge lj-badge-info' :
+    'lj-badge lj-badge-warning';
+
   return (
-    <main className="min-h-screen p-8 max-w-5xl mx-auto space-y-6">
-      <header className="flex items-center gap-4">
-        <Link href="/pedidos" className="text-sm text-neutral-500 hover:text-neutral-900">← Pedidos</Link>
+    <main style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }} className="min-h-screen space-y-6">
+      <Link href="/pedidos" style={{ fontSize: 'var(--text-caption)', color: 'var(--fg-secondary)', textDecoration: 'none' }}>
+        ← Pedidos
+      </Link>
+
+      <header style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
         <div>
-          <h1 className="text-2xl font-semibold">{order.orderNumber}</h1>
-          <p className="text-sm text-neutral-500">
-            {new Date(order.createdAt!).toLocaleString('pt-BR')} · {STATUS_LABEL[order.status ?? 'pending']}
+          <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginBottom: 'var(--space-2)' }}>
+            {order.orderNumber}
+          </h1>
+          <p className="body-s">
+            {new Date(order.createdAt!).toLocaleString('pt-BR')} · <span className={statusBadgeClass}>{STATUS_LABEL[order.status ?? 'pending']}</span>
           </p>
         </div>
       </header>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: 'var(--space-6)', alignItems: 'start' }}>
         {/* Main content */}
-        <div className="col-span-2 space-y-6">
+        <div className="space-y-6" style={{ minWidth: 0 }}>
           {/* Items */}
-          <section className="bg-white rounded-lg shadow p-6">
-            <h2 className="font-semibold mb-4">Itens do pedido</h2>
-            <div className="divide-y">
-              {items.map(item => (
-                <div key={item.id} className="flex items-center gap-4 py-3">
+          <section className="lj-card" style={{ padding: 'var(--space-5)' }}>
+            <h2 style={{ fontSize: 'var(--text-h4)', fontWeight: 'var(--w-medium)', marginBottom: 'var(--space-4)' }}>Itens do pedido</h2>
+            <div>
+              {items.map((item, i) => (
+                <div key={item.id} style={{
+                  display: 'flex', alignItems: 'center', gap: 'var(--space-4)',
+                  padding: 'var(--space-3) 0',
+                  borderTop: i === 0 ? 'none' : '1px solid var(--border)',
+                }}>
                   {item.imageUrl && (
-                    <img src={item.imageUrl} alt={item.productName} className="w-12 h-12 object-cover rounded" />
+                    <img src={item.imageUrl} alt={item.productName} style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 'var(--radius-sm)' }} />
                   )}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{item.productName}</p>
-                    {item.variantName && <p className="text-xs text-neutral-500">{item.variantName}</p>}
-                    {item.sku && <p className="text-xs text-neutral-400">SKU: {item.sku}</p>}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontWeight: 'var(--w-medium)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.productName}</p>
+                    {item.variantName && <p className="caption">{item.variantName}</p>}
+                    {item.sku && <p className="caption mono">SKU: {item.sku}</p>}
                   </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-sm">{item.qty}× {fmt(item.unitPriceCents ?? 0)}</p>
-                    <p className="font-medium">{fmt((item.unitPriceCents ?? 0) * (item.qty ?? 1))}</p>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <p className="numeric body-s">{item.qty}× {fmt(item.unitPriceCents ?? 0)}</p>
+                    <p className="numeric" style={{ fontWeight: 'var(--w-medium)' }}>{fmt((item.unitPriceCents ?? 0) * (item.qty ?? 1))}</p>
                   </div>
                 </div>
               ))}
             </div>
-            <div className="border-t pt-4 mt-2 space-y-1 text-sm">
-              <div className="flex justify-between text-neutral-600">
-                <span>Subtotal</span><span>{fmt(order.subtotalCents ?? 0)}</span>
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 'var(--space-4)', marginTop: 'var(--space-2)' }} className="space-y-1">
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span className="body-s">Subtotal</span>
+                <span className="numeric body-s">{fmt(order.subtotalCents ?? 0)}</span>
               </div>
               {(order.discountCents ?? 0) > 0 && (
-                <div className="flex justify-between text-green-700">
-                  <span>Desconto Pix</span><span>−{fmt(order.discountCents ?? 0)}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--success)' }}>
+                  <span className="body-s">Desconto Pix</span>
+                  <span className="numeric body-s">−{fmt(order.discountCents ?? 0)}</span>
                 </div>
               )}
-              <div className="flex justify-between text-neutral-600">
-                <span>Frete</span><span>{fmt(order.shippingCents ?? 0)}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span className="body-s">Frete</span>
+                <span className="numeric body-s">{fmt(order.shippingCents ?? 0)}</span>
               </div>
-              <div className="flex justify-between font-semibold text-base border-t pt-2">
-                <span>Total</span><span>{fmt(order.totalCents ?? 0)}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'var(--w-semibold)', borderTop: '1px solid var(--border)', paddingTop: 'var(--space-2)', fontSize: 'var(--text-body)' }}>
+                <span>Total</span>
+                <span className="numeric">{fmt(order.totalCents ?? 0)}</span>
               </div>
             </div>
           </section>
 
           {/* Timeline */}
-          <section className="bg-white rounded-lg shadow p-6">
-            <h2 className="font-semibold mb-4">Histórico</h2>
-            <ol className="space-y-3">
+          <section className="lj-card" style={{ padding: 'var(--space-5)' }}>
+            <h2 style={{ fontSize: 'var(--text-h4)', fontWeight: 'var(--w-medium)', marginBottom: 'var(--space-4)' }}>Histórico</h2>
+            <ol className="space-y-3" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
               {events.map(ev => (
-                <li key={ev.id} className="flex gap-3 text-sm">
-                  <span className="text-neutral-400 shrink-0">
+                <li key={ev.id} style={{ display: 'flex', gap: 'var(--space-3)' }}>
+                  <span className="caption numeric" style={{ flexShrink: 0, minWidth: 90 }}>
                     {new Date(ev.createdAt!).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                   </span>
-                  <div>
-                    <span className="font-medium capitalize">{ev.eventType?.replace(/_/g, ' ')}</span>
+                  <div className="body-s" style={{ flex: 1 }}>
+                    <span style={{ fontWeight: 'var(--w-medium)', textTransform: 'capitalize' }}>{ev.eventType?.replace(/_/g, ' ')}</span>
                     {ev.fromStatus && ev.toStatus && (
-                      <span className="text-neutral-500"> · {STATUS_LABEL[ev.fromStatus]} → {STATUS_LABEL[ev.toStatus]}</span>
+                      <span style={{ color: 'var(--fg-secondary)' }}> · {STATUS_LABEL[ev.fromStatus]} → {STATUS_LABEL[ev.toStatus]}</span>
                     )}
-                    {ev.notes && <p className="text-neutral-500 text-xs mt-0.5">{ev.notes}</p>}
-                    <span className="text-xs text-neutral-400 ml-1">por {ev.actor}</span>
+                    {ev.notes && <p className="caption" style={{ marginTop: 2 }}>{ev.notes}</p>}
+                    <span className="caption" style={{ marginLeft: 'var(--space-1)' }}>por {ev.actor}</span>
                   </div>
                 </li>
               ))}
+              {events.length === 0 && (
+                <li className="body-s" style={{ color: 'var(--fg-secondary)' }}>Nenhum evento registrado.</li>
+              )}
             </ol>
           </section>
         </div>
@@ -163,28 +185,31 @@ export default async function PedidoDetailPage({ params }: PageProps) {
         <div className="space-y-4">
           {/* Status update */}
           {nextSteps.length > 0 && (
-            <section className="bg-white rounded-lg shadow p-6">
-              <h2 className="font-semibold mb-4">Atualizar status</h2>
-              {nextSteps.map(step => (
-                <form key={step.status} action={updateStatus} className="mb-4 last:mb-0">
+            <section className="lj-card" style={{ padding: 'var(--space-5)' }}>
+              <h2 style={{ fontSize: 'var(--text-h4)', fontWeight: 'var(--w-medium)', marginBottom: 'var(--space-4)' }}>Atualizar status</h2>
+              {nextSteps.map((step, i) => (
+                <form key={step.status} action={updateStatus} style={{ marginBottom: i === nextSteps.length - 1 ? 0 : 'var(--space-4)' }}>
                   <input type="hidden" name="status" value={step.status} />
                   {step.status === 'shipped' && (
                     <input
                       type="text"
                       name="trackingCode"
                       placeholder="Código de rastreio (opcional)"
-                      className="w-full border rounded px-3 py-2 text-sm mb-2"
+                      className="lj-input"
+                      style={{ width: '100%', marginBottom: 'var(--space-2)' }}
                     />
                   )}
                   <input
                     type="text"
                     name="notes"
                     placeholder="Observação (opcional)"
-                    className="w-full border rounded px-3 py-2 text-sm mb-2"
+                    className="lj-input"
+                    style={{ width: '100%', marginBottom: 'var(--space-2)' }}
                   />
                   <button
                     type="submit"
-                    className={`w-full py-2 px-4 rounded text-sm font-medium ${step.status === 'cancelled' ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-neutral-900 text-white hover:bg-neutral-800'}`}
+                    className={step.status === 'cancelled' ? 'lj-btn-danger' : 'lj-btn-primary'}
+                    style={{ width: '100%' }}
                   >
                     {step.label}
                   </button>
@@ -194,38 +219,38 @@ export default async function PedidoDetailPage({ params }: PageProps) {
           )}
 
           {/* Shipping info */}
-          <section className="bg-white rounded-lg shadow p-6">
-            <h2 className="font-semibold mb-3">Endereço de entrega</h2>
+          <section className="lj-card" style={{ padding: 'var(--space-5)' }}>
+            <h2 style={{ fontSize: 'var(--text-h4)', fontWeight: 'var(--w-medium)', marginBottom: 'var(--space-3)' }}>Endereço de entrega</h2>
             {addr ? (
-              <address className="text-sm text-neutral-700 not-italic space-y-0.5">
-                <p className="font-medium">{addr.recipientName}</p>
+              <address className="body-s" style={{ fontStyle: 'normal' }}>
+                <p style={{ fontWeight: 'var(--w-medium)' }}>{addr.recipientName}</p>
                 <p>{addr.street}, {addr.number} {addr.complement ?? ''}</p>
                 <p>{addr.neighborhood}</p>
                 <p>{addr.city} — {addr.state}</p>
-                <p>CEP {addr.postalCode}</p>
-                {addr.phone && <p className="text-neutral-500">{addr.phone}</p>}
+                <p className="numeric">CEP {addr.postalCode}</p>
+                {addr.phone && <p className="numeric" style={{ color: 'var(--fg-secondary)' }}>{addr.phone}</p>}
               </address>
             ) : (
-              <p className="text-sm text-neutral-400">Endereço não disponível</p>
+              <p className="body-s" style={{ color: 'var(--fg-secondary)' }}>Endereço não disponível</p>
             )}
           </section>
 
           {/* Payment info */}
-          <section className="bg-white rounded-lg shadow p-6">
-            <h2 className="font-semibold mb-3">Pagamento</h2>
-            <dl className="text-sm space-y-1">
-              <div className="flex justify-between">
-                <dt className="text-neutral-500">Método</dt>
-                <dd className="uppercase">{order.paymentMethod?.replace('_', ' ')}</dd>
+          <section className="lj-card" style={{ padding: 'var(--space-5)' }}>
+            <h2 style={{ fontSize: 'var(--text-h4)', fontWeight: 'var(--w-medium)', marginBottom: 'var(--space-3)' }}>Pagamento</h2>
+            <dl className="body-s space-y-1">
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <dt style={{ color: 'var(--fg-secondary)' }}>Método</dt>
+                <dd style={{ textTransform: 'uppercase' }}>{order.paymentMethod?.replace('_', ' ')}</dd>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-neutral-500">Gateway</dt>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <dt style={{ color: 'var(--fg-secondary)' }}>Gateway</dt>
                 <dd>{order.paymentGateway ?? '—'}</dd>
               </div>
               {order.trackingCode && (
-                <div className="flex justify-between">
-                  <dt className="text-neutral-500">Rastreio</dt>
-                  <dd className="font-mono">{order.trackingCode}</dd>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <dt style={{ color: 'var(--fg-secondary)' }}>Rastreio</dt>
+                  <dd className="mono">{order.trackingCode}</dd>
                 </div>
               )}
             </dl>
