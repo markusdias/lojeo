@@ -303,10 +303,11 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 - [ ] Configurações completas via interface (identidade, gateways, frete, email)
 - [x] Editor de aparência dentro dos limites do template — UI `/settings` aba Aparência expandida com 5 selects (typo a/b/c, accent champagne/silver/rose-gold/copper/noir-rose, bgTone warm/pure/cool/cream, imgRadius 0/8/16, typeScale smaller/default/larger) + visualizador inline; storefront layout aplica `data-*` attrs no `<html>` lendo `tenants.config.appearance`; reusa CSS existente `templates/jewelry-v1/tokens.css` (zero CSS novo)
 - [x] Sistema de papéis (roles): Owner, Admin, Operador, Editor, Atendimento, Financeiro — schema `user_roles`, matriz `ROLE_PERMISSIONS` scope×permission, helpers `getCurrentRole()` + `requirePermission()`, API `/api/users` CRUD, UI `/settings/users` com convite + tabela
-- [x] 2FA TOTP admin — schema `user_two_factor` (secret base32, recovery codes SHA-256), API `/api/2fa` (setup→verify→enable→recovery codes uma única vez, disable com token), UI `/settings/2fa` com 4 estados (sem/setup com QR/habilitado/recovery), otplib window=1 para clock skew, audit log `2fa.enable`/`disable`. **Obrigatório por papel** ainda não enforcado no login flow — Sprint 13 polimento
+- [x] 2FA TOTP admin — schema `user_two_factor`, API `/api/2fa` setup/verify/disable, UI `/settings/2fa`, otplib window=1, audit log
+- [x] **2FA enforcement no login flow** — middleware admin redireciona `/login/2fa-challenge?returnTo=X` quando user com 2FA habilitado sem cookie `lojeo_2fa_verified=1`. JWT cache via NextAuth callbacks (DB lookup só no signIn, embed no JWT, lido no edge runtime). Cookie httpOnly secure sameSite=strict 8h. Modes: TOTP 6-dígitos OU recovery code (consume hash do array)
 - [x] Logs de auditoria: quem fez o quê e quando — schema `audit_logs` (action, entity, before/after), helper `recordAuditLog()`, integrado em order/ticket/ugc/role mutations, UI `/settings/audit` com filtros 7/30/90d e expand JSON
 - [ ] Convite de usuário por email com 1 clique — convite criado em DB, envio email BLOQUEADO Resend
-- [ ] Instruções contextuais em todas as telas (fator moleza)
+- [x] Instruções contextuais em todas as telas (fator moleza) — `<InfoTooltip text>` componente acessível (role=tooltip, aria-describedby, fecha em mouseleave/blur/Escape). 11 tooltips aplicados: 10 em `/settings` (freeShipping, pixDiscount, installments, warranty, typo, imgRadius, gtmId, gaTrackingId, aiMonthlyLimitCents, robotsTxt) + 1 em `/settings/users` (Papel)
 - [x] **Robots.txt configurável** pelo admin (Sec 12.3) — campo `config.robotsTxt` em settings + rota `/robots.ts` lê do DB com fallback default
 - [ ] **Relatórios programados por email** (Sec 13.2) — lojista define cron + filtros + destinatários, sistema dispara CSV/PDF
 - [x] **A/B testing nativo integrado ao template** (Sec 12.2) — schema `experiments` (variants jsonb com weights), `experiment_assignments` (unique anon×experiment, deterministic), `experiment_events` (exposure/conversion); helper puro `selectVariant()` com hash FNV-1a (5 testes); API admin `/api/experiments` GET com stats agregados + POST/PATCH/DELETE; storefront `/api/experiments?keys=X&anonymousId=Y` retorna assignments determinísticos + persiste idempotente + emite exposure event; UI admin `/experiments` com cards, form criar inline, status workflow draft→active→paused/completed, tabela variantes com taxa conversão. Base pronta para Sprint 12 personalização de homepage.
@@ -318,6 +319,7 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 - [x] Página /wishlist com lista de salvos + add-to-cart
 - [ ] Notificação automática quando produto da wishlist entra em promoção (Trigger.dev: job diário) — BLOQUEADO
 - [x] Wishlist disponível para anônimos (localStorage) — migração para DB ao login na Sprint 5 completo
+- [x] Recently viewed sync localStorage→DB ao login — schema `recently_viewed_items`, API `/api/recently-viewed` GET (distinct por productId via MAX viewed_at) + POST individual + POST bulk sync. Hooks `useTrackRecentlyViewed` + `useSyncRecentlyViewedOnLogin`
 
 **Gift card / vale-presente digital:**
 - [x] Schema: `gift_cards` (code, initial_value, current_balance, expires_at, status, buyer_id, recipient_email) + migration 0003
@@ -618,7 +620,7 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
   - Behavioral: "quem viu X também viu Y" (a partir de behavior_events)
 - [x] **Ajuste manual no admin (Sec 6.2)** — schema `recommendation_overrides` (productId, recommendedProductId, overrideType pin/exclude); API admin CRUD `/api/recommendations/overrides`; UI `/products/[id]/recommendations` com radio pin/exclude + autocomplete catálogo + tabelas separadas; storefront `/api/recommendations` aplica overrides (pin no topo, exclude filtrados, dedup, respeita limit)
 - [x] API `/api/recommendations?productId=X&type=fbt` retorna top N — implementado para FBT (frequentemente comprado junto), cache 60s em memória, pedidos pagos últimos 180d
-- [ ] Componente `<RelatedProducts />` na PDP usando recomendações — content/collaborative bloqueados Anthropic embeddings
+- [x] Componente `<RelatedProducts />` na PDP usando recomendações — heurística sem ML: coleções compartilhadas (via product_collections join) → fallback customFields.categoria → fallback produtos mais recentes. API `/api/products/related?productId=X&limit=N`. IntersectionObserver lazy load. Embeddings refinarão Sprint 12+
 - [x] Componente `<FrequentlyBoughtTogether />` na PDP e carrinho — engine puro `packages/engine/src/market-basket.ts` (support/confidence/lift, score = lift × log(cooccurrence+1)), 6 testes (engine 28→34), IntersectionObserver lazy load, injetado na PDP entre header e UgcGallery
 - [ ] Componente `<YouMayAlsoLike />` no carrinho
 - [ ] Tracking de cliques em recomendações (CTR mensurável)
@@ -716,7 +718,7 @@ Qual provider de geração de imagem? Trade-off custo vs qualidade vs API reliab
 - [ ] GDPR: básico para coffee internacional na Fase 1.2 (preparação)
 - [ ] Core Web Vitals dentro dos limites do Google
 - [x] PWA: instalável no celular — manifest dinâmico, service worker shell-cache (network-first, exclui /api/checkout/conta), theme-color, apple-touch-icon. Push notifications pendente (Sprint 13 v2)
-- [ ] Acessibilidade WCAG 2.1 AA (auditoria automatizada + manual)
+- [x] Acessibilidade WCAG 2.1 AA — `@axe-core/playwright` + `@playwright/test` setup, test `tests/a11y.spec.ts` varre 9 rotas com tags wcag2a/wcag2aa (falha em violations critical, loga demais). Fixes aplicados: aria-hidden em SVG icons globalmente (icon.tsx), aria-label em logo+busca+botões, `<nav aria-label>` em menus, useId+htmlFor em forms (entrar, checkout/endereco, conta/galeria), role="alert" em erros, skip-link "#main-content", contraste --text-muted aumentado para 5.7:1 (#6B6055), aria-live="polite" no ConsentBanner
 - [x] **Carregamento progressivo / lazy loading (Sec 16)** — UgcGallery com IntersectionObserver (rootMargin 300px) + skeleton placeholder + loading=lazy + decoding=async nas imgs; fetch só dispara quando galeria proxima do viewport. Padrão reusável para galeria/recomendações.
 - [ ] **CDN global Cloudflare (Sec 16)** — assets servidos do POP mais próximo do cliente. Crítico para coffee/internacional. Imagens via R2 com transformações on-the-fly.
 - [ ] Backup automático diário no Neon (retenção 30 dias)

@@ -1349,3 +1349,69 @@ Antes de marcar promessas como concluídas, validei via Playwright nas URLs reai
 - Backup automático Neon — depende provider real prod
 
 **26 commits totais sessão**, **73 testes globais verdes** (engine 44, db 7, ai 7), **18 migrações idempotentes em prod**, **zero regressão**.
+
+---
+
+## 2026-04-26 — Iteração paralela 3: 5 features Sprint 5/11/13 + recently_viewed sync
+
+**Despacho paralelo (3 subagents + 2 features eu):**
+
+1. **Sprint 5 — 2FA enforcement no login** (subagent A, commit 560e916):
+   - `/login/2fa-challenge` page: client component dois modos (TOTP 6 dígitos OU recovery code), Suspense para useSearchParams, returnTo via query param
+   - `/api/2fa/challenge` POST: valida via verifyTotp/verifyRecoveryCode, seta cookie `lojeo_2fa_verified=1` httpOnly secure sameSite=strict 8h
+   - Recovery code consumido: hash removido do array após uso
+   - Auth.ts callbacks: `jwt({token,user,trigger})` carrega `requires2FA` do DB no signIn (Node runtime), embed no JWT; `session({session,token})` propaga p/ session.user; module augmentation tipa `Session.user.requires2FA` + `JWT.requires2FA/uid`
+   - Middleware: após auth+CSRF, se `req.auth.user.requires2FA===true` E cookie ausente E path fora de bypass (`/login`, `/api/auth`, `/api/2fa/challenge`) → redirect challenge
+   - **Decisão arquitetural**: JWT cache vs DB lookup por request. Edge runtime (postgres-js não suporta) força cache em JWT. DB consultado uma vez no signIn
+
+2. **Sprint 5 — InfoTooltip + microcopy** (subagent B, commit e4ddbd5):
+   - Componente `<InfoTooltip text>` acessível em `apps/admin/src/components/ui/info-tooltip.tsx`
+   - Botão (?) ao lado de label, balão flutuante com tokens design system (var(--surface), var(--shadow-md))
+   - role="tooltip" + aria-describedby, fecha em mouseleave/blur/Escape
+   - 11 tooltips aplicados: 10 em /settings (freeShipping, pixDiscount, installments, warranty, typo, imgRadius, gtmId, gaTrackingId, aiMonthlyLimitCents, robotsTxt) + 1 em /settings/users (Papel)
+
+3. **Sprint 13 — Acessibilidade WCAG 2.1 AA + axe-core** (subagent C, commit 7af5c54):
+   - `@axe-core/playwright` + `@playwright/test` adicionados como devDeps
+   - `apps/storefront/playwright.config.ts` + `tests/a11y.spec.ts` varre 9 rotas com tags wcag2a/wcag2aa
+   - **Estratégia**: falha apenas em violations CRITICAL, loga demais (audit-friendly sem bloquear deploy)
+   - Fixes aplicados (apenas atributos a11y, zero alteração lógica):
+     - aria-hidden+focusable=false em todos os SVGs (icon.tsx) — resolve "icon-only buttons" globalmente
+     - aria-label em logo, link Buscar, botões; `<nav aria-label>` em menus desktop+mobile (mobile passou de div p/ nav)
+     - useId+htmlFor em entrar, checkout/endereco (10 campos), conta/galeria (file+textarea)
+     - role="alert" em mensagens de erro
+     - aria-live="polite" no ConsentBanner
+     - skip-link `<a href="#main-content">` no body + id="main-content" em main
+     - contraste `--text-muted` aumentado de #A89B8C (~3:1) para #6B6055 (~5.7:1) atendendo AA 4.5:1
+
+4. **Sprint 11 — RelatedProducts componente PDP** (commit 4ae1148, eu):
+   - Engine puro sem ML: coleções compartilhadas via `product_collections` join → fallback `customFields.categoria` igual → fallback produtos mais recentes
+   - API `/api/products/related?productId=X&limit=N`
+   - Componente `<RelatedProducts>` IntersectionObserver lazy load (rootMargin 200px), grid responsivo, tokens jewelry-v1
+   - Injetado na PDP entre FBT e UgcGallery
+   - Embeddings (Anthropic) refinarão precisão em Sprint 12+
+
+5. **Sprint 5 — Sync recently_viewed → DB ao login** (commit 7e298c5, eu):
+   - Schema `recently_viewed_items` (tenant, user_id, product_id, viewed_at) + 2 indexes
+   - API `/api/recently-viewed`:
+     - GET: últimos 8 distinct por productId via MAX(viewed_at), enriquecido com slug/name/price (active only)
+     - POST {productId}: track view individual quando user logado (PDP)
+     - POST {productIds: [...]}: bulk sync localStorage → DB no login
+     - Validação UUID manual (storefront sem zod, primitive UUID_RE) — retorno: zod refactor revertido por hooks/linter
+   - Cleanup keep-last-20 via SQL DELETE OFFSET 20 fire-and-forget
+   - Hooks: `useTrackRecentlyViewed` (localStorage + POST individual fire-and-forget keepalive); `useSyncRecentlyViewedOnLogin` (bulk sync uma vez)
+
+**Decisões coordenação multi-agent:**
+- **5 commits paralelos sem conflito** — cada subagent tocou arquivos disjuntos, com stash/pop coordenado
+- **Hooks revertem refactors arriscados** — Zod refactor em /api/ugc/[id] e /api/users/[id] foi revertido. Helpers Zod ficam disponíveis em validate.ts para uso futuro
+- **Edge runtime ≠ Node runtime** — middleware admin não pode chamar postgres. Solução: JWT cache via NextAuth callbacks consultando DB só no signIn
+
+**Total iteração:** 5 commits, 73 testes verdes, zero regressão, +1 migrate op (recently_viewed_items).
+
+**Bloqueadores Sprint 5/11/12/13 restantes:**
+- Convite usuário por email com 1 clique — Resend
+- Embeddings recommendations content-based — Anthropic key prod
+- Push notifications PWA — VAPID keys
+- 2FA opcional por papel (atualmente é per-user opt-in, não enforced por role) — Sprint 13 v2
+- Conversions API server-side Meta/TikTok — OAuth tokens
+
+**31 commits totais sessão** (acumulado), **73 testes verdes**, **19 migrações idempotentes em prod**, **zero regressão**.
