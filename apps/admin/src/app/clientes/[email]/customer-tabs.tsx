@@ -230,27 +230,7 @@ export function CustomerTabs({ orders, warranties, tickets }: Props) {
       )}
 
       {tab === 'marketing' && (
-        <div className="lj-card" style={{ padding: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-          {[
-            { label: 'E-mails promocionais', enabled: true, lastInteraction: 'Aberto há 8 dias' },
-            { label: 'WhatsApp marketing', enabled: false, lastInteraction: 'Nunca enviado' },
-            { label: 'SMS', enabled: false, lastInteraction: 'Opt-in pendente' },
-            { label: 'Push notifications', enabled: false, lastInteraction: 'Sem permissão concedida' },
-          ].map(c => (
-            <div key={c.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 'var(--space-2)', borderBottom: '1px solid var(--border)' }}>
-              <div>
-                <p className="body-s" style={{ fontWeight: 'var(--w-medium)' }}>{c.label}</p>
-                <p className="caption">{c.lastInteraction}</p>
-              </div>
-              <span className={`lj-badge ${c.enabled ? 'lj-badge-success' : 'lj-badge-neutral'}`}>
-                {c.enabled ? 'Opt-in' : 'Opt-out'}
-              </span>
-            </div>
-          ))}
-          <p className="caption" style={{ paddingTop: 'var(--space-2)' }}>
-            Toggle de canais e auditoria LGPD virá em /clientes/[email]/preferencias.
-          </p>
-        </div>
+        <MarketingPrefs />
       )}
 
       {tab === 'notes' && (
@@ -258,8 +238,8 @@ export function CustomerTabs({ orders, warranties, tickets }: Props) {
           <textarea
             placeholder="Anotações privadas sobre essa cliente — só sua equipe vê."
             className="lj-input"
-            style={{ width: '100%', minHeight: 120, resize: 'vertical' }}
-            defaultValue=""
+            style={{ width: '100%', minHeight: 120, resize: 'vertical', fontSize: 'var(--text-body)', lineHeight: 1.5 }}
+            defaultValue="Cliente fiel desde 2024. Compra brincos pra ela e anéis pra mãe. Já indicou 3 amigas. Sempre comenta no Insta."
           />
           <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-3)', alignItems: 'center' }}>
             <button type="button" className="lj-btn-primary" disabled style={{ fontSize: 'var(--text-caption)' }}>Salvar nota</button>
@@ -267,6 +247,79 @@ export function CustomerTabs({ orders, warranties, tickets }: Props) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * MarketingPrefs — toggle switches estilo iOS pra canais marketing
+ * (E-mails / WhatsApp / SMS / Push). Match Image #19.
+ *
+ * Estado client-side temporário; persistência API virá em iteração futura.
+ */
+function MarketingPrefs() {
+  const [prefs, setPrefs] = useState({
+    email: true,
+    whatsapp: true,
+    sms: false,
+    push: false,
+  });
+
+  const channels: Array<{ key: keyof typeof prefs; label: string; meta: string }> = [
+    { key: 'email', label: 'E-mails promocionais', meta: 'Aberto há 8 dias · taxa de abertura 47%' },
+    { key: 'whatsapp', label: 'WhatsApp marketing', meta: 'Engajamento alto · 12 mensagens trocadas' },
+    { key: 'sms', label: 'SMS', meta: 'Opt-in pendente · não enviar até confirmar' },
+    { key: 'push', label: 'Push notifications', meta: 'Sem permissão concedida no app' },
+  ];
+
+  return (
+    <div className="lj-card" style={{ padding: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+      {channels.map(c => {
+        const enabled = prefs[c.key];
+        return (
+          <div key={c.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-4)' }}>
+            <div style={{ minWidth: 0 }}>
+              <p className="body-s" style={{ fontWeight: 'var(--w-medium)' }}>{c.label}</p>
+              <p className="caption" style={{ color: 'var(--fg-muted)' }}>{c.meta}</p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={enabled}
+              onClick={() => setPrefs(p => ({ ...p, [c.key]: !p[c.key] }))}
+              style={{
+                position: 'relative',
+                width: 44,
+                height: 24,
+                borderRadius: 'var(--radius-full)',
+                background: enabled ? 'var(--accent)' : 'var(--neutral-300, #d1d5db)',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'background 120ms',
+                flexShrink: 0,
+              }}
+            >
+              <span
+                aria-hidden
+                style={{
+                  position: 'absolute',
+                  top: 2,
+                  left: enabled ? 22 : 2,
+                  width: 20,
+                  height: 20,
+                  borderRadius: '50%',
+                  background: '#fff',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                  transition: 'left 120ms',
+                }}
+              />
+            </button>
+          </div>
+        );
+      })}
+      <p className="caption" style={{ color: 'var(--fg-muted)', paddingTop: 'var(--space-2)', borderTop: '1px solid var(--border)' }}>
+        Persistência API virá em iteração futura. Toggles refletem opt-in/opt-out por canal.
+      </p>
     </div>
   );
 }

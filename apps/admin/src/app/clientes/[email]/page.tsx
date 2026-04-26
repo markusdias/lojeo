@@ -298,6 +298,14 @@ export default async function ClienteProfilePage({
   const customerName = displayNameFromEmail(email);
   const customerPitch = pitchFor(profile.segment, profile.daysSinceLastOrder, profile.orderCount);
 
+  // DEMO RFM segment switcher — link rápido entre 4 personas seed (Champion/AtRisk/Lost/New)
+  const DEMO_PERSONAS: Array<{ email: string; label: string; rfm: string; segment: string }> = [
+    { email: 'beatriz.lima@email.com', label: 'Champion', rfm: '5/5/4', segment: 'champions' },
+    { email: 'carolina.p@email.com', label: 'At Risk', rfm: '2/4/4', segment: 'at_risk' },
+    { email: 'di.vilela@email.com', label: 'Lost', rfm: '1/2/2', segment: 'lost' },
+    { email: 'ju.tavares@email.com', label: 'New', rfm: '5/1/3', segment: 'new' },
+  ];
+
   return (
     <div style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }}>
       {/* Breadcrumb-like eyebrow: "Clientes /" linkado pro index */}
@@ -306,6 +314,50 @@ export default async function ClienteProfilePage({
         <span style={{ margin: '0 6px', color: 'var(--fg-muted)' }}>/</span>
         <span style={{ color: 'var(--fg-secondary)' }}>{customerName}</span>
       </p>
+
+      {/* DEMO RFM segment switcher — match Images #15/21/22/23 (pill chips topo) */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 'var(--space-3)',
+        background: 'var(--bg-subtle)',
+        padding: 'var(--space-3) var(--space-4)',
+        borderRadius: 'var(--radius-lg)',
+        marginBottom: 'var(--space-5)',
+        flexWrap: 'wrap',
+      }}>
+        <span className="caption mono" style={{ color: 'var(--fg-muted)', letterSpacing: 'var(--track-wide)', textTransform: 'uppercase' }}>
+          RFM Segment · Demo
+        </span>
+        <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+          {DEMO_PERSONAS.map(p => {
+            const isActive = p.email === email;
+            return (
+              <Link
+                key={p.email}
+                href={`/clientes/${encodeURIComponent(p.email)}`}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '4px 12px',
+                  borderRadius: 'var(--radius-full)',
+                  border: `1px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
+                  background: isActive ? 'var(--accent-soft)' : 'var(--bg-elevated)',
+                  color: isActive ? 'var(--accent)' : 'var(--fg-secondary)',
+                  fontSize: 'var(--text-caption)',
+                  fontWeight: isActive ? 'var(--w-semibold)' : 'var(--w-medium)',
+                  textDecoration: 'none',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {p.label}
+                <span className="mono" style={{ color: 'var(--fg-muted)' }}>{p.rfm}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Page header com nome + actions */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
