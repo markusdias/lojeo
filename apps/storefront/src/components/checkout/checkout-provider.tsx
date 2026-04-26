@@ -28,6 +28,8 @@ export interface CheckoutState {
   address: Partial<CheckoutAddress>;
   shipping: ShippingOption | null;
   paymentMethod: 'pix' | 'credit_card' | 'boleto' | null;
+  isGift: boolean;
+  giftMessage: string;
   orderId: string | null;
   orderNumber: string | null;
 }
@@ -36,6 +38,7 @@ type CheckoutAction =
   | { type: 'SET_ADDRESS'; payload: Partial<CheckoutAddress> }
   | { type: 'SET_SHIPPING'; payload: ShippingOption }
   | { type: 'SET_PAYMENT_METHOD'; payload: CheckoutState['paymentMethod'] }
+  | { type: 'SET_GIFT'; payload: { isGift: boolean; giftMessage: string } }
   | { type: 'SET_STEP'; payload: CheckoutState['step'] }
   | { type: 'SET_ORDER'; payload: { orderId: string; orderNumber: string } }
   | { type: 'RESET' };
@@ -45,6 +48,8 @@ const initialState: CheckoutState = {
   address: {},
   shipping: null,
   paymentMethod: null,
+  isGift: false,
+  giftMessage: '',
   orderId: null,
   orderNumber: null,
 };
@@ -54,6 +59,7 @@ function reducer(state: CheckoutState, action: CheckoutAction): CheckoutState {
     case 'SET_ADDRESS': return { ...state, address: { ...state.address, ...action.payload } };
     case 'SET_SHIPPING': return { ...state, shipping: action.payload };
     case 'SET_PAYMENT_METHOD': return { ...state, paymentMethod: action.payload };
+    case 'SET_GIFT': return { ...state, isGift: action.payload.isGift, giftMessage: action.payload.giftMessage };
     case 'SET_STEP': return { ...state, step: action.payload };
     case 'SET_ORDER': return { ...state, orderId: action.payload.orderId, orderNumber: action.payload.orderNumber };
     case 'RESET': return initialState;
@@ -68,6 +74,7 @@ interface CheckoutContextValue {
   setAddress: (addr: Partial<CheckoutAddress>) => void;
   setShipping: (opt: ShippingOption) => void;
   setPaymentMethod: (m: CheckoutState['paymentMethod']) => void;
+  setGift: (isGift: boolean, giftMessage: string) => void;
   setStep: (s: CheckoutState['step']) => void;
   setOrder: (id: string, number: string) => void;
   reset: () => void;
@@ -101,6 +108,7 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
     setAddress: (addr) => dispatch({ type: 'SET_ADDRESS', payload: addr }),
     setShipping: (opt) => dispatch({ type: 'SET_SHIPPING', payload: opt }),
     setPaymentMethod: (m) => dispatch({ type: 'SET_PAYMENT_METHOD', payload: m }),
+    setGift: (isGift, giftMessage) => dispatch({ type: 'SET_GIFT', payload: { isGift, giftMessage } }),
     setStep: (s) => dispatch({ type: 'SET_STEP', payload: s }),
     setOrder: (id, number) => dispatch({ type: 'SET_ORDER', payload: { orderId: id, orderNumber: number } }),
     reset: () => dispatch({ type: 'RESET' }),

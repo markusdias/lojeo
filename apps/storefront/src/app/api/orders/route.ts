@@ -51,6 +51,7 @@ interface CreateOrderBody {
   couponCode?: string;
   anonymousId?: string;
   utm?: { source?: string | null; medium?: string | null; campaign?: string | null } | null;
+  gift?: { isGift: boolean; message?: string | null } | null;
 }
 
 export async function POST(req: Request) {
@@ -96,6 +97,8 @@ export async function POST(req: Request) {
       utmSource: body.utm?.source ?? null,
       utmMedium: body.utm?.medium ?? null,
       utmCampaign: body.utm?.campaign ?? null,
+      isGift: body.gift?.isGift ?? false,
+      giftMessage: body.gift?.message ?? null,
       metadata: { shippingLabel: body.shipping.label },
     }).returning({ id: orders.id, orderNumber: orders.orderNumber });
 

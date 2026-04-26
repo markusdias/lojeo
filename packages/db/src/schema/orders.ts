@@ -4,6 +4,7 @@ import {
   varchar,
   text,
   integer,
+  boolean,
   timestamp,
   jsonb,
   index,
@@ -85,6 +86,10 @@ export const orders = pgTable(
     // Fiscal
     invoiceKey: varchar('invoice_key', { length: 60 }),
     invoiceUrl: text('invoice_url'),
+    // Gift option
+    isGift: boolean('is_gift').default(false).notNull(),
+    giftMessage: text('gift_message'),
+    giftPackagingCents: integer('gift_packaging_cents').default(0),
     // Metadata for extensibility
     metadata: jsonb('metadata').default({}).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),

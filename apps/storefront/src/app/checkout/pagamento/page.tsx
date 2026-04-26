@@ -17,10 +17,12 @@ function fmt(cents: number) {
 
 export default function PagamentoPage() {
   const router = useRouter();
-  const { state, setPaymentMethod, setOrder, setStep, reset } = useCheckout();
+  const { state, setPaymentMethod, setGift, setOrder, setStep, reset } = useCheckout();
   const { subtotalCents, items, clear } = useCart();
   const tracker = useTracker();
   const [method, setMethod] = useState<'pix' | 'credit_card' | 'boleto'>(state.paymentMethod ?? 'pix');
+  const [isGift, setIsGift] = useState(state.isGift);
+  const [giftMessage, setGiftMessage] = useState(state.giftMessage);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -67,6 +69,7 @@ export default function PagamentoPage() {
     setLoading(true);
     setError('');
     setPaymentMethod(method);
+    setGift(isGift, giftMessage);
 
     try {
       const utmRaw = sessionStorage.getItem('lojeo_utm');
@@ -90,6 +93,7 @@ export default function PagamentoPage() {
           shipping: state.shipping,
           paymentMethod: method,
           utm,
+          gift: isGift ? { isGift: true, message: giftMessage || null } : null,
         }),
       });
 
@@ -112,6 +116,38 @@ export default function PagamentoPage() {
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 64, alignItems: 'start' }}>
       <form onSubmit={handleSubmit}>
         <h2 style={{ marginBottom: 32, fontSize: 22 }}>Forma de pagamento</h2>
+
+        {/* Gift option */}
+        <div style={{ marginBottom: 32, padding: '16px 20px', border: '1px solid var(--divider)', borderRadius: 8 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={isGift}
+              onChange={e => setIsGift(e.target.checked)}
+              style={{ accentColor: 'var(--accent)', width: 16, height: 16 }}
+            />
+            <div>
+              <span style={{ fontSize: 14, fontWeight: 500 }}>É um presente 🎁</span>
+              <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>Incluímos cartão personalizado e embalagem especial</p>
+            </div>
+          </label>
+          {isGift && (
+            <textarea
+              placeholder="Mensagem para o cartão (opcional)"
+              value={giftMessage}
+              onChange={e => setGiftMessage(e.target.value)}
+              maxLength={280}
+              rows={3}
+              style={{
+                marginTop: 12, width: '100%', boxSizing: 'border-box',
+                padding: '10px 12px', fontSize: 13, borderRadius: 4,
+                border: '1px solid var(--divider)', background: 'var(--surface)',
+                color: 'var(--text-primary)', fontFamily: 'var(--font-body)',
+                resize: 'vertical',
+              }}
+            />
+          )}
+        </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32 }}>
           {METHODS.map(m => (
