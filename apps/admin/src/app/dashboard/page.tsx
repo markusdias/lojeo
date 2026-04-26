@@ -3,8 +3,11 @@ import { auth, signOut } from '../../auth';
 import { db, products, tenants, orders } from '@lojeo/db';
 import { eq, and, gte, sql } from 'drizzle-orm';
 
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardPage() {
-  const session = await auth();
+  let session = null;
+  try { session = await auth(); } catch {}
   const user = session?.user;
   const tenantId = process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
   const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -13,8 +16,8 @@ export default async function DashboardPage() {
     db.select({ c: sql<number>`COUNT(*)` }).from(products).where(eq(products.tenantId, tenantId)).then(r => Number(r[0]?.c ?? 0)),
     db.select({
       count: sql<number>`COUNT(*)`,
-      revenue: sql<number>`COALESCE(SUM(total_cents), 0)`,
-      pending: sql<number>`COUNT(*) FILTER (WHERE status = 'pending')`,
+      revenue: sql<number>`COALESCE(SUM(${orders.totalCents}), 0)`,
+      pending: sql<number>`COUNT(*) FILTER (WHERE ${orders.status} = 'pending')`,
     }).from(orders).where(and(eq(orders.tenantId, tenantId), gte(orders.createdAt, since30d))).then(r => r[0]),
   ]);
 
