@@ -8,6 +8,7 @@ import { useTracker } from '../../../components/tracker-provider';
 import { CheckoutSummary } from '../../../components/checkout/checkout-summary';
 import { Icon } from '../../../components/ui/icon';
 import { trackPixelEvent } from '../../../components/marketing/pixel-events';
+import { getPixDiscountPct, applyPixDiscount, pixDiscountAmountCents } from '../../../lib/checkout-config';
 
 const CURRENCY = 'BRL';
 const FREE_SHIPPING_ABOVE = 50000;
@@ -104,13 +105,25 @@ export default function PagamentoPage() {
     setCouponError('');
   }
 
-  const METHODS = [
+  const pixPct = getPixDiscountPct();
+  const pixTotalCents = applyPixDiscount(totalCents);
+  const pixSavingsCents = pixDiscountAmountCents(totalCents);
+
+  type PaymentMethodCard = {
+    id: 'pix' | 'credit_card' | 'boleto';
+    label: string;
+    icon: string;
+    desc: string;
+    badge: string | null;
+  };
+
+  const METHODS: PaymentMethodCard[] = [
     {
       id: 'pix' as const,
       label: 'Pix',
       icon: '◉',
       desc: 'Pagamento instantâneo. QR code gerado após confirmar.',
-      badge: '5% de desconto',
+      badge: `${pixPct}% de desconto`,
     },
     {
       id: 'credit_card' as const,
@@ -229,41 +242,80 @@ export default function PagamentoPage() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32 }}>
-          {METHODS.map(m => (
-            <label
-              key={m.id}
-              style={{
-                display: 'flex', alignItems: 'flex-start', gap: 16,
-                padding: '16px 20px', borderRadius: 8, cursor: 'pointer',
-                border: `1.5px solid ${method === m.id ? 'var(--text-primary)' : 'var(--divider)'}`,
-                background: method === m.id ? 'var(--surface-sunken)' : 'var(--surface)',
-              }}
-            >
-              <input
-                type="radio"
-                name="payment"
-                value={m.id}
-                checked={method === m.id}
-                onChange={() => setMethod(m.id)}
-                style={{ accentColor: 'var(--accent)', marginTop: 2, flexShrink: 0 }}
-              />
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 16, color: 'var(--accent)' }}>{m.icon}</span>
-                  <span style={{ fontSize: 14, fontWeight: 500 }}>{m.label}</span>
-                  {m.badge && (
-                    <span style={{
-                      fontSize: 11, padding: '2px 8px', borderRadius: 99,
-                      background: 'var(--accent-soft)', color: 'var(--accent)', fontWeight: 600,
-                    }}>
-                      {m.badge}
-                    </span>
+          {METHODS.map(m => {
+            const isPix = m.id === 'pix';
+            const selected = method === m.id;
+            // Pix recebe destaque visual: borda accent verde, pill "+N% OFF" grande,
+            // preço com desconto vs sem (riscado), e linha de status do pagamento.
+            const borderColor = isPix
+              ? (selected ? '#1E6B22' : '#7BA66E')
+              : (selected ? 'var(--text-primary)' : 'var(--divider)');
+            const background = isPix
+              ? (selected ? '#EAF4E5' : '#F4FAEF')
+              : (selected ? 'var(--surface-sunken)' : 'var(--surface)');
+            return (
+              <label
+                key={m.id}
+                style={{
+                  display: 'flex', alignItems: 'flex-start', gap: 16,
+                  padding: '16px 20px', borderRadius: 8, cursor: 'pointer',
+                  border: `${isPix ? 2 : 1.5}px solid ${borderColor}`,
+                  background,
+                  transition: 'border-color 150ms, background 150ms',
+                }}
+              >
+                <input
+                  type="radio"
+                  name="payment"
+                  value={m.id}
+                  checked={selected}
+                  onChange={() => setMethod(m.id)}
+                  style={{ accentColor: isPix ? '#1E6B22' : 'var(--accent)', marginTop: 2, flexShrink: 0 }}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 16, color: isPix ? '#1E6B22' : 'var(--accent)' }}>{m.icon}</span>
+                    <span style={{ fontSize: 14, fontWeight: 500 }}>{m.label}</span>
+                    {isPix ? (
+                      <span style={{
+                        fontSize: 13, padding: '4px 12px', borderRadius: 999,
+                        background: '#1E6B22', color: '#fff', fontWeight: 700,
+                        letterSpacing: '0.02em',
+                      }}>
+                        +{pixPct}% OFF
+                      </span>
+                    ) : m.badge ? (
+                      <span style={{
+                        fontSize: 11, padding: '2px 8px', borderRadius: 99,
+                        background: 'var(--accent-soft)', color: 'var(--accent)', fontWeight: 600,
+                      }}>
+                        {m.badge}
+                      </span>
+                    ) : null}
+                  </div>
+                  <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-muted)' }}>{m.desc}</p>
+                  {isPix && totalCents > 0 && (
+                    <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 13, color: 'var(--text-muted)', textDecoration: 'line-through' }}>
+                          {fmt(totalCents)}
+                        </span>
+                        <span style={{ fontSize: 22, fontWeight: 700, color: '#1E6B22', fontFamily: 'var(--font-display)' }}>
+                          {fmt(pixTotalCents)}
+                        </span>
+                        <span style={{ fontSize: 12, color: '#1E6B22', fontWeight: 600 }}>
+                          economia de {fmt(pixSavingsCents)}
+                        </span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: 12, color: '#1E6B22' }}>
+                        Pague em até 1 dia útil · pague apenas {fmt(pixTotalCents)}
+                      </p>
+                    </div>
                   )}
                 </div>
-                <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-muted)' }}>{m.desc}</p>
-              </div>
-            </label>
-          ))}
+              </label>
+            );
+          })}
         </div>
 
         {/* Coupon input */}
@@ -333,15 +385,15 @@ export default function PagamentoPage() {
           )}
         </div>
 
-        {/* Pix discount info */}
+        {/* Pix discount info — confirmação compacta após o card destacado */}
         {method === 'pix' && (
           <div style={{
-            padding: '12px 16px', background: 'var(--accent-soft)',
-            borderRadius: 4, marginBottom: 24, fontSize: 13, color: 'var(--accent)',
+            padding: '12px 16px', background: '#EAF4E5',
+            borderRadius: 4, marginBottom: 24, fontSize: 13, color: '#1E6B22',
             display: 'flex', gap: 8, alignItems: 'center',
           }}>
             <Icon name="info" size={14} style={{ flexShrink: 0 }} />
-            Desconto de 5% aplicado: total {fmt(Math.round(totalCents * 0.95))}
+            Desconto de {pixPct}% aplicado · total {fmt(pixTotalCents)}
           </div>
         )}
 
@@ -389,7 +441,7 @@ export default function PagamentoPage() {
               cursor: loading ? 'not-allowed' : 'pointer',
             }}
           >
-            {loading ? 'Processando…' : `Confirmar pedido · ${fmt(method === 'pix' ? Math.round(totalCents * 0.95) : totalCents)}`}
+            {loading ? 'Processando…' : `Confirmar pedido · ${fmt(method === 'pix' ? pixTotalCents : totalCents)}`}
           </button>
         </div>
       </form>
