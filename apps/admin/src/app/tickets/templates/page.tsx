@@ -88,22 +88,22 @@ export default function TicketTemplatesPage() {
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Templates de Resposta</h1>
-          <p className="text-sm text-gray-500 mt-1">Respostas pré-definidas para agilizar atendimento</p>
+          <h1 className="text-2xl font-semibold" style={{ color: 'var(--fg)' }}>Templates de Resposta</h1>
+          <p className="body-s mt-1">Respostas pré-definidas para agilizar atendimento</p>
         </div>
-        <a href="/tickets" className="text-sm text-indigo-600 hover:underline">← Voltar aos tickets</a>
+        <a href="/tickets" className="text-sm hover:underline" style={{ color: 'var(--accent)' }}>← Voltar aos tickets</a>
       </div>
 
       {/* Create / Edit form */}
       <div className="lj-card p-5">
-        <h2 className="text-sm font-semibold text-gray-700 mb-3">
+        <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--fg)' }}>
           {editing ? `Editar: ${editing.name}` : 'Novo template'}
         </h2>
         <form onSubmit={handleSave} className="space-y-3">
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Nome do template</label>
+            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--fg-secondary)' }}>Nome do template</label>
             <input
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="lj-input w-full"
               placeholder="Ex: Prazo de entrega padrão"
               value={name}
               onChange={e => setName(e.target.value)}
@@ -111,16 +111,16 @@ export default function TicketTemplatesPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Texto da resposta</label>
+            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--fg-secondary)' }}>Texto da resposta</label>
             <textarea
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-y"
+              className="lj-input w-full resize-y"
               rows={4}
               placeholder="Olá {nome}, obrigado por entrar em contato..."
               value={body}
               onChange={e => setBody(e.target.value)}
               required
             />
-            <p className="text-xs text-gray-400 mt-1">Use {'{nome}'} e {'{pedido}'} como variáveis opcionais</p>
+            <p className="caption mt-1">Use {'{nome}'} e {'{pedido}'} como variáveis opcionais</p>
           </div>
           <div className="flex gap-2">
             <button
@@ -134,7 +134,7 @@ export default function TicketTemplatesPage() {
               <button
                 type="button"
                 onClick={startCreate}
-                className="text-sm px-4 py-2 rounded border border-gray-300 hover:bg-gray-50"
+                className="lj-btn-secondary"
               >
                 Cancelar
               </button>
@@ -145,33 +145,35 @@ export default function TicketTemplatesPage() {
 
       {/* Templates list */}
       {loading ? (
-        <p className="text-sm text-gray-500">Carregando...</p>
+        <p className="body-s">Carregando...</p>
       ) : error ? (
-        <p className="text-sm text-red-500">{error}</p>
+        <p className="text-sm" style={{ color: 'var(--error)' }}>{error}</p>
       ) : templates.length === 0 ? (
-        <p className="text-sm text-gray-500">Nenhum template criado ainda.</p>
+        <p className="body-s">Nenhum template criado ainda.</p>
       ) : (
         <div className="space-y-3">
           {templates.map(t => (
             <div key={t.id} className="lj-card p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm text-gray-900">{t.name}</p>
-                  <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap line-clamp-3">{t.body}</p>
-                  <p className="text-xs text-gray-400 mt-2">
+                  <p className="font-medium text-sm" style={{ color: 'var(--fg)' }}>{t.name}</p>
+                  <p className="body-s mt-1 whitespace-pre-wrap line-clamp-3">{t.body}</p>
+                  <p className="caption mt-2">
                     Criado em {new Date(t.createdAt).toLocaleDateString('pt-BR')}
                   </p>
                 </div>
                 <div className="flex gap-2 shrink-0">
                   <button
                     onClick={() => startEdit(t)}
-                    className="text-xs text-indigo-600 hover:underline"
+                    className="text-xs hover:underline"
+                    style={{ color: 'var(--accent)' }}
                   >
                     Editar
                   </button>
                   <button
                     onClick={() => handleDelete(t.id, t.name)}
-                    className="text-xs text-red-500 hover:underline"
+                    className="text-xs hover:underline"
+                    style={{ color: 'var(--error)' }}
                   >
                     Excluir
                   </button>

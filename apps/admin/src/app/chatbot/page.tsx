@@ -49,14 +49,21 @@ export default function ChatbotStatsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="p-8 text-sm text-gray-500">Carregando...</div>;
+  if (loading) return <div className="p-8 body-s">Carregando...</div>;
   if (error || !stats) return (
     <div className="p-8 max-w-3xl space-y-3">
       <h1 className="text-xl font-semibold">Chatbot</h1>
-      <div className="bg-amber-50 border border-amber-200 rounded p-4 text-sm text-amber-800">
+      <div
+        className="rounded p-4 body-s"
+        style={{
+          background: 'color-mix(in srgb, var(--warning) 12%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--warning) 35%, transparent)',
+          color: 'var(--warning)',
+        }}
+      >
         <p className="font-medium">Sem dados de telemetria ainda.</p>
-        {error && <p className="text-xs text-amber-700 mt-1">Detalhe: {error}</p>}
-        <p className="text-xs mt-2 text-amber-700">
+        {error && <p className="caption mt-1">Detalhe: {error}</p>}
+        <p className="caption mt-2">
           Os dados aparecerão aqui assim que o widget de chat receber as primeiras conversas em produção.
         </p>
       </div>
@@ -69,31 +76,31 @@ export default function ChatbotStatsPage() {
     <div style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }} className="space-y-6">
       <header>
         <h1 className="text-xl font-semibold">Chatbot</h1>
-        <p className="text-sm text-gray-500 mt-1">Telemetria das últimas {stats.windowDays} dias</p>
+        <p className="body-s mt-1">Telemetria das últimas {stats.windowDays} dias</p>
       </header>
 
       {/* Summary cards */}
       <div className="grid grid-cols-4 gap-3">
         <div className="lj-card p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Conversas</p>
-          <p className="text-2xl font-semibold mt-1">{stats.total}</p>
+          <p className="eyebrow">Conversas</p>
+          <p className="text-2xl font-semibold numeric mt-1">{stats.total}</p>
         </div>
         <div className="lj-card p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Resolvidas</p>
-          <p className="text-2xl font-semibold mt-1 text-green-600">
-            {stats.resolved} <span className="text-sm text-gray-400">({(stats.resolutionRate * 100).toFixed(0)}%)</span>
+          <p className="eyebrow">Resolvidas</p>
+          <p className="text-2xl font-semibold numeric mt-1" style={{ color: 'var(--success)' }}>
+            {stats.resolved} <span className="body-s">({(stats.resolutionRate * 100).toFixed(0)}%)</span>
           </p>
         </div>
         <div className="lj-card p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Escaladas</p>
-          <p className="text-2xl font-semibold mt-1 text-amber-600">
-            {stats.escalated} <span className="text-sm text-gray-400">({(stats.escalationRate * 100).toFixed(0)}%)</span>
+          <p className="eyebrow">Escaladas</p>
+          <p className="text-2xl font-semibold numeric mt-1" style={{ color: 'var(--warning)' }}>
+            {stats.escalated} <span className="body-s">({(stats.escalationRate * 100).toFixed(0)}%)</span>
           </p>
         </div>
         <div className="lj-card p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Custo IA</p>
-          <p className="text-2xl font-semibold mt-1">${costUsd.toFixed(4)}</p>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="eyebrow">Custo IA</p>
+          <p className="text-2xl font-semibold numeric mt-1">${costUsd.toFixed(4)}</p>
+          <p className="caption mt-0.5">
             {stats.totalTokensIn.toLocaleString('pt-BR')} in / {stats.totalTokensOut.toLocaleString('pt-BR')} out
           </p>
         </div>
@@ -101,9 +108,9 @@ export default function ChatbotStatsPage() {
 
       {/* Top tools */}
       <div className="lj-card p-5">
-        <h2 className="text-sm font-semibold text-gray-700 mb-3">Tópicos mais consultados</h2>
+        <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--fg)' }}>Tópicos mais consultados</h2>
         {stats.topTopics.length === 0 ? (
-          <p className="text-sm text-gray-500">Nenhuma conversa ainda nos últimos {stats.windowDays} dias.</p>
+          <p className="body-s">Nenhuma conversa ainda nos últimos {stats.windowDays} dias.</p>
         ) : (
           <div className="space-y-2">
             {stats.topTopics.map(t => {
@@ -112,10 +119,10 @@ export default function ChatbotStatsPage() {
               return (
                 <div key={t.topic} className="flex items-center gap-3">
                   <span className="text-sm w-48 shrink-0">{TOOL_LABEL[t.topic] ?? t.topic}</span>
-                  <div className="flex-1 bg-gray-100 rounded h-6 relative">
-                    <div className="bg-indigo-500 h-6 rounded" style={{ width: `${pct}%` }} />
+                  <div className="flex-1 rounded h-6 relative" style={{ background: 'var(--bg-subtle)' }}>
+                    <div className="h-6 rounded" style={{ width: `${pct}%`, background: 'var(--accent)' }} />
                   </div>
-                  <span className="text-sm font-medium w-12 text-right">{t.count}</span>
+                  <span className="text-sm font-medium numeric w-12 text-right">{t.count}</span>
                 </div>
               );
             })}
@@ -123,7 +130,7 @@ export default function ChatbotStatsPage() {
         )}
       </div>
 
-      <div className="text-xs text-gray-400">
+      <div className="caption">
         Avg msgs/conversa: {stats.avgMsgs.toFixed(1)} · Modelo: Claude Haiku 4.5
       </div>
     </div>
