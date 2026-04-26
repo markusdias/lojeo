@@ -23,6 +23,7 @@ const NAV = [
   { href: '/insights', label: 'Insights', icon: '◬' },
   { href: '/atribuicao', label: 'Atribuição', icon: '◉' },
   { href: '/ia-uso', label: 'Uso de IA', icon: '✦' },
+  { href: '/integracoes', label: 'Integrações', icon: '◉' },
   { href: '/settings', label: 'Configurações', icon: '⚙' },
 ];
 
