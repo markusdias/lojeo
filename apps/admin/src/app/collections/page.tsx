@@ -47,9 +47,9 @@ export default function CollectionsPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginBottom: 'var(--space-2)' }}>Coleções</h1>
-          <p style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>Agrupe produtos em coleções para exibir no storefront</p>
+          <p style={{ fontSize: 13, color: 'var(--fg-secondary)', marginTop: 2 }}>Agrupe produtos em coleções para exibir no storefront</p>
         </div>
-        <span style={{ fontSize: 13, color: '#6B7280' }}>{list.length} coleção(ões)</span>
+        <span style={{ fontSize: 13, color: 'var(--fg-secondary)' }}>{list.length} coleção(ões)</span>
       </div>
 
       {/* Quick create */}
@@ -58,33 +58,33 @@ export default function CollectionsPage() {
           value={name}
           onChange={e => setName(e.target.value)}
           placeholder="Nome da coleção…"
-          style={{ flex: 1, border: '1px solid #D1D5DB', borderRadius: 6, padding: '8px 12px', fontSize: 14 }}
+          style={{ flex: 1, border: '1px solid var(--fg-secondary)', borderRadius: 6, padding: '8px 12px', fontSize: 14 }}
         />
         <button
           type="submit"
           disabled={saving || !name.trim()}
-          style={{ background: '#111827', color: '#fff', padding: '8px 16px', borderRadius: 6, fontSize: 14, fontWeight: 500, border: 'none', cursor: 'pointer', opacity: saving ? 0.6 : 1 }}
+          style={{ background: 'var(--neutral-900)', color: '#fff', padding: '8px 16px', borderRadius: 6, fontSize: 14, fontWeight: 500, border: 'none', cursor: 'pointer', opacity: saving ? 0.6 : 1 }}
         >
           {saving ? 'Criando…' : 'Criar'}
         </button>
       </form>
 
-      {loading && <p style={{ color: '#6B7280', fontSize: 14 }}>Carregando…</p>}
+      {loading && <p style={{ color: 'var(--fg-secondary)', fontSize: 14 }}>Carregando…</p>}
 
       {!loading && list.length === 0 && (
-        <p style={{ color: '#9CA3AF', fontSize: 14 }}>Nenhuma coleção criada ainda.</p>
+        <p style={{ color: 'var(--fg-muted)', fontSize: 14 }}>Nenhuma coleção criada ainda.</p>
       )}
 
       {!loading && list.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {list.map(c => (
-            <div key={c.id} style={{ border: '1px solid #E5E7EB', borderRadius: 8, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div key={c.id} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
                 <p style={{ fontWeight: 500, fontSize: 14 }}>{c.name}</p>
-                <p style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>
+                <p style={{ fontSize: 12, color: 'var(--fg-muted)', marginTop: 2 }}>
                   /{c.slug} · criada {new Date(c.createdAt).toLocaleDateString('pt-BR')}
                 </p>
-                {c.description && <p style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>{c.description}</p>}
+                {c.description && <p style={{ fontSize: 13, color: 'var(--fg-secondary)', marginTop: 4 }}>{c.description}</p>}
               </div>
               <Link
                 href={`/collections/${c.id}`}

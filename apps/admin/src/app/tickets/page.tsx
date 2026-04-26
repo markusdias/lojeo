@@ -68,7 +68,7 @@ export default function TicketsPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginBottom: 'var(--space-2)' }}>Suporte</h1>
-          <p style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>Tickets de atendimento ao cliente</p>
+          <p style={{ fontSize: 13, color: 'var(--fg-secondary)', marginTop: 2 }}>Tickets de atendimento ao cliente</p>
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           {openCount > 0 && (
@@ -81,7 +81,7 @@ export default function TicketsPage() {
               {urgentCount} urgente{urgentCount !== 1 ? 's' : ''}
             </span>
           )}
-          <Link href="/tickets/templates" style={{ fontSize: 13, color: '#6B7280', textDecoration: 'none', border: '1px solid #E5E7EB', borderRadius: 6, padding: '4px 12px' }}>
+          <Link href="/tickets/templates" style={{ fontSize: 13, color: 'var(--fg-secondary)', textDecoration: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 12px' }}>
             📋 Templates
           </Link>
         </div>
@@ -92,7 +92,7 @@ export default function TicketsPage() {
         <select
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
-          style={{ border: '1px solid #D1D5DB', borderRadius: 6, padding: '6px 10px', fontSize: 13 }}
+          style={{ border: '1px solid var(--fg-secondary)', borderRadius: 6, padding: '6px 10px', fontSize: 13 }}
         >
           <option value="">Todos os status</option>
           <option value="open">Abertos</option>
@@ -103,7 +103,7 @@ export default function TicketsPage() {
         <select
           value={priorityFilter}
           onChange={e => setPriorityFilter(e.target.value)}
-          style={{ border: '1px solid #D1D5DB', borderRadius: 6, padding: '6px 10px', fontSize: 13 }}
+          style={{ border: '1px solid var(--fg-secondary)', borderRadius: 6, padding: '6px 10px', fontSize: 13 }}
         >
           <option value="">Todas as prioridades</option>
           <option value="urgent">Urgente</option>
@@ -113,10 +113,10 @@ export default function TicketsPage() {
         </select>
       </div>
 
-      {loading && <p style={{ color: '#6B7280', fontSize: 14 }}>Carregando…</p>}
+      {loading && <p style={{ color: 'var(--fg-secondary)', fontSize: 14 }}>Carregando…</p>}
 
       {!loading && tickets.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '64px 0', color: '#9CA3AF' }}>
+        <div style={{ textAlign: 'center', padding: '64px 0', color: 'var(--fg-muted)' }}>
           <p style={{ fontSize: 16 }}>Nenhum ticket encontrado.</p>
         </div>
       )}
@@ -128,7 +128,7 @@ export default function TicketsPage() {
             const ps = PRIORITY_STYLE[ticket.priority] ?? PRIORITY_STYLE['medium']!;
             const sla = slaStatus(ticket.slaDeadlineAt, ticket.status);
             return (
-              <div key={ticket.id} style={{ border: '1px solid #E5E7EB', borderRadius: 8, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+              <div key={ticket.id} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                     <span style={{ fontWeight: 500, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ticket.subject}</span>
@@ -136,7 +136,7 @@ export default function TicketsPage() {
                     {sla === 'expired' && <span style={{ background: '#FEF2F2', color: '#991B1B', fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99 }}>SLA expirado</span>}
                     {sla === 'warning' && <span style={{ background: '#FFF7ED', color: '#92400E', fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 99 }}>SLA &lt;2h</span>}
                   </div>
-                  <p style={{ fontSize: 12, color: '#6B7280' }}>
+                  <p style={{ fontSize: 12, color: 'var(--fg-secondary)' }}>
                     <span style={{ color: ps.text, fontWeight: 600 }}>{ps.label}</span>
                     {' · '}{ticket.customerName} &lt;{ticket.customerEmail}&gt;
                     {' · '}{new Date(ticket.createdAt).toLocaleDateString('pt-BR')}
