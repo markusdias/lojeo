@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { Icon } from '../../../components/ui/icon';
 import { useCart } from '../../../components/cart/cart-provider';
@@ -90,6 +90,8 @@ export function PDPClient({ product, variants, images, urgency, viewersNow, tota
   const [selectedVariantId, setSelectedVariantId] = useState(variants[0]?.id ?? '');
   const { addItem } = useCart();
   const tracker = useTracker();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrolledDepths = useRef<Set<number>>(new Set());
 
   const selectedVariant = variants.find(v => v.id === selectedVariantId) ?? variants[0];
   const effectivePrice = selectedVariant?.priceCents ?? product.priceCents;
@@ -108,6 +110,47 @@ export function PDPClient({ product, variants, images, urgency, viewersNow, tota
       type: 'product_view',
       entityType: 'product',
       entityId: product.id,
+    });
+  }, [product.id, tracker]);
+
+  // Track product_scroll at 25/50/75/100% depth
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || !tracker) return;
+    const THRESHOLDS = [0.25, 0.5, 0.75, 1.0];
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          THRESHOLDS.forEach(t => {
+            const pct = Math.round(t * 100);
+            if (entry.intersectionRatio >= t && !scrolledDepths.current.has(pct)) {
+              scrolledDepths.current.add(pct);
+              tracker.track({
+                type: 'product_scroll',
+                entityType: 'product',
+                entityId: product.id,
+                metadata: { depth_pct: pct },
+              });
+            }
+          });
+        });
+      },
+      { threshold: THRESHOLDS }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [product.id, tracker]);
+
+  const handleGalleryThumb = useCallback((idx: number) => {
+    setImgIdx(idx);
+    if (idx === 0) {
+      tracker?.track({ type: 'gallery_open', entityType: 'product', entityId: product.id });
+    }
+    tracker?.track({
+      type: 'gallery_image_index',
+      entityType: 'product',
+      entityId: product.id,
+      metadata: { index: idx },
     });
   }, [product.id, tracker]);
 
@@ -135,7 +178,7 @@ export function PDPClient({ product, variants, images, urgency, viewersNow, tota
   const customFields = product.customFields;
 
   return (
-    <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '32px var(--container-pad) 80px' }}>
+    <div ref={scrollRef} style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '32px var(--container-pad) 80px' }}>
       {/* Breadcrumbs */}
       <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 32, display: 'flex', gap: 8 }}>
         <Link href="/" style={{ color: 'var(--text-muted)' }}>Home</Link>
@@ -153,7 +196,7 @@ export function PDPClient({ product, variants, images, urgency, viewersNow, tota
             {(images.length > 0 ? images : [null, null, null, null]).map((img, i) => (
               <button
                 key={i}
-                onClick={() => setImgIdx(i)}
+                onClick={() => handleGalleryThumb(i)}
                 style={{
                   aspectRatio: '1/1', borderRadius: 4, overflow: 'hidden',
                   border: `1.5px solid ${imgIdx === i ? 'var(--text-primary)' : 'var(--divider)'}`,
@@ -170,10 +213,14 @@ export function PDPClient({ product, variants, images, urgency, viewersNow, tota
           </div>
 
           {/* Main image */}
-          <div style={{
-            aspectRatio: '3/4', borderRadius: 8, overflow: 'hidden',
-            background: 'var(--surface-sunken)', position: 'relative',
-          }}>
+          <div
+            style={{
+              aspectRatio: '3/4', borderRadius: 8, overflow: 'hidden',
+              background: 'var(--surface-sunken)', position: 'relative',
+              cursor: images[imgIdx] ? 'zoom-in' : 'default',
+            }}
+            onClick={() => images[imgIdx] && tracker?.track({ type: 'gallery_open', entityType: 'product', entityId: product.id })}
+          >
             {images[imgIdx] ? (
               <img
                 src={images[imgIdx]!.url}

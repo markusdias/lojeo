@@ -72,37 +72,59 @@ export default async function PDPPage({ params }: PDPProps) {
   if (totalStock > 0 && totalStock <= LOW_STOCK_THRESHOLD) urgency = 'low-stock';
   else if (viewersNow >= URGENCY_THRESHOLD) urgency = 'viewing';
 
+  const primaryImage = images[0];
+  const jsonLdData = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    description: product.description ?? undefined,
+    sku: product.slug,
+    image: primaryImage?.url,
+    offers: {
+      '@type': 'Offer',
+      priceCurrency: tpl.currency,
+      price: (product.priceCents / 100).toFixed(2),
+      availability: totalStock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+      url: `${process.env.STOREFRONT_URL ?? ''}/produtos/${product.slug}`,
+    },
+  };
+  // Escape </script> to prevent premature script closing — all data comes from our own DB
+  const safeJsonLd = JSON.stringify(jsonLdData).replace(/<\/script>/gi, '<\\/script>');
+
   return (
-    <PDPClient
-      product={{
-        id: product.id,
-        name: product.name,
-        slug: product.slug,
-        description: product.description,
-        priceCents: product.priceCents,
-        comparePriceCents: product.comparePriceCents,
-        warrantyMonths: product.warrantyMonths ?? 12,
-        customFields: product.customFields as Record<string, unknown>,
-        seoTitle: product.seoTitle,
-      }}
-      variants={variants.map(v => ({
-        id: v.id,
-        sku: v.sku,
-        name: v.name,
-        priceCents: v.priceCents,
-        stockQty: v.stockQty,
-        optionValues: v.optionValues as Record<string, unknown>,
-      }))}
-      images={images.map(img => ({
-        id: img.id,
-        url: img.url,
-        altText: img.altText,
-        position: img.position,
-      }))}
-      urgency={urgency}
-      viewersNow={viewersNow}
-      totalStock={totalStock}
-      currency={tpl.currency}
-    />
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd }} />
+      <PDPClient
+        product={{
+          id: product.id,
+          name: product.name,
+          slug: product.slug,
+          description: product.description,
+          priceCents: product.priceCents,
+          comparePriceCents: product.comparePriceCents,
+          warrantyMonths: product.warrantyMonths ?? 12,
+          customFields: product.customFields as Record<string, unknown>,
+          seoTitle: product.seoTitle,
+        }}
+        variants={variants.map(v => ({
+          id: v.id,
+          sku: v.sku,
+          name: v.name,
+          priceCents: v.priceCents,
+          stockQty: v.stockQty,
+          optionValues: v.optionValues as Record<string, unknown>,
+        }))}
+        images={images.map(img => ({
+          id: img.id,
+          url: img.url,
+          altText: img.altText,
+          position: img.position,
+        }))}
+        urgency={urgency}
+        viewersNow={viewersNow}
+        totalStock={totalStock}
+        currency={tpl.currency}
+      />
+    </>
   );
 }

@@ -26,7 +26,22 @@ export function TrackerProvider({ children, tenantId, endpoint }: TrackerProvide
     const tracker = trackerRef.current;
     if (!tracker) return;
     tracker.track({ type: 'page_view', entityType: 'page', entityId: window.location.pathname });
-  }, []);
+
+    // Track external referrer once per session
+    const ref = document.referrer;
+    if (ref && new URL(ref).hostname !== window.location.hostname) {
+      const key = `lojeo_ext_ref_${tenantId}`;
+      if (!sessionStorage.getItem(key)) {
+        sessionStorage.setItem(key, '1');
+        tracker.track({
+          type: 'external_referrer',
+          entityType: 'page',
+          entityId: window.location.pathname,
+          metadata: { referrer: ref },
+        });
+      }
+    }
+  }, [tenantId]);
 
   return <TrackerCtx.Provider value={trackerRef.current}>{children}</TrackerCtx.Provider>;
 }
