@@ -377,6 +377,22 @@ export async function POST(req: NextRequest) {
     `);
     results.push('user_two_factor: ok');
 
+    // Sprint 11 — recommendation_overrides (pin/exclude manual de recomendações por PDP)
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS recommendation_overrides (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL,
+        product_id uuid NOT NULL,
+        recommended_product_id uuid NOT NULL,
+        override_type varchar(20) NOT NULL,
+        created_at timestamptz DEFAULT now() NOT NULL,
+        updated_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_rec_overrides_tenant_product ON recommendation_overrides(tenant_id, product_id)`);
+    await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS uniq_rec_overrides_tenant_product_target ON recommendation_overrides(tenant_id, product_id, recommended_product_id)`);
+    results.push('recommendation_overrides: ok');
+
     return NextResponse.json({ ok: true, results });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

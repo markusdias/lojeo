@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { eq, and, gte, inArray } from 'drizzle-orm';
-import { db, orders, orderItems, productVariants, products } from '@lojeo/db';
+import {
+  db,
+  orders,
+  orderItems,
+  productVariants,
+  products,
+  recommendationOverrides,
+} from '@lojeo/db';
 import { computeFrequentPairs, topPairsForProduct, type Order } from '@lojeo/engine';
 
 export const dynamic = 'force-dynamic';
@@ -75,13 +82,54 @@ export async function GET(req: NextRequest) {
     cachedPairs = { computedAt: now, pairs: computeFrequentPairs(ordersList, 2) };
   }
 
-  const pairs = topPairsForProduct(cachedPairs.pairs, productId, limit);
-  if (pairs.length === 0) {
+  // Carrega overrides manuais (Sprint 11) — pin/exclude por produto fonte
+  const overrideRows = await db
+    .select({
+      recommendedProductId: recommendationOverrides.recommendedProductId,
+      overrideType: recommendationOverrides.overrideType,
+    })
+    .from(recommendationOverrides)
+    .where(and(
+      eq(recommendationOverrides.tenantId, TENANT_ID),
+      eq(recommendationOverrides.productId, productId),
+    ));
+
+  const pinnedIds = overrideRows
+    .filter((o) => o.overrideType === 'pin')
+    .map((o) => o.recommendedProductId);
+  const excludedIds = new Set(
+    overrideRows.filter((o) => o.overrideType === 'exclude').map((o) => o.recommendedProductId),
+  );
+
+  // FBT pairs do engine (busca ampliada para sobrar margem após excludes/dedup com pinned)
+  const allPairs = topPairsForProduct(
+    cachedPairs.pairs,
+    productId,
+    Math.max(limit * 2, limit + pinnedIds.length),
+  );
+  const filteredPairs = allPairs.filter((p) => !excludedIds.has(p.recommendedProductId));
+
+  // Recommended IDs finais: pinned no topo, depois FBT filtrado, dedup, respeitando limit
+  const seen = new Set<string>();
+  const orderedIds: string[] = [];
+  for (const id of pinnedIds) {
+    if (id === productId || excludedIds.has(id) || seen.has(id)) continue;
+    seen.add(id);
+    orderedIds.push(id);
+    if (orderedIds.length >= limit) break;
+  }
+  for (const p of filteredPairs) {
+    if (orderedIds.length >= limit) break;
+    if (seen.has(p.recommendedProductId)) continue;
+    seen.add(p.recommendedProductId);
+    orderedIds.push(p.recommendedProductId);
+  }
+
+  if (orderedIds.length === 0) {
     return NextResponse.json({ products: [], reason: 'insufficient_data' });
   }
 
-  // Resolve product details
-  const recommendedIds = pairs.map(p => p.recommendedProductId);
+  // Resolve product details (active only)
   const productRows = await db
     .select({
       id: products.id,
@@ -93,23 +141,27 @@ export async function GET(req: NextRequest) {
     .where(and(
       eq(products.tenantId, TENANT_ID),
       eq(products.status, 'active'),
-      inArray(products.id, recommendedIds),
+      inArray(products.id, orderedIds),
     ));
 
-  const byId = new Map(productRows.map(p => [p.id, p]));
+  const byId = new Map(productRows.map((p) => [p.id, p]));
+  const pairsById = new Map(filteredPairs.map((p) => [p.recommendedProductId, p]));
+  const pinnedSet = new Set(pinnedIds);
 
-  const enriched = pairs
-    .map(p => {
-      const prod = byId.get(p.recommendedProductId);
+  const enriched = orderedIds
+    .map((id) => {
+      const prod = byId.get(id);
       if (!prod) return null;
+      const pair = pairsById.get(id);
       return {
         productId: prod.id,
         name: prod.name,
         slug: prod.slug,
         priceCents: prod.priceCents,
-        cooccurrence: p.cooccurrence,
-        confidence: Number(p.confidence.toFixed(3)),
-        lift: Number(p.lift.toFixed(2)),
+        cooccurrence: pair?.cooccurrence ?? 0,
+        confidence: pair ? Number(pair.confidence.toFixed(3)) : 0,
+        lift: pair ? Number(pair.lift.toFixed(2)) : 0,
+        pinned: pinnedSet.has(id),
       };
     })
     .filter(Boolean);
