@@ -1,0 +1,214 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useCheckout } from '../../../components/checkout/checkout-provider';
+import { useCart } from '../../../components/cart/cart-provider';
+import { useTracker } from '../../../components/tracker-provider';
+import { CheckoutSummary } from '../../../components/checkout/checkout-summary';
+import { Icon } from '../../../components/ui/icon';
+
+const CURRENCY = 'BRL';
+const FREE_SHIPPING_ABOVE = 50000;
+
+function fmt(cents: number) {
+  return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: CURRENCY });
+}
+
+export default function PagamentoPage() {
+  const router = useRouter();
+  const { state, setPaymentMethod, setOrder, setStep, reset } = useCheckout();
+  const { subtotalCents, items, clear } = useCart();
+  const tracker = useTracker();
+  const [method, setMethod] = useState<'pix' | 'credit_card' | 'boleto'>(state.paymentMethod ?? 'pix');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!state.address.postalCode || !state.shipping) {
+      router.push('/checkout/endereco');
+      return;
+    }
+    tracker?.track({ type: 'checkout_step_start', entityType: 'checkout', entityId: 'pagamento', metadata: { step: 3 } });
+  }, [state.address.postalCode, state.shipping, router, tracker]);
+
+  if (!state.address.postalCode || !state.shipping) return null;
+
+  const freeShipping = subtotalCents >= FREE_SHIPPING_ABOVE;
+  const shippingCents = freeShipping ? 0 : (state.shipping?.priceCents ?? 0);
+  const totalCents = subtotalCents + shippingCents;
+
+  const METHODS = [
+    {
+      id: 'pix' as const,
+      label: 'Pix',
+      icon: '◉',
+      desc: 'Pagamento instantâneo. QR code gerado após confirmar.',
+      badge: '5% de desconto',
+    },
+    {
+      id: 'credit_card' as const,
+      label: 'Cartão de crédito',
+      icon: '◈',
+      desc: 'Em até 6× sem juros. Dados tokenizados via Mercado Pago.',
+      badge: null,
+    },
+    {
+      id: 'boleto' as const,
+      label: 'Boleto bancário',
+      icon: '▣',
+      desc: 'Vence em 3 dias úteis. Confirmação em até 2 dias úteis.',
+      badge: null,
+    },
+  ];
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setPaymentMethod(method);
+
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: items.map(i => ({
+            variantId: i.variantId,
+            productName: i.name,
+            variantName: Object.values(i.options ?? {}).join(' / ') || null,
+            sku: null,
+            imageUrl: i.imageUrl,
+            options: i.options ?? {},
+            unitPriceCents: i.priceCents,
+            qty: i.qty,
+          })),
+          shippingAddress: state.address,
+          shipping: state.shipping,
+          paymentMethod: method,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Erro ao criar pedido');
+
+      setOrder(data.orderId, data.orderNumber);
+      setStep('confirmacao');
+      clear();
+      tracker?.track({ type: 'checkout_step_complete', entityType: 'checkout', entityId: 'pagamento', metadata: { step: 3, method } });
+      router.push('/checkout/confirmacao');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro desconhecido');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 64, alignItems: 'start' }}>
+      <form onSubmit={handleSubmit}>
+        <h2 style={{ marginBottom: 32, fontSize: 22 }}>Forma de pagamento</h2>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32 }}>
+          {METHODS.map(m => (
+            <label
+              key={m.id}
+              style={{
+                display: 'flex', alignItems: 'flex-start', gap: 16,
+                padding: '16px 20px', borderRadius: 8, cursor: 'pointer',
+                border: `1.5px solid ${method === m.id ? 'var(--text-primary)' : 'var(--divider)'}`,
+                background: method === m.id ? 'var(--surface-sunken)' : 'var(--surface)',
+              }}
+            >
+              <input
+                type="radio"
+                name="payment"
+                value={m.id}
+                checked={method === m.id}
+                onChange={() => setMethod(m.id)}
+                style={{ accentColor: 'var(--accent)', marginTop: 2, flexShrink: 0 }}
+              />
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 16, color: 'var(--accent)' }}>{m.icon}</span>
+                  <span style={{ fontSize: 14, fontWeight: 500 }}>{m.label}</span>
+                  {m.badge && (
+                    <span style={{
+                      fontSize: 11, padding: '2px 8px', borderRadius: 99,
+                      background: 'var(--accent-soft)', color: 'var(--accent)', fontWeight: 600,
+                    }}>
+                      {m.badge}
+                    </span>
+                  )}
+                </div>
+                <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-muted)' }}>{m.desc}</p>
+              </div>
+            </label>
+          ))}
+        </div>
+
+        {/* Pix discount info */}
+        {method === 'pix' && (
+          <div style={{
+            padding: '12px 16px', background: 'var(--accent-soft)',
+            borderRadius: 4, marginBottom: 24, fontSize: 13, color: 'var(--accent)',
+            display: 'flex', gap: 8, alignItems: 'center',
+          }}>
+            <Icon name="info" size={14} style={{ flexShrink: 0 }} />
+            Desconto de 5% aplicado: total {fmt(Math.round(totalCents * 0.95))}
+          </div>
+        )}
+
+        {/* Trust */}
+        <div style={{ display: 'flex', gap: 20, fontSize: 12, color: 'var(--text-muted)', marginBottom: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Icon name="shield" size={13} style={{ color: 'var(--accent)' }} />
+            Ambiente seguro SSL
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Icon name="shield" size={13} style={{ color: 'var(--accent)' }} />
+            Dados processados por Mercado Pago
+          </div>
+        </div>
+
+        {error && (
+          <div style={{
+            padding: '12px 16px', background: '#FEF2F2', borderRadius: 4,
+            marginBottom: 16, fontSize: 13, color: '#E53E3E',
+          }}>
+            {error}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 12 }}>
+          <button
+            type="button"
+            onClick={() => router.push('/checkout/frete')}
+            style={{
+              padding: '14px 24px', fontSize: 14, borderRadius: 8, cursor: 'pointer',
+              background: 'transparent', color: 'var(--text-secondary)',
+              border: '1px solid var(--divider)',
+            }}
+          >
+            ← Voltar
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              flex: 1, padding: '14px 24px', fontSize: 14, fontWeight: 500,
+              background: loading ? 'var(--divider)' : 'var(--text-primary)',
+              color: loading ? 'var(--text-muted)' : 'var(--text-on-dark)',
+              border: 'none', borderRadius: 8,
+              cursor: loading ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {loading ? 'Processando…' : `Confirmar pedido · ${fmt(method === 'pix' ? Math.round(totalCents * 0.95) : totalCents)}`}
+          </button>
+        </div>
+      </form>
+
+      <CheckoutSummary subtotalCents={subtotalCents} shippingCents={shippingCents} />
+    </div>
+  );
+}
