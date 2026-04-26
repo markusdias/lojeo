@@ -359,3 +359,59 @@ describe('file signature validation', () => {
     expect(detectImageMime(Buffer.from([0xFF]))).toBeNull();
   });
 });
+
+import { computeCustomerLtv, computeLtvBatch, type OrderForLtv } from './customer-ltv';
+
+describe('customer LTV', () => {
+  const now = new Date('2026-04-26T00:00:00Z');
+  const daysAgo = (n: number) => new Date(now.getTime() - n * 86_400_000);
+
+  it('retorna null se orders vazias', () => {
+    expect(computeCustomerLtv([], 'a@test.com', now)).toBeNull();
+    expect(computeCustomerLtv(
+      [{ email: 'b@test.com', totalCents: 1000, createdAt: now, status: 'paid' }],
+      'a@test.com',
+      now,
+    )).toBeNull();
+  });
+
+  it('calcula totalCents + orderCount + avgOrderCents corretamente', () => {
+    const orders: OrderForLtv[] = [
+      { email: 'a@test.com', totalCents: 10_000, createdAt: daysAgo(60), status: 'paid' },
+      { email: 'a@test.com', totalCents: 20_000, createdAt: daysAgo(30), status: 'delivered' },
+      { email: 'a@test.com', totalCents: 30_000, createdAt: daysAgo(10), status: 'shipped' },
+    ];
+    const r = computeCustomerLtv(orders, 'a@test.com', now)!;
+    expect(r.totalCents).toBe(60_000);
+    expect(r.orderCount).toBe(3);
+    expect(r.avgOrderCents).toBe(20_000);
+    expect(r.ltvUsd).toBeCloseTo(120); // 60_000 cents = 600 BRL / 5 = 120 USD
+    expect(r.daysActive).toBe(50);
+    expect(r.expectedLifetimeMonths).toBeGreaterThanOrEqual(12); // recente: maxClause
+  });
+
+  it('ignora orders cancelled', () => {
+    const orders: OrderForLtv[] = [
+      { email: 'a@test.com', totalCents: 10_000, createdAt: daysAgo(60), status: 'paid' },
+      { email: 'a@test.com', totalCents: 99_999, createdAt: daysAgo(30), status: 'cancelled' },
+      { email: 'a@test.com', totalCents: 20_000, createdAt: daysAgo(10), status: 'delivered' },
+    ];
+    const r = computeCustomerLtv(orders, 'a@test.com', now)!;
+    expect(r.totalCents).toBe(30_000);
+    expect(r.orderCount).toBe(2);
+  });
+
+  it('computeLtvBatch agrupa por email', () => {
+    const orders: OrderForLtv[] = [
+      { email: 'a@test.com', totalCents: 10_000, createdAt: daysAgo(60), status: 'paid' },
+      { email: 'a@test.com', totalCents: 20_000, createdAt: daysAgo(10), status: 'paid' },
+      { email: 'b@test.com', totalCents: 50_000, createdAt: daysAgo(20), status: 'paid' },
+      { email: 'c@test.com', totalCents: 99_999, createdAt: daysAgo(5), status: 'cancelled' },
+    ];
+    const batch = computeLtvBatch(orders, now);
+    expect(batch).toHaveLength(2); // c apenas tem cancelled → ignorado
+    expect(batch[0]?.email).toBe('b@test.com'); // ordem desc por totalCents
+    expect(batch[1]?.email).toBe('a@test.com');
+    expect(batch[1]?.totalCents).toBe(30_000);
+  });
+});

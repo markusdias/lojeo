@@ -9,3 +9,4 @@ export * from './inventory-forecast';
 export * from './warranty';
 export * from './market-basket';
 export * from './file-signature';
+export * from './customer-ltv';

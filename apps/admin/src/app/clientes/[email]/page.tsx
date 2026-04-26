@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { db, orders } from '@lojeo/db';
 import { eq, and, not, desc } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
-import { scoreCustomers, SEGMENT_LABELS } from '@lojeo/engine';
+import { scoreCustomers, SEGMENT_LABELS, computeCustomerLtv, type OrderForLtv } from '@lojeo/engine';
 
 const TENANT_ID = process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
 
@@ -65,6 +65,28 @@ export default async function ClienteProfilePage({
     .where(and(eq(orders.tenantId, TENANT_ID), eq(orders.customerEmail, email)))
     .orderBy(desc(orders.createdAt))
     .limit(10);
+
+  // LTV (todos os pedidos não-cancelados)
+  const ltvRows = await db
+    .select({
+      customerEmail: orders.customerEmail,
+      totalCents: orders.totalCents,
+      createdAt: orders.createdAt,
+      status: orders.status,
+    })
+    .from(orders)
+    .where(and(eq(orders.tenantId, TENANT_ID), eq(orders.customerEmail, email)));
+
+  const ltvInput: OrderForLtv[] = ltvRows.map(r => ({
+    email: r.customerEmail ?? '',
+    totalCents: r.totalCents ?? 0,
+    createdAt: new Date(r.createdAt),
+    status: r.status ?? 'pending',
+  }));
+  const ltv = computeCustomerLtv(ltvInput, email);
+  const ltvProjectedCents = ltv
+    ? Math.round(ltv.avgOrderCents * (ltv.expectedLifetimeMonths / 3))
+    : 0;
 
   const STATUS_LABELS: Record<string, string> = {
     pending: 'Pendente', paid: 'Pago', processing: 'Processando',
@@ -130,6 +152,30 @@ export default async function ClienteProfilePage({
           ))}
         </div>
       </div>
+
+      {/* LTV / CLV */}
+      {ltv && (
+        <div style={{ marginBottom: 32, background: '#111827', border: '1px solid #1f2937', borderRadius: 8, padding: '16px 20px' }}>
+          <p style={{ fontSize: 12, color: '#6b7280', marginBottom: 12 }}>LTV / Customer Lifetime Value</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16 }}>
+            {[
+              { label: 'Total gasto', value: fmt(ltv.totalCents) },
+              { label: 'Pedidos', value: String(ltv.orderCount) },
+              { label: 'Ticket médio', value: fmt(ltv.avgOrderCents) },
+              { label: 'LTV projetado', value: fmt(ltvProjectedCents) },
+              { label: 'Tempo ativo', value: `${ltv.expectedLifetimeMonths}m` },
+            ].map(s => (
+              <div key={s.label}>
+                <p style={{ fontSize: 11, color: '#9ca3af', marginBottom: 4 }}>{s.label}</p>
+                <p style={{ fontSize: 15, fontWeight: 600, color: '#f9fafb' }}>{s.value}</p>
+              </div>
+            ))}
+          </div>
+          <p style={{ fontSize: 11, color: '#6b7280', marginTop: 12 }}>
+            LTV em USD: ${ltv.ltvUsd.toLocaleString('en-US', { minimumFractionDigits: 2 })} · Janela ativa: {ltv.daysActive} dias
+          </p>
+        </div>
+      )}
 
       {/* Orders */}
       <h2 style={{ fontSize: 15, fontWeight: 600, color: '#e5e7eb', marginBottom: 12 }}>Pedidos</h2>
