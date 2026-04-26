@@ -87,88 +87,135 @@ export default async function PedidosPage({ searchParams }: PageProps) {
 
   return (
     <main style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }} className="min-h-screen space-y-6">
-      <header className="flex items-center justify-between">
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
         <div>
           <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginBottom: 'var(--space-2)' }}>Pedidos</h1>
-          <p className="text-sm text-neutral-500">{totalOrders} pedidos · {fmt(totalRevenue)} nos últimos {days} dias</p>
+          <p className="body-s">{totalOrders} pedidos · {fmt(totalRevenue)} nos últimos {days} dias</p>
         </div>
-        <nav className="flex gap-3 text-sm">
-          <Link href="/dashboard" className="text-neutral-500 hover:text-neutral-900">Dashboard</Link>
-          <Link href="/products" className="text-neutral-500 hover:text-neutral-900">Produtos</Link>
-        </nav>
+        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+          {[7, 14, 30, 90].map(d => (
+            <Link
+              key={d}
+              href={filterUrl({ days: String(d) })}
+              className={days === d ? 'lj-btn-primary' : 'lj-btn-secondary'}
+              style={{ textDecoration: 'none' }}
+            >
+              {d}d
+            </Link>
+          ))}
+        </div>
       </header>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-6 gap-3">
-        {validStatuses.map(s => (
-          <Link
-            key={s}
-            href={filterUrl({ status: statusFilter === s ? '' : s })}
-            className={`bg-white rounded-lg shadow p-4 border-l-4 ${statusFilter === s ? 'ring-2 ring-blue-500' : ''}`}
-            style={{ borderLeftColor: STATUS_COLOR[s] }}
-          >
-            <p className="text-xs text-neutral-500 truncate">{STATUS_LABEL[s]}</p>
-            <p className="text-2xl font-semibold mt-1">{statusCounts[s]}</p>
-          </Link>
-        ))}
-      </div>
-
-      {/* Filters */}
-      <div className="flex gap-3 items-center">
-        <span className="text-sm text-neutral-600">Período:</span>
-        {[7, 14, 30, 90].map(d => (
-          <Link
-            key={d}
-            href={filterUrl({ days: String(d) })}
-            className={`text-sm px-3 py-1 rounded ${days === d ? 'bg-neutral-900 text-white' : 'bg-white text-neutral-700 border'}`}
-          >
-            {d}d
-          </Link>
-        ))}
+      {/* Status pill filter chips */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+        <Link
+          href={filterUrl({ status: '' })}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
+            padding: '6px 12px',
+            borderRadius: 'var(--radius-full)',
+            fontSize: 'var(--text-body-s)',
+            fontWeight: 'var(--w-medium)',
+            textDecoration: 'none',
+            background: !statusFilter ? 'var(--neutral-900)' : 'var(--bg-elevated)',
+            color: !statusFilter ? 'var(--surface)' : 'var(--fg)',
+            border: !statusFilter ? '1px solid var(--neutral-900)' : '1px solid var(--border-strong)',
+          }}
+        >
+          Todos <span className="numeric" style={{ color: !statusFilter ? 'var(--surface)' : 'var(--fg-secondary)', fontWeight: 'var(--w-regular)' }}>{totalOrders}</span>
+        </Link>
+        {validStatuses.map(s => {
+          const active = statusFilter === s;
+          return (
+            <Link
+              key={s}
+              href={filterUrl({ status: active ? '' : s })}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 'var(--space-2)',
+                padding: '6px 12px',
+                borderRadius: 'var(--radius-full)',
+                fontSize: 'var(--text-body-s)',
+                fontWeight: 'var(--w-medium)',
+                textDecoration: 'none',
+                background: active ? 'var(--neutral-900)' : 'var(--bg-elevated)',
+                color: active ? 'var(--surface)' : 'var(--fg)',
+                border: active ? '1px solid var(--neutral-900)' : '1px solid var(--border-strong)',
+              }}
+            >
+              <span aria-hidden style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: STATUS_COLOR[s],
+                display: 'inline-block',
+              }} />
+              {STATUS_LABEL[s]}
+              <span className="numeric" style={{ color: active ? 'var(--surface)' : 'var(--fg-secondary)', fontWeight: 'var(--w-regular)' }}>
+                {statusCounts[s]}
+              </span>
+            </Link>
+          );
+        })}
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-neutral-50 border-b">
-            <tr>
-              <th className="text-left px-4 py-3 font-medium text-neutral-700">Nº Pedido</th>
-              <th className="text-left px-4 py-3 font-medium text-neutral-700">Data</th>
-              <th className="text-left px-4 py-3 font-medium text-neutral-700">Destinatário</th>
-              <th className="text-left px-4 py-3 font-medium text-neutral-700">Pagamento</th>
-              <th className="text-right px-4 py-3 font-medium text-neutral-700">Total</th>
-              <th className="text-left px-4 py-3 font-medium text-neutral-700">Status</th>
-              <th className="px-4 py-3" />
+      <div className="lj-card" style={{ overflow: 'hidden' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-body-s)' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-subtle)' }}>
+              <th style={{ textAlign: 'left', padding: 'var(--space-3) var(--space-4)', fontWeight: 'var(--w-medium)', color: 'var(--fg-secondary)' }}>Nº Pedido</th>
+              <th style={{ textAlign: 'left', padding: 'var(--space-3) var(--space-4)', fontWeight: 'var(--w-medium)', color: 'var(--fg-secondary)' }}>Data</th>
+              <th style={{ textAlign: 'left', padding: 'var(--space-3) var(--space-4)', fontWeight: 'var(--w-medium)', color: 'var(--fg-secondary)' }}>Destinatário</th>
+              <th style={{ textAlign: 'left', padding: 'var(--space-3) var(--space-4)', fontWeight: 'var(--w-medium)', color: 'var(--fg-secondary)' }}>Pagamento</th>
+              <th style={{ textAlign: 'right', padding: 'var(--space-3) var(--space-4)', fontWeight: 'var(--w-medium)', color: 'var(--fg-secondary)' }}>Total</th>
+              <th style={{ textAlign: 'left', padding: 'var(--space-3) var(--space-4)', fontWeight: 'var(--w-medium)', color: 'var(--fg-secondary)' }}>Status</th>
+              <th style={{ padding: 'var(--space-3) var(--space-4)' }} />
             </tr>
           </thead>
-          <tbody className="divide-y divide-neutral-100">
+          <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="text-center py-16 text-neutral-400">Nenhum pedido encontrado.</td>
+                <td colSpan={7} style={{ textAlign: 'center', padding: 'var(--space-12)', color: 'var(--fg-secondary)' }}>
+                  Nenhum pedido encontrado.
+                </td>
               </tr>
             )}
             {rows.map(o => {
               const addr = o.shippingAddress as Record<string, string> | null;
               const recipient = addr?.recipientName ?? '—';
               return (
-                <tr key={o.id} className="hover:bg-neutral-50">
-                  <td className="px-4 py-3 font-mono font-medium">{o.orderNumber}</td>
-                  <td className="px-4 py-3 text-neutral-600">
+                <tr key={o.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td className="mono" style={{ padding: 'var(--space-3) var(--space-4)', fontWeight: 'var(--w-medium)' }}>{o.orderNumber}</td>
+                  <td className="numeric" style={{ padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)' }}>
                     {new Date(o.createdAt!).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
                   </td>
-                  <td className="px-4 py-3 truncate max-w-[180px]">{recipient}</td>
-                  <td className="px-4 py-3 text-neutral-600 uppercase text-xs">{o.paymentMethod?.replace('_', ' ')}</td>
-                  <td className="px-4 py-3 text-right font-medium">{fmt(o.totalCents ?? 0)}</td>
-                  <td className="px-4 py-3">
+                  <td style={{ padding: 'var(--space-3) var(--space-4)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{recipient}</td>
+                  <td style={{ padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)', textTransform: 'uppercase', fontSize: 'var(--text-caption)' }}>{o.paymentMethod?.replace('_', ' ')}</td>
+                  <td className="numeric" style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right', fontWeight: 'var(--w-medium)' }}>{fmt(o.totalCents ?? 0)}</td>
+                  <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
                     <span
-                      className="text-xs px-2 py-1 rounded-full font-medium"
-                      style={{ background: STATUS_COLOR[o.status ?? 'pending'] + '20', color: STATUS_COLOR[o.status ?? 'pending'] }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        padding: '2px 8px',
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: 'var(--text-caption)',
+                        fontWeight: 'var(--w-medium)',
+                        background: STATUS_COLOR[o.status ?? 'pending'] + '20',
+                        color: STATUS_COLOR[o.status ?? 'pending'],
+                      }}
                     >
+                      <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: STATUS_COLOR[o.status ?? 'pending'] }} />
                       {STATUS_LABEL[o.status ?? 'pending']}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
-                    <Link href={`/pedidos/${o.id}`} className="text-blue-600 hover:underline text-xs">Ver</Link>
+                  <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
+                    <Link href={`/pedidos/${o.id}`} style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: 'var(--text-caption)', fontWeight: 'var(--w-medium)' }}>Ver →</Link>
                   </td>
                 </tr>
               );
@@ -179,15 +226,15 @@ export default async function PedidosPage({ searchParams }: PageProps) {
 
       {/* Pagination */}
       {pages > 1 && (
-        <div className="flex gap-2 justify-center">
+        <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'center', alignItems: 'center' }}>
           {page > 1 && (
-            <Link href={filterUrl({ page: String(page - 1) })} className="px-3 py-1 border rounded text-sm hover:bg-neutral-50">
+            <Link href={filterUrl({ page: String(page - 1) })} className="lj-btn-secondary" style={{ textDecoration: 'none' }}>
               ← Anterior
             </Link>
           )}
-          <span className="px-3 py-1 text-sm text-neutral-600">{page} / {pages}</span>
+          <span className="caption" style={{ padding: '0 var(--space-3)' }}>{page} / {pages}</span>
           {page < pages && (
-            <Link href={filterUrl({ page: String(page + 1) })} className="px-3 py-1 border rounded text-sm hover:bg-neutral-50">
+            <Link href={filterUrl({ page: String(page + 1) })} className="lj-btn-secondary" style={{ textDecoration: 'none' }}>
               Próxima →
             </Link>
           )}
