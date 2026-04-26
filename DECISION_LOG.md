@@ -739,3 +739,83 @@ Decisões técnicas relevantes registradas com data e justificativa.
 - Recuperação carrinho abandonado — bloqueado Trigger.dev
 
 **Sprint 9 declarado fechado** com bloqueadores externos documentados. Próximo sprint sem dependência: Sprint 10 (UGC + moderação) — research-first cumprido em `docs/research/sprint-10-ugc-moderation.md`.
+
+---
+
+## 2026-04-26 — Sprint 10 (UGC) + reconciliation produção + Sprint 13 (LGPD)
+
+**Contexto:** UX testing autônomo com Playwright em prod revelou 2 promessas críticas quebradas (auth guard `/conta/*`, tabela `orders` inexistente em prod). Esta sessão fechou tudo + Sprint 10 (parte não-bloqueada) + LGPD direito de exclusão (Sprint 13 antecipado por valor regulatório).
+
+**Sprint 10 — UGC Galeria + Moderação:**
+
+1. **Schema `ugc_posts`** (`packages/db/src/schema/ugc.ts`): tenant, user (nullable=guest), customer info, image+thumb URLs, status (`pending`/`moderating`/`approved`/`rejected`), source, source_url, products_tagged (jsonb [{productId,x,y,label?}]), ai_moderation_result (jsonb), moderated_by, rejection_reason, approvedAt. 3 indexes + jsonb GIN no @> operator.
+
+2. **APIs storefront:**
+   - `POST /api/ugc` — cliente upload (auth obrigatória), sharp + storage abstrato (full 1600px webp + thumb 400px), status `pending`
+   - `GET /api/ugc` — cliente lista próprios envios (50 últimos)
+   - `GET /api/ugc/gallery` — público, filtra `approved` + opcional `?productId=X` via `products_tagged @> [{productId}]`
+
+3. **APIs admin:**
+   - `GET /api/ugc?status=...` — fila com counts por status
+   - `PATCH /api/ugc/[id]` — aprovar/rejeitar + `productsTagged` array
+   - `DELETE /api/ugc/[id]`
+
+4. **UIs:**
+   - Storefront `/conta/galeria` — upload (file + caption) + grid de envios com status badge
+   - Storefront `/comunidade` — galeria pública agregada
+   - Storefront `<UgcGallery productId>` — componente injetado na PDP entre header e reviews
+   - Admin `/ugc` — fila moderação com filtros (pending/approved/rejected/all), cards com aprovar/rejeitar 1 clique, prompt de motivo
+
+5. **Bloqueadores Sprint 10 confirmados:**
+   - Editor "compre o look" canvas drag — Design Checkpoint C (briefing pendente)
+   - Moderação automática Claude vision — Anthropic key prod (modo degradado = fila 100% manual já funciona)
+   - Email pós-entrega "compartilhe sua experiência" — Resend key
+   - Importação social (IG/TikTok) — Fase 1.2
+
+**Reconciliation produção (CRÍTICO — descoberto via UX testing):**
+
+UX testing revelou que `/pedidos` e `/clientes` retornavam 500 em prod. Root cause: tabela `orders` nunca foi criada em produção (migration 0002 nunca aplicada via `pnpm db:migrate` por causa da impossibilidade de acesso externo ao Postgres EasyPanel). A rota `/api/migrate` que eu havia criado para tickets foi estendida com:
+
+- `CREATE TABLE IF NOT EXISTS` para: `orders`, `order_items`, `order_events`, `customer_addresses`, `chatbot_sessions`, `ugc_posts`
+- `ALTER TABLE ADD COLUMN IF NOT EXISTS` para 11 colunas do schema Drizzle ausentes na CREATE TABLE inicial: `anonymous_id`, `shipping_carrier/service/deadline_days`, `payment_gateway`, `gateway_payment_id/status`, `coupon_discount_cents`, `fraud_score`, `invoice_key/url` + `customer_email`, `is_gift`/`gift_message`/`gift_packaging_cents`
+- 14 indexes adicionados
+
+Após `POST /api/migrate`: 14 operações OK, `/pedidos` recuperado (200, 0 pedidos por enquanto), `/clientes` recuperado, `/chatbot` stats funcionando.
+
+**Sprint 13 — LGPD direito de acesso e exclusão (antecipado):**
+
+Antecipado do Sprint 13 por valor regulatório alto e zero bloqueador externo:
+
+1. **`GET /api/conta`** — exporta dados pessoais em JSON (LGPD art. 18 II — portabilidade): user, orders, addresses, ugcPosts, wishlist, productReviews
+2. **`DELETE /api/conta`** com `confirm: 'EXCLUIR_MINHA_CONTA'`:
+   - Anonimiza `orders.customerEmail` para `deleted-{8chars}@anonymized.lgpd` (mantém pedidos por obrigação fiscal NF-e — guarda 5 anos)
+   - Deleta: `customer_addresses`, `ugc_posts`, `wishlist_items`, `restock_notifications`, `product_reviews`, `behavior_events`, `auth_sessions`
+   - Deleta `users` (cascade FKs auth)
+   - Logout server-side
+3. **UI `/conta/privacidade`** com botão Exportar (download JSON) + seção destacada vermelha de exclusão com:
+   - Lista clara do que é removido vs anonimizado
+   - Campo tipográfico de confirmação (`EXCLUIR_MINHA_CONTA` literal)
+   - Botão desabilitado até match exato
+
+**Decisões técnicas adicionais desta sessão:**
+
+- **Fix `/conta/*` auth guard centralizado em `layout.tsx`.** Antes só `/conta/pedidos` redirecionava — `/conta/enderecos` retornava 200 sem login (vazamento de shell autenticado). Centralizar elimina duplicação em pages filhas.
+- **Telemetria chatbot via upsert por sessionKey.** Tabela 1 linha por sessão com contadores incrementais. Custo storage estável vs append-only.
+- **Migrate route como única forma legítima de aplicar schema em prod.** EasyPanel postgres porta 5433 inacessível externamente → migrate via API admin é o caminho. Idempotente com `CREATE TABLE/INDEX/COLUMN IF NOT EXISTS`.
+
+**Validação UX em produção (anti-alucinação):**
+
+Antes de marcar promessas como concluídas, validei via Playwright nas URLs reais:
+- ✅ Homepage, PLP (filtros + ordenação), PDP fallback, /carrinho, /sobre, /trocas, /privacidade, /termos, /entrar, /colecoes
+- ✅ Admin: dashboard, products, inventory, collections, tickets, tickets/templates, avaliacoes, insights, ia-uso, settings, **chatbot (após fix de error handling), pedidos (após reconciliation), clientes (após migrate orders), ugc**
+- ❌ → ✅ `/conta/enderecos` (auth guard fixed), `/pedidos` + `/clientes` (orders schema reconciled), `/chatbot` (error handling)
+- ⏳ Pendente validação manual: `/conta/galeria`, `/comunidade`, `/conta/privacidade` (deploy storefront em andamento)
+
+**Estado declarado:**
+- Sprint 9 fechado com bloqueadores documentados
+- Sprint 10 50% entregue (galeria UGC + moderação básica + comunidade); 50% bloqueado (Design C, Anthropic key, Resend, Trigger.dev)
+- Sprint 13 LGPD exclusão entregue (1 de 18 itens) — resto bloqueado por integrações ou Trigger.dev
+- 56 testes verdes, zero regressão
+- 11 commits atômicos nesta sessão
+
+**Próximo ciclo de trabalho sem bloqueador:** continuar Sprint 13 (status page pública, lazy loading imagens UGC, robots.txt configurável Sprint 5, sistema de papéis admin Sprint 5, logs de auditoria Sprint 5), ou aprofundar Sprint 5 admin operacional. Sprint 11 (estúdio criativo + recomendações) e Sprint 12 (busca semântica + pixels) bloqueados por Anthropic key prod e decisões pendentes (provider de imagem, OAuth pixels).

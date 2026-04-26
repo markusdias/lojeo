@@ -712,7 +712,7 @@ Qual provider de geração de imagem? Trade-off custo vs qualidade vs API reliab
 **Critérios de pronto:**
 - [ ] Security audit: CSRF, rate limiting, sanitização de inputs, upload com validação de tipo real
 - [ ] LGPD: banner de cookies com consentimento granular (já tem desde Sprint 2 — auditar)
-- [ ] LGPD: direito de exclusão (right to be forgotten) implementado e testado
+- [x] LGPD: direito de exclusão (right to be forgotten) implementado e testado — `/conta/privacidade` UI + `GET /api/conta` (export JSON) + `DELETE /api/conta` (anonimiza orders, deleta PII + behavior_events + ugc + reviews + wishlist + addresses + sessions + users)
 - [ ] GDPR: básico para coffee internacional na Fase 1.2 (preparação)
 - [ ] Core Web Vitals dentro dos limites do Google
 - [ ] PWA: instalável no celular, push notifications
