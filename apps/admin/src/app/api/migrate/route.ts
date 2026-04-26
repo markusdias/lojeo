@@ -24,11 +24,11 @@ export async function POST(req: NextRequest) {
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS support_tickets (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-        tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+        tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
         user_id uuid,
         customer_name varchar(200) NOT NULL,
         customer_email varchar(300) NOT NULL,
-        order_id uuid REFERENCES orders(id) ON DELETE SET NULL,
+        order_id uuid REFERENCES public.orders(id) ON DELETE SET NULL,
         subject varchar(300) NOT NULL,
         status varchar(20) DEFAULT 'open' NOT NULL,
         priority varchar(20) DEFAULT 'medium' NOT NULL,
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS ticket_messages (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-        ticket_id uuid NOT NULL REFERENCES support_tickets(id) ON DELETE CASCADE,
+        ticket_id uuid NOT NULL REFERENCES public.support_tickets(id) ON DELETE CASCADE,
         user_id uuid,
         sender_type varchar(20) NOT NULL,
         body text NOT NULL,
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS ticket_templates (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-        tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+        tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
         name varchar(200) NOT NULL,
         body text NOT NULL,
         created_at timestamptz DEFAULT now() NOT NULL
