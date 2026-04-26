@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db, orders, orderItems, orderEvents, inventoryStock, coupons, calcCouponDiscountCents } from '@lojeo/db';
 import { eq, and, sql } from 'drizzle-orm';
+import { checkRateLimit, getClientIp } from '../../../lib/rate-limit';
 
 const tenantId = () => process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
 const FREE_SHIPPING_ABOVE = 50000;
@@ -57,6 +58,16 @@ interface CreateOrderBody {
 
 export async function POST(req: Request) {
   try {
+    // Rate limit: 10 pedidos/15min/IP — protege contra fraude e bots
+    const ip = getClientIp(req);
+    const rl = checkRateLimit({ key: `orders:${ip}`, max: 10, windowMs: 15 * 60 * 1000 });
+    if (!rl.ok) {
+      return NextResponse.json(
+        { error: 'Muitos pedidos em curto intervalo. Aguarde alguns minutos.' },
+        { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } },
+      );
+    }
+
     const body: CreateOrderBody = await req.json();
     const tid = tenantId();
 

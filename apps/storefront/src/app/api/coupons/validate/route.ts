@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { eq, and } from 'drizzle-orm';
 import { db, coupons, calcCouponDiscountCents } from '@lojeo/db';
+import { checkRateLimit, getClientIp } from '../../../../lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,16 @@ interface ValidateResponse {
 }
 
 export async function GET(req: Request) {
+  // Rate limit: 60 validações/15min/IP — protege contra brute-force de cupons
+  const ip = getClientIp(req);
+  const rl = checkRateLimit({ key: `coupon-validate:${ip}`, max: 60, windowMs: 15 * 60 * 1000 });
+  if (!rl.ok) {
+    return NextResponse.json<ValidateResponse>(
+      { valid: false, reason: 'rate_limit' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } },
+    );
+  }
+
   const { searchParams } = new URL(req.url);
   const rawCode = searchParams.get('code')?.trim().toUpperCase() ?? '';
   const subtotalParam = Number(searchParams.get('subtotalCents') ?? '0');

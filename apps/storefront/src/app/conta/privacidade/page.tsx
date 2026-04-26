@@ -107,7 +107,7 @@ export default function PrivacidadePage() {
           onClick={handleDelete}
           disabled={deleteLoading || confirmText !== 'EXCLUIR_MINHA_CONTA'}
           style={{
-            background: confirmText === 'EXCLUIR_MINHA_CONTA' ? '#DC2626' : '#9CA3AF',
+            background: confirmText === 'EXCLUIR_MINHA_CONTA' ? 'var(--danger, #B91C1C)' : 'var(--text-muted, #9CA3AF)',
             color: 'white',
             border: 'none',
             borderRadius: 4,
