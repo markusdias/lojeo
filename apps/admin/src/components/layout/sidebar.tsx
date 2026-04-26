@@ -73,6 +73,7 @@ const SECTIONS: NavSection[] = [
   {
     title: 'Loja',
     items: [
+      { href: '/wishlist', label: 'Demanda', icon: <Icon d={I.star} /> },
       { href: '/aparencia', label: 'Aparência', icon: <Icon d={I.palette} /> },
       { href: '/settings', label: 'Configurações', icon: <Icon d={I.gear} /> },
     ],
