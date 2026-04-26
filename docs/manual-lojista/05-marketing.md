@@ -66,3 +66,24 @@ Clientes podem enviar fotos com seus produtos pelo Instagram (com hashtag defini
 > 🚫 **Não faça:** Nunca aprove fotos sem autorização do cliente. O termo de uso do envio cobre isso, mas confira casos sensíveis.
 
 [ver Configurações](./06-configuracoes.md) para gerenciar a hashtag de captura UGC.
+
+## 5.5 Como criar experimento de hero (homepage)
+
+A home da loja já está conectada ao motor de A/B test. Para testar variações do título, subtítulo e botão principal sem mexer em código:
+
+1. Acesse **Marketing > Experiments** e clique em **Novo experimento**.
+2. Em **key** (identificador único), use exatamente: `homepage-hero`.
+3. Adicione 2 ou mais **variantes**, cada uma com um `payload` no formato:
+
+   ```json
+   {
+     "headline": "Peças que ficam para sempre.",
+     "subheadline": "Joalheria contemporânea feita à mão. Ouro 18k com garantia vitalícia.",
+     "cta": { "label": "Explorar coleção", "href": "/produtos" }
+   }
+   ```
+
+4. Defina o **peso** de cada variante (ex.: 50/50) e ative o experimento.
+5. O motor distribui visitantes de forma determinística (mesma sessão sempre vê a mesma variante) e registra automaticamente exposição e cliques no CTA como conversão.
+
+> 💡 **Dica:** Se o experimento estiver inativo ou sem variantes, a home volta ao conteúdo padrão automaticamente — não há risco de quebrar a vitrine.

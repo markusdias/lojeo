@@ -3,6 +3,7 @@ import { db, products, collections } from '@lojeo/db';
 import { eq, and, desc } from 'drizzle-orm';
 import { getActiveTemplate } from '../template';
 import { ProductCard } from '../components/ui/product-card';
+import { HeroExperiment } from '../components/marketing/hero-experiment';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,38 +51,16 @@ export default async function HomePage() {
             position: 'absolute', inset: 0,
             background: 'linear-gradient(90deg, rgba(232,221,201,0.92) 0%, rgba(232,221,201,0.4) 50%, rgba(232,221,201,0) 70%)',
           }} />
-          {/* Content */}
+          {/* Content — A/B test homepage-hero (defaults preservados como fallback quando inativo) */}
           <div style={{
             position: 'absolute', left: 'clamp(24px, 5vw, 80px)',
             top: '50%', transform: 'translateY(-50%)',
-            maxWidth: 560, color: 'var(--text-primary)',
           }}>
-            <p className="eyebrow" style={{ marginBottom: 20 }}>Coleção · Outono &apos;26</p>
-            <h1 style={{ margin: '0 0 20px', lineHeight: 1.05 }}>Peças que ficam.</h1>
-            <p style={{
-              fontSize: 17, color: 'var(--text-secondary)',
-              marginBottom: 32, lineHeight: 1.6, maxWidth: 360,
-            }}>
-              Joalheria contemporânea, finalizada à mão no nosso ateliê. Ouro 18k e prata 925 com garantia de um ano.
-            </p>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <Link href="/produtos" style={{
-                display: 'inline-block', padding: '14px 28px',
-                background: 'var(--text-primary)', color: 'var(--text-on-dark)',
-                fontSize: 14, fontWeight: 500, borderRadius: 8,
-                letterSpacing: '0.02em',
-              }}>
-                Ver coleção
-              </Link>
-              <Link href="/sobre" style={{
-                display: 'inline-block', padding: '14px 28px',
-                background: 'transparent', color: 'var(--text-primary)',
-                border: '1px solid var(--text-primary)',
-                fontSize: 14, fontWeight: 500, borderRadius: 8,
-              }}>
-                Nossa história
-              </Link>
-            </div>
+            <HeroExperiment
+              defaultHeadline="Peças que ficam."
+              defaultSubheadline="Joalheria contemporânea, finalizada à mão no nosso ateliê. Ouro 18k e prata 925 com garantia de um ano."
+              defaultCta={{ label: 'Ver coleção', href: '/produtos' }}
+            />
           </div>
         </div>
       </section>
