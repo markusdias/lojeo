@@ -9,22 +9,26 @@ export async function GET(req: Request) {
   const productId = searchParams.get('productId');
   if (!productId) return NextResponse.json({ error: 'productId obrigatório' }, { status: 400 });
 
-  const reviews = await db
-    .select()
-    .from(productReviews)
-    .where(and(
-      eq(productReviews.tenantId, tenantId()),
-      eq(productReviews.productId, productId),
-      eq(productReviews.status, 'approved'),
-    ))
-    .orderBy(desc(productReviews.createdAt))
-    .limit(50);
+  try {
+    const reviews = await db
+      .select()
+      .from(productReviews)
+      .where(and(
+        eq(productReviews.tenantId, tenantId()),
+        eq(productReviews.productId, productId),
+        eq(productReviews.status, 'approved'),
+      ))
+      .orderBy(desc(productReviews.createdAt))
+      .limit(50);
 
-  const avg = reviews.length > 0
-    ? reviews.reduce((s, r) => s + (r.rating ?? 0), 0) / reviews.length
-    : 0;
+    const avg = reviews.length > 0
+      ? reviews.reduce((s, r) => s + (r.rating ?? 0), 0) / reviews.length
+      : 0;
 
-  return NextResponse.json({ reviews, avg: Math.round(avg * 10) / 10, total: reviews.length });
+    return NextResponse.json({ reviews, avg: Math.round(avg * 10) / 10, total: reviews.length });
+  } catch {
+    return NextResponse.json({ reviews: [], avg: 0, total: 0 });
+  }
 }
 
 export async function POST(req: Request) {

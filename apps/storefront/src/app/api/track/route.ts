@@ -17,7 +17,8 @@ export async function POST(req: Request) {
   try {
     const r = await ingest(payload, { userAgent, ipAddress });
     return NextResponse.json(r, { status: 202 });
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 400 });
+  } catch {
+    // Tracking failures must never surface to client — fire-and-forget semantics
+    return NextResponse.json({ accepted: 0 }, { status: 202 });
   }
 }

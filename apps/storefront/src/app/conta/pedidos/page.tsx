@@ -2,6 +2,7 @@ import { auth } from '../../../auth';
 import { db, orders, orderItems } from '@lojeo/db';
 import { eq, and, desc, or } from 'drizzle-orm';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +31,13 @@ function fmt(cents: number) {
 }
 
 export default async function PedidosPage() {
-  const session = await auth();
+  let session;
+  try {
+    session = await auth();
+  } catch {
+    redirect('/entrar');
+  }
+  if (!session?.user) redirect('/entrar');
   const tid = tenantId();
   const email = session?.user?.email;
   const userId = session?.user?.id;
