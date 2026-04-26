@@ -41,8 +41,16 @@ const PRIORITY_OPTIONS = [
 const SENDER_LABEL: Record<string, string> = {
   customer: 'Cliente',
   admin: 'Suporte',
-  bot: 'Bot',
+  bot: 'FaqZap (IA)',
 };
+
+interface ResponseTemplate { id: string; label: string; body: string }
+const RESPONSE_TEMPLATES: ResponseTemplate[] = [
+  { id: 't1', label: 'Reenviar etiqueta', body: 'Oi {nome}! Te mandei a etiqueta de devolução pelo e-mail agora — pedido {pedido}. Posta quando der e me avisa por aqui pra acompanhar.' },
+  { id: 't2', label: 'Pedido com atraso', body: 'Oi {nome}, lamento pelo atraso. Acompanhei o rastreio do {pedido} e a transportadora confirmou previsão pra {data}. Se passar disso, me avise — abrimos reenvio sem custo.' },
+  { id: 't3', label: 'Defeito de fabricação', body: 'Oi {nome}, sinto muito pelo problema com {produto}. Vamos trocar — sem custo. Te mando a etiqueta agora.' },
+  { id: 't4', label: 'Cupom não aplica', body: 'Oi {nome}! Acabei de validar o cupom — pode tentar novamente? Às vezes é só o cache do navegador.' },
+];
 
 const sectionLabelStyle: React.CSSProperties = {
   fontSize: 'var(--text-caption)',
@@ -62,7 +70,23 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
   const [isInternal, setIsInternal] = useState(false);
   const [sending, setSending] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const replyRef = useRef<HTMLTextAreaElement>(null);
+
+  function applyTemplate(body: string) {
+    if (!ticket) return;
+    const firstName = ticket.customerName?.split(' ')[0] ?? 'cliente';
+    const orderRef = ticket.orderId ? ticket.orderId.slice(0, 8) : '—';
+    const interpolated = body
+      .replaceAll('{nome}', firstName)
+      .replaceAll('{pedido}', orderRef)
+      .replaceAll('{produto}', 'sua peça')
+      .replaceAll('{data}', new Date(Date.now() + 5 * 86400000).toLocaleDateString('pt-BR'));
+    setReply(interpolated);
+    setShowTemplates(false);
+    replyRef.current?.focus();
+  }
 
   async function loadTicket() {
     const [tr, mr] = await Promise.all([
@@ -138,8 +162,10 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
             )}
             {messages.map(msg => {
               const isAdminMsg = msg.senderType === 'admin';
-              const bg = msg.isInternal ? 'var(--warning-soft)' : isAdminMsg ? 'var(--info-soft)' : 'var(--bg-subtle)';
-              const border = msg.isInternal ? 'var(--warning)' : 'var(--border)';
+              const isBotMsg = msg.senderType === 'bot';
+              const bg = msg.isInternal ? 'var(--warning-soft)' : isBotMsg ? 'var(--accent-soft)' : isAdminMsg ? 'var(--info-soft)' : 'var(--bg-subtle)';
+              const border = msg.isInternal ? 'var(--warning)' : isBotMsg ? 'var(--accent)' : 'var(--border)';
+              const senderColor = msg.isInternal ? 'var(--warning)' : isBotMsg ? 'var(--accent)' : 'var(--fg)';
               return (
                 <div
                   key={msg.id}
@@ -151,12 +177,16 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
                     borderStyle: msg.isInternal ? 'dashed' : 'solid',
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-2)', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
                     <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
                       fontSize: 'var(--text-caption)',
                       fontWeight: 'var(--w-semibold)',
-                      color: msg.isInternal ? 'var(--warning)' : 'var(--fg)',
+                      color: senderColor,
                     }}>
+                      {isBotMsg && <span aria-hidden style={{ fontSize: 12 }}>✦</span>}
                       {SENDER_LABEL[msg.senderType] ?? msg.senderType}
                       {msg.isInternal && ' (nota interna)'}
                     </span>
@@ -165,6 +195,33 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
                     </span>
                   </div>
                   <p className="body-s" style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{msg.body}</p>
+                  {isBotMsg && (
+                    <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-3)', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => { setReply(msg.body); replyRef.current?.focus(); }}
+                        className="lj-btn-primary"
+                        style={{ fontSize: 'var(--text-caption)', padding: '6px 10px' }}
+                      >
+                        Aprovar e responder
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setReply(msg.body); replyRef.current?.focus(); }}
+                        className="lj-btn-secondary"
+                        style={{ fontSize: 'var(--text-caption)', padding: '6px 10px' }}
+                      >
+                        Editar antes de enviar
+                      </button>
+                      <button
+                        type="button"
+                        className="lj-btn-secondary"
+                        style={{ fontSize: 'var(--text-caption)', padding: '6px 10px', color: 'var(--fg-secondary)' }}
+                      >
+                        Descartar
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -173,10 +230,48 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
 
           {/* Reply form */}
           <form onSubmit={e => { void handleReply(e); }}>
+            {/* Templates dropdown */}
+            {showTemplates && (
+              <div className="lj-card" style={{ padding: 'var(--space-3)', marginBottom: 'var(--space-2)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
+                  <p className="eyebrow">Templates de resposta</p>
+                  <button type="button" onClick={() => setShowTemplates(false)} aria-label="Fechar" style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--fg-muted)', fontSize: 16 }}>×</button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                  {RESPONSE_TEMPLATES.map(t => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => applyTemplate(t.body)}
+                      style={{
+                        textAlign: 'left',
+                        padding: 'var(--space-3)',
+                        background: 'var(--bg-subtle)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-sm)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <p style={{ fontWeight: 'var(--w-medium)', fontSize: 'var(--text-body-s)', marginBottom: 4 }}>{t.label}</p>
+                      <p className="caption" style={{ color: 'var(--fg-secondary)' }}>{t.body.slice(0, 100)}…</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <textarea
+              ref={replyRef}
               value={reply}
               onChange={e => setReply(e.target.value)}
-              placeholder={isInternal ? 'Nota interna (visível só para a equipe)…' : 'Resposta ao cliente…'}
+              onKeyDown={e => {
+                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && reply.trim()) {
+                  e.preventDefault();
+                  const form = (e.target as HTMLTextAreaElement).form;
+                  form?.requestSubmit();
+                }
+              }}
+              placeholder={isInternal ? 'Nota interna (visível só para a equipe)…' : `Responder pra ${ticket.customerName?.split(' ')[0] ?? 'cliente'}…`}
               rows={5}
               className="lj-input"
               style={{
@@ -185,7 +280,19 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
                 borderColor: isInternal ? 'var(--warning)' : undefined,
               }}
             />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginTop: 'var(--space-3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginTop: 'var(--space-3)', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => setShowTemplates(s => !s)}
+                className="lj-btn-secondary"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--text-caption)', padding: '6px 10px' }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <path d="M3 9h18M9 21V9" />
+                </svg>
+                Templates
+              </button>
               <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-body-s)', cursor: 'pointer' }}>
                 <input
                   type="checkbox"
@@ -194,13 +301,15 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
                 />
                 Nota interna
               </label>
+              <span style={{ flex: 1 }} />
+              <span className="caption mono" style={{ color: 'var(--fg-muted)' }}>⌘ + ↵ pra enviar</span>
               <button
                 type="submit"
                 disabled={sending || !reply.trim()}
                 className={isInternal ? 'lj-btn-secondary' : 'lj-btn-primary'}
                 style={isInternal ? { borderColor: 'var(--warning)', color: 'var(--warning)' } : undefined}
               >
-                {sending ? 'Enviando…' : isInternal ? 'Salvar nota' : 'Responder'}
+                {sending ? 'Enviando…' : isInternal ? 'Salvar nota' : `Enviar pra ${ticket.customerName?.split(' ')[0] ?? 'cliente'}`}
               </button>
             </div>
           </form>
