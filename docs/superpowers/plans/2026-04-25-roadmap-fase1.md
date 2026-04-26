@@ -689,12 +689,12 @@ Qual provider de geração de imagem? Trade-off custo vs qualidade vs API reliab
 - [ ] Sugestões acionáveis: "as duas primeiras imagens deste produto precisam ser mais impactantes"
 
 **Homepage personalizada (NOVO — seção 11.2 do doc balisador):**
-- [ ] Cliente identificado: homepage exibe produtos baseados em behavior_events + histórico
-- [ ] Cliente anônimo recorrente (mesmo fingerprint): personalização por sessões anteriores
-- [ ] Cliente novo: fallback para "mais vendidos" + "novidades"
-- [ ] Componente `<PersonalizedHero />` substitui hero estático para clientes recorrentes
-- [ ] A/B test: personalizada vs default → mede uplift de conversão
-- [ ] Modo degradado: se motor de recomendação cair, exibe homepage default
+- [x] Cliente identificado: homepage exibe produtos baseados em histórico — `<RecommendedForYouSection>` server component em `/` busca pedidos pagos do email logado últimos 365d → identifica produtos comprados → resolve coleções via product_collections → sugere top 4 produtos das mesmas coleções (excl. já comprados) ordenados por created_at DESC. Bloco "Para você · Combinam com seu estilo" inserido antes de "Recém-criadas"
+- [ ] Cliente anônimo recorrente (mesmo fingerprint): personalização por sessões anteriores — v2 (precisa join behavior_events.fingerprint × products via inferência)
+- [x] Cliente novo: fallback para "mais vendidos" + "novidades" — `<RecommendedForYouSection>` retorna null para anônimos/sem pedidos; homepage exibe "Recém-criadas" default (newArrivals query products ORDER BY created_at DESC LIMIT 4) que é o equivalente "novidades"
+- [ ] Componente `<PersonalizedHero />` substitui hero estático para clientes recorrentes — v2 (HeroExperiment já suporta variantes A/B; PersonalizedHero por segmento RFM ainda)
+- [ ] A/B test: personalizada vs default → mede uplift de conversão — v2 (depende de telemetria recommendation_impression/click já existente vs assignment expo)
+- [x] Modo degradado: se motor de recomendação cair, exibe homepage default — try/catch em `RecommendedForYou()` em torno de auth() + cada query DB; falha silenciosa retorna null e homepage exibe blocos default sem afetar TTFB
 
 **Sugestão de recompra storefront (NOVO):**
 - [x] Área logada exibe "está na hora de repor?" baseado em ciclo + garantia — `<RebuySuggestion>` em `/conta/pedidos`, ciclo = warrantyMonths × 0.85, status due_now/soon, top 3 sugestões

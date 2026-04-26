@@ -4,6 +4,7 @@ import { eq, and, desc } from 'drizzle-orm';
 import { getActiveTemplate } from '../template';
 import { ProductCard } from '../components/ui/product-card';
 import { HeroExperiment } from '../components/marketing/hero-experiment';
+import { RecommendedForYouSection } from '../components/products/recommended-for-you';
 
 export const dynamic = 'force-dynamic';
 
@@ -93,6 +94,9 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
+
+      {/* ── PARA VOCÊ (cliente recorrente, server) ── */}
+      <RecommendedForYouSection currency={tpl.currency} />
 
       {/* ── NOVIDADES ── */}
       {newArrivals.length > 0 && (
