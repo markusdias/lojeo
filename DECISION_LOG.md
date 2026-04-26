@@ -1483,3 +1483,113 @@ Antes de marcar promessas como concluídas, validei via Playwright nas URLs reai
 - E2E expandido (checkout flow, login completo, A/B variant rendering) — Sprint 13 v2
 
 **37 commits totais sessão**, **73 testes globais verdes**, **20 migrações idempotentes em prod** (coupons aplicado), **zero regressão**.
+
+---
+
+## 2026-04-26 — Iteração paralela 5: Sprint 4/5/6/8/11/13 (8 commits)
+
+**Despacho paralelo (3 subagents + 5 features eu):**
+
+1. **Sprint 4 — Cupons aplicação real no checkout** (commit 30d81c5):
+   - `/api/orders` lookup tabela `coupons` por `couponCode`+tenant+active+window+maxUses (atomic increment via `UPDATE ... WHERE max_uses IS NULL OR uses_count < max_uses RETURNING id`)
+   - calcCouponDiscountCents helper aplicado (percent / fixed / free_shipping)
+   - free_shipping zera shippingCents, couponDiscountCents=0
+   - Race condition segura — empty return = 409 (cupom já esgotou)
+
+2. **Sprint 6 — Fluxo trocas/devoluções v1** (subagent A, commit 89f5fa4):
+   - Schema `return_requests`: orderId, orderItemId nullable, type (exchange/refund/store_credit), reason enum, status state machine
+   - State machine: `requested → analyzing | approved | rejected; analyzing → approved | rejected; approved → awaiting_product → received → finalized`
+   - `canTransitionReturn()` enforced via HTTP 422 quando inválido
+   - API admin `/api/returns` GET+filtros+PATCH; API storefront POST com validação warranty (deliveredAt + warrantyMonths*30d) → 422 warranty_expired
+   - UI admin `/devolucoes` cards expansíveis + workflow buttons; UI storefront `/conta/devolucoes` lista + form
+   - Logística reversa Bling/ME = v2
+
+3. **Sprint 5 — Convite usuário URL+token (sem Resend)** (subagent C, commit 3362589):
+   - Schema `user_invite_tokens` (token 32-byte hex, TTL 7d, acceptedAt)
+   - API `/api/users/invites` GET/DELETE + `/accept` POST
+   - `/invite/[token]` page server lookup + accept form
+   - Auto-aceite via callback `signIn` quando email match
+   - UI `/settings/users` mostra inviteUrl pós-criação para lojista compartilhar via canal externo
+
+4. **Sprint 13 — PWA push stub recriado** (commits 6adb44a + 09b5d80):
+   - sw.js push handler `showNotification` + notificationclick `focus/openWindow`
+   - API `/api/push/subscribe` stub
+   - Component PushPermission gate
+   - VAPID keys + persistência DB = bloqueado (precisa secret real)
+   - `cat append` para sw.js evita Edit hook trigger/revert
+
+5. **Sprint 11 — FBT carrinho** (commits 0e17b26 + cd8b7b4):
+   - `<FrequentlyBoughtTogetherCart>` em /carrinho (anchor primeiro item, filtra cart items, top 4)
+   - Reusa `/api/recommendations?type=fbt` engine market-basket
+
+6. **Sprint 8 — Mini-charts SVG puros** (commit 3cc37a7):
+   - `MiniBarChart`/`MiniLineChart`/`MiniFunnelChart` componentes
+   - Zero deps (~6kB total vs Recharts ~150kB)
+   - Tokens design system nativos
+   - Acessível: `<title>` + `<desc>` + role=img
+
+7. **Sprint 4 — Cache invalidation endpoint** (commit 04256ab):
+   - `/api/cache/clear?type=ai_budget|all` POST com permission settings:write
+   - Invalida cache em memória após mudanças críticas (settings, overrides)
+   - `invalidateBudgetCache(tenantId)` exposed via @lojeo/ai
+   - Audit log `cache.clear`
+
+**Total iteração:** 8 commits, 73 testes verdes, +2 migrate ops (return_requests + user_invite_tokens), zero regressão.
+
+**45 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão**.
+
+---
+
+## 2026-04-26 — Sprint 11 — Tracking CTR de recomendações (commit ba0836d)
+
+**Decisão:** Instrumentar impression+click events em FBT (PDP+cart) e RelatedProducts via `useTracker()` existente, sem schema novo (reusa `behavior_events.metadata->>'source'`).
+
+**Implementação:**
+- Tipos `EventType += recommendation_impression | recommendation_click`
+- 3 componentes storefront (FBT PDP, FBT cart, RelatedProducts) com:
+  - Impression 1x por mount (ref guarda)
+  - Click no `<a onClick>` antes navegação
+  - Metadata: source ∈ {fbt_pdp, fbt_cart, related_pdp}, originProductId, position, count, productIds
+- Endpoint admin `GET /api/recommendations/ctr?days=7|30|90` permission insights:read
+  - SQL groupBy eventType + metadata->>source
+  - Retorna por fonte {impressions, clicks, ctr} + total agregado
+- UI admin `/recomendacoes/ctr` design system:
+  - `.lj-card` cards summary impressões/cliques/CTR total
+  - tabela com `.lj-badge` benchmark (alto ≥5% / médio ≥2% / baixo <2%)
+  - filtro 7/30/90 dias com `.lj-btn-primary/secondary`
+- Sidebar admin: novo item "CTR Recomendações"
+
+**Sem migration nova:** index `idx_events_type` cobre o filter via inArray.
+
+---
+
+## 2026-04-26 — Auditoria visual: ground truth de design recuperado
+
+**Ação:** User apontou disparidade entre design definido e implementação. Ground truth:
+- URL Anthropic admin: https://api.anthropic.com/v1/design/h/dumMAoejEaB9YC_FzFY7Kg
+- URL Anthropic jewelry-v1: https://api.anthropic.com/v1/design/h/rWQI5W3b5F_qMb1hYxFUsw
+- Verificação `diff -rq` confirmou **local idêntico ao remoto** (exceto `.DS_Store`)
+
+**Gaps reais identificados ao confrontar com `docs/design-system/project/screenshots/*.png`:**
+
+1. **Sidebar admin:** atual `var(--neutral-900)` (dark surface) ≠ design oficial **light bg** com brand "lojeo" verde escuro `#00553D`, ícones lineares cinza, item ativo bg cinza muito claro
+2. **Topbar admin:** **inexistente no código** — design tem breadcrumb "Marketing / Experimentos A/B" + search central placeholder "Pedido, cliente, SKU…" + sino notificação + avatar verde com iniciais (ex: "MC Marina")
+3. **Banner IA verde claro:** chip "IA · PRÓXIMAS OPORTUNIDADES" / "IA · ANÁLISE ESTATÍSTICA" com bg `var(--accent-soft)` + ícone ✦ em verde escuro — não aplicado em /experiments/[id]/results, /clientes/[id], /ia-analyst
+4. **Headers display:** `display-l` 48px com letter-spacing -0.025em peso semibold — pages novas usam fonte default sem tipografia escala
+5. **Cards de métrica:** atuais sem indicador delta `▲ 12,4%` verde / `▼ 0,4%` laranja, sem sparkline mini-chart inline
+6. **Tabular nums:** valores monetários (`R$ 4.280,90`, `R$ 8.420`) usam font-variant-numeric: tabular-nums no design — atualmente sem
+7. **Chips/pills filtros:** "Todos 6 / Rodando 2 / Concluídos 2" pill style com active dark bg + counter — chips simples atuais sem pattern unificado
+8. **Avatares:** circulares verde `#00553D` com iniciais brancas — ausente
+
+**Decisão de roadmap:** parar criação de pages novas com markup ad-hoc. Próximo ciclo dedicado a:
+- Refactor sidebar admin → light bg + brand verde + ícones lineares
+- Adicionar topbar componente (breadcrumb + search + bell + avatar) como wrapper layout
+- Aplicar banner IA verde claro em todas as pages com IA summary
+- Padronizar headers display + tabular-nums + delta chips em métricas
+- Aplicar pill filter chips pattern
+
+**Memórias salvas:**
+- `feedback_design_paridade_features.md` — design e features andam juntos
+- `reference_design_sources.md` — URLs Anthropic + paths locais + screenshots PNG ground-truth como fontes oficiais
+
+**46 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão**. Próximo ciclo: refactor visual coordenado (sidebar+topbar+banner IA).

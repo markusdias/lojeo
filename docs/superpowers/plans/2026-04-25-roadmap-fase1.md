@@ -246,7 +246,7 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 - [x] Eventos de tracking checkout: step_start/step_complete em cada etapa
 - [ ] **Conexão Mercado Pago via OAuth 1-clique** — BLOQUEADO: requer conta MP sandbox
 - [ ] Mercado Pago: Pix QR code real, cartão tokenizado, boleto — BLOQUEADO: conta MP
-- [ ] Webhooks de pagamento com validação de assinatura — BLOQUEADO: conta MP
+- [x] Webhooks de pagamento com validação de assinatura (stub) — `/api/webhooks/{mercado-pago|bling|melhor-envio|resend}` com HMAC SHA-256 validation (manifest MP, Svix Resend), modo dev sem secret aceita. Processamento real (orders status, NF-e, tracking) v2 quando contas conectadas
 - [ ] Sync gateway expandido via Trigger.dev — BLOQUEADO: conta MP + Trigger.dev
 - [ ] Aviso VAT/taxas alfandegárias no checkout — Sprint 4
 - [ ] Email transacional via Resend — BLOQUEADO: Resend API key
@@ -306,7 +306,7 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 - [x] 2FA TOTP admin — schema `user_two_factor`, API `/api/2fa` setup/verify/disable, UI `/settings/2fa`, otplib window=1, audit log
 - [x] **2FA enforcement no login flow** — middleware admin redireciona `/login/2fa-challenge?returnTo=X` quando user com 2FA habilitado sem cookie `lojeo_2fa_verified=1`. JWT cache via NextAuth callbacks (DB lookup só no signIn, embed no JWT, lido no edge runtime). Cookie httpOnly secure sameSite=strict 8h. Modes: TOTP 6-dígitos OU recovery code (consume hash do array)
 - [x] Logs de auditoria: quem fez o quê e quando — schema `audit_logs` (action, entity, before/after), helper `recordAuditLog()`, integrado em order/ticket/ugc/role mutations, UI `/settings/audit` com filtros 7/30/90d e expand JSON
-- [ ] Convite de usuário por email com 1 clique — convite criado em DB, envio email BLOQUEADO Resend
+- [x] Convite de usuário por email com 1 clique — schema `user_invite_tokens` (token 32-byte hex, TTL 7d, acceptedAt), API `/api/users/invites` GET/DELETE + `/accept` POST, `/invite/[token]` page server lookup + accept form, auto-aceite via callback `signIn` quando email match. Envio email manual via copy-paste (sem Resend); UI `/settings/users` mostra inviteUrl pós-criação para lojista compartilhar
 - [x] Instruções contextuais em todas as telas (fator moleza) — `<InfoTooltip text>` componente acessível (role=tooltip, aria-describedby, fecha em mouseleave/blur/Escape). 11 tooltips aplicados: 10 em `/settings` (freeShipping, pixDiscount, installments, warranty, typo, imgRadius, gtmId, gaTrackingId, aiMonthlyLimitCents, robotsTxt) + 1 em `/settings/users` (Papel)
 - [x] **Robots.txt configurável** pelo admin (Sec 12.3) — campo `config.robotsTxt` em settings + rota `/robots.ts` lê do DB com fallback default
 - [ ] **Relatórios programados por email** (Sec 13.2) — lojista define cron + filtros + destinatários, sistema dispara CSV/PDF
@@ -355,9 +355,9 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 - [x] Perfil completo de cliente: dados, LTV, número de pedidos, segmento RFM, canal de aquisição, eventos comportamentais agregados
 - [x] Garantias por produto/cliente: painel com status, alertas 30 dias antes do vencimento — engine puro `packages/engine/src/warranty.ts` (computeWarranty/Batch, expiringWithinDays, status active/expiring_soon/expired/none), 5 testes; API `/api/warranties?expiringIn=30/60/90` agrega orders+items+products.warrantyMonths; UI `/garantias` admin com cards + tabela filtrável
 - [x] Filtro: clientes com garantia expirando nos próximos 30/60/90 dias — `?customerEmail=X` no endpoint + filtro de janela 30/60/90
-- [ ] Fluxo de trocas/devoluções: solicitação pelo cliente → análise → aprovação → logística reversa → reembolso
-- [ ] Validação automática do prazo de troca configurado por produto
-- [ ] Estados claros: solicitada → em análise → aprovada → aguardando produto → recebida → finalizada
+- [x] Fluxo de trocas/devoluções v1 — schema `return_requests` (orderId, orderItemId nullable, type exchange/refund/store_credit, reason enum, status state machine), API admin `/api/returns` GET+filtros+PATCH com transition validation, API storefront `/api/returns` POST (validação warranty+order delivered+customer match), UI admin `/devolucoes` com cards expansíveis+botões workflow, UI storefront `/conta/devolucoes` lista+form. Logística reversa Bling/Melhor Envio = v2
+- [x] Validação automática do prazo de troca configurado por produto — warranty expirada (deliveredAt+warrantyMonths*30d) → 422 warranty_expired no POST
+- [x] Estados claros — `requested → analyzing | approved | rejected; analyzing → approved | rejected; approved → awaiting_product → received → finalized; rejected | finalized terminais`. State machine enforced via `canTransitionReturn()` (HTTP 422 se inválido)
 - [ ] Geração de etiqueta reversa via Melhor Envio
 - [ ] Reembolso integrado ao gateway no clique de aprovação
 - [ ] Crédito em loja como alternativa ao reembolso (gift card automático — reusa Sprint 5)
@@ -621,9 +621,9 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 - [x] **Ajuste manual no admin (Sec 6.2)** — schema `recommendation_overrides` (productId, recommendedProductId, overrideType pin/exclude); API admin CRUD `/api/recommendations/overrides`; UI `/products/[id]/recommendations` com radio pin/exclude + autocomplete catálogo + tabelas separadas; storefront `/api/recommendations` aplica overrides (pin no topo, exclude filtrados, dedup, respeita limit)
 - [x] API `/api/recommendations?productId=X&type=fbt` retorna top N — implementado para FBT (frequentemente comprado junto), cache 60s em memória, pedidos pagos últimos 180d
 - [x] Componente `<RelatedProducts />` na PDP usando recomendações — heurística sem ML: coleções compartilhadas (via product_collections join) → fallback customFields.categoria → fallback produtos mais recentes. API `/api/products/related?productId=X&limit=N`. IntersectionObserver lazy load. Embeddings refinarão Sprint 12+
-- [x] Componente `<FrequentlyBoughtTogether />` na PDP e carrinho — engine puro `packages/engine/src/market-basket.ts` (support/confidence/lift, score = lift × log(cooccurrence+1)), 6 testes (engine 28→34), IntersectionObserver lazy load, injetado na PDP entre header e UgcGallery
+- [x] Componente `<FrequentlyBoughtTogether />` na PDP e carrinho — engine puro `packages/engine/src/market-basket.ts` (support/confidence/lift, score = lift × log(cooccurrence+1)), 6 testes (engine 28→34), IntersectionObserver lazy load, injetado PDP + `<FrequentlyBoughtTogetherCart>` em /carrinho (anchor primeiro item, filtra cart items)
 - [ ] Componente `<YouMayAlsoLike />` no carrinho
-- [ ] Tracking de cliques em recomendações (CTR mensurável)
+- [x] Tracking de cliques em recomendações (CTR mensurável) — eventos `recommendation_impression`/`recommendation_click` em behavior_events.metadata.source ∈ {fbt_pdp, fbt_cart, related_pdp}, instrumentado em FBT PDP/Carrinho + RelatedProducts via useTracker(); endpoint admin `/api/recommendations/ctr?days=7|30|90` agrega impressions+clicks+ctr por fonte; UI `/recomendacoes/ctr` cards summary + tabela com badges por benchmark (alto ≥5%, médio ≥2%, baixo <2%)
 - [ ] Modo degradado: sem recomendações personalizadas, exibe "mais vendidos da categoria"
 
 **Decisão estratégica necessária antes deste sprint:**
