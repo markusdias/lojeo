@@ -18,6 +18,13 @@ const nextConfig = {
     '@lojeo/tracking',
     '@lojeo/ui',
   ],
+  async redirects() {
+    return [
+      { source: '/login', destination: '/entrar', permanent: true },
+      { source: '/minha-conta', destination: '/conta', permanent: true },
+      { source: '/account', destination: '/conta', permanent: true },
+    ];
+  },
   async headers() {
     return [
       {
