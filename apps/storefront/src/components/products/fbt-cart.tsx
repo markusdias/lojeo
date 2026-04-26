@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
+import { useTracker } from '../tracker-provider';
 
 interface RecommendedProduct {
   productId: string;
@@ -25,6 +26,8 @@ export function FrequentlyBoughtTogetherCart({
   const [items, setItems] = useState<RecommendedProduct[] | null>(null);
   const primaryId = cartProductIds[0];
   const inCart = useMemo(() => new Set(cartProductIds), [cartProductIds]);
+  const tracker = useTracker();
+  const impressionTracked = useRef(false);
 
   useEffect(() => {
     if (!primaryId) { setItems([]); return; }
@@ -35,6 +38,36 @@ export function FrequentlyBoughtTogetherCart({
       })
       .catch(() => setItems([]));
   }, [primaryId, inCart]);
+
+  useEffect(() => {
+    if (!tracker || impressionTracked.current) return;
+    if (!items || items.length === 0) return;
+    impressionTracked.current = true;
+    tracker.track({
+      type: 'recommendation_impression',
+      entityType: 'product',
+      entityId: primaryId,
+      metadata: {
+        source: 'fbt_cart',
+        count: items.length,
+        productIds: items.map(p => p.productId),
+      },
+    });
+  }, [items, tracker, primaryId]);
+
+  function handleClick(rec: RecommendedProduct, position: number) {
+    if (!tracker) return;
+    tracker.track({
+      type: 'recommendation_click',
+      entityType: 'product',
+      entityId: rec.productId,
+      metadata: {
+        source: 'fbt_cart',
+        originProductId: primaryId,
+        position,
+      },
+    });
+  }
 
   if (!items || items.length === 0) return null;
 
@@ -53,10 +86,11 @@ export function FrequentlyBoughtTogetherCart({
         </h3>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
-        {items.map(p => (
+        {items.map((p, i) => (
           <a
             key={p.productId}
             href={`/produtos/${p.slug}`}
+            onClick={() => handleClick(p, i)}
             style={{
               textDecoration: 'none',
               color: 'inherit',

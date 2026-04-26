@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useTracker } from '../tracker-provider';
 
 interface RecommendedProduct {
   productId: string;
@@ -17,6 +18,8 @@ export function FrequentlyBoughtTogether({ productId }: { productId: string }) {
   const [recommendations, setRecommendations] = useState<RecommendedProduct[] | null>(null);
   const [inViewport, setInViewport] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const tracker = useTracker();
+  const impressionTracked = useRef(false);
 
   useEffect(() => {
     if (!ref.current) return;
@@ -44,6 +47,36 @@ export function FrequentlyBoughtTogether({ productId }: { productId: string }) {
       .catch(() => setRecommendations([]));
   }, [inViewport, productId]);
 
+  useEffect(() => {
+    if (!tracker || impressionTracked.current) return;
+    if (!recommendations || recommendations.length === 0) return;
+    impressionTracked.current = true;
+    tracker.track({
+      type: 'recommendation_impression',
+      entityType: 'product',
+      entityId: productId,
+      metadata: {
+        source: 'fbt_pdp',
+        count: recommendations.length,
+        productIds: recommendations.map(p => p.productId),
+      },
+    });
+  }, [recommendations, tracker, productId]);
+
+  function handleClick(rec: RecommendedProduct, position: number) {
+    if (!tracker) return;
+    tracker.track({
+      type: 'recommendation_click',
+      entityType: 'product',
+      entityId: rec.productId,
+      metadata: {
+        source: 'fbt_pdp',
+        originProductId: productId,
+        position,
+      },
+    });
+  }
+
   if (recommendations === null || recommendations.length === 0) {
     return <div ref={ref} style={{ minHeight: 1 }} />;
   }
@@ -59,10 +92,11 @@ export function FrequentlyBoughtTogether({ productId }: { productId: string }) {
         </h2>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
-        {recommendations.map(p => (
+        {recommendations.map((p, i) => (
           <a
             key={p.productId}
             href={`/produtos/${p.slug}`}
+            onClick={() => handleClick(p, i)}
             style={{
               textDecoration: 'none',
               color: 'inherit',

@@ -17,7 +17,9 @@ export type EventType =
   | 'external_referrer'
   | 'wishlist_add'
   | 'wishlist_remove'
-  | 'restock_notify';
+  | 'restock_notify'
+  | 'recommendation_impression'
+  | 'recommendation_click';
 
 export interface ConsentState {
   essential: true;
