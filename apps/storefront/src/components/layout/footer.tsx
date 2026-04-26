@@ -52,7 +52,7 @@ export function Footer({ storeName }: { storeName: string }) {
         <div>
           <p className="eyebrow" style={{ color: 'var(--footer-muted)', marginBottom: 20 }}>Ajuda</p>
           {[
-            { label: 'Rastrear pedido', href: '/conta/pedidos' },
+            { label: 'Rastrear pedido', href: '/rastreio' },
             { label: 'Trocas e devoluções', href: '/trocas' },
             { label: 'Política de privacidade', href: '/privacidade' },
             { label: 'Termos de uso', href: '/termos' },
