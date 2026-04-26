@@ -50,79 +50,88 @@ export default function RecomendacoesCtrPage() {
   }, [days]);
 
   return (
-    <div className="p-6 max-w-5xl">
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold mb-1">CTR de recomendações</h1>
-        <p className="text-sm text-gray-500">
-          Click-through-rate por fonte de recomendação. Mede impressão (componente entrou em viewport) vs clique no produto sugerido.
+    <div style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }}>
+      <header style={{ marginBottom: 'var(--space-6)' }}>
+        <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginBottom: 'var(--space-2)' }}>
+          CTR de recomendações
+        </h1>
+        <p className="body-s">
+          Click-through-rate por fonte de recomendação. Mede impressão (componente em viewport) vs clique no produto sugerido.
         </p>
       </header>
 
-      <div className="flex gap-2 mb-6">
+      <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-6)' }}>
         {[7, 30, 90].map(d => (
           <button
             key={d}
             onClick={() => setDays(d)}
             className={d === days ? 'lj-btn-primary' : 'lj-btn-secondary'}
+            type="button"
           >
             {d} dias
           </button>
         ))}
       </div>
 
-      {loading && <p className="text-sm text-gray-500">Carregando…</p>}
+      {loading && <p className="body-s">Carregando…</p>}
       {error && (
-        <div className="lj-card p-4 mb-6">
-          <p className="text-sm" style={{ color: 'var(--error)' }}>Erro: {error}</p>
+        <div className="lj-card" style={{ padding: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
+          <p className="body-s" style={{ color: 'var(--error)' }}>Erro: {error}</p>
         </div>
       )}
 
       {data && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="lj-card p-4">
-              <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Impressões</p>
-              <p className="text-2xl font-semibold">{fmtNum(data.total.impressions)}</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
+            <div className="lj-card" style={{ padding: 'var(--space-5)' }}>
+              <p className="eyebrow" style={{ marginBottom: 'var(--space-2)' }}>Impressões</p>
+              <p className="numeric" style={{ fontSize: 'var(--text-h2)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)' }}>
+                {fmtNum(data.total.impressions)}
+              </p>
             </div>
-            <div className="lj-card p-4">
-              <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Cliques</p>
-              <p className="text-2xl font-semibold">{fmtNum(data.total.clicks)}</p>
+            <div className="lj-card" style={{ padding: 'var(--space-5)' }}>
+              <p className="eyebrow" style={{ marginBottom: 'var(--space-2)' }}>Cliques</p>
+              <p className="numeric" style={{ fontSize: 'var(--text-h2)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)' }}>
+                {fmtNum(data.total.clicks)}
+              </p>
             </div>
-            <div className="lj-card p-4">
-              <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">CTR Total</p>
-              <p className="text-2xl font-semibold">{fmtPct(data.total.ctr)}</p>
+            <div className="lj-card" style={{ padding: 'var(--space-5)' }}>
+              <p className="eyebrow" style={{ marginBottom: 'var(--space-2)' }}>CTR Total</p>
+              <p className="numeric" style={{ fontSize: 'var(--text-h2)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', color: 'var(--accent)' }}>
+                {fmtPct(data.total.ctr)}
+              </p>
             </div>
           </div>
 
-          <div className="lj-card overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="lj-card" style={{ overflow: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-body-s)' }}>
               <thead>
-                <tr className="border-b" style={{ borderColor: 'var(--border)' }}>
-                  <th className="text-left p-3 font-medium">Fonte</th>
-                  <th className="text-right p-3 font-medium">Impressões</th>
-                  <th className="text-right p-3 font-medium">Cliques</th>
-                  <th className="text-right p-3 font-medium">CTR</th>
-                  <th className="text-right p-3 font-medium">Status</th>
+                <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-subtle)' }}>
+                  <th style={{ textAlign: 'left', padding: 'var(--space-3) var(--space-4)', fontWeight: 'var(--w-medium)', color: 'var(--fg-secondary)' }}>Fonte</th>
+                  <th style={{ textAlign: 'right', padding: 'var(--space-3) var(--space-4)', fontWeight: 'var(--w-medium)', color: 'var(--fg-secondary)' }}>Impressões</th>
+                  <th style={{ textAlign: 'right', padding: 'var(--space-3) var(--space-4)', fontWeight: 'var(--w-medium)', color: 'var(--fg-secondary)' }}>Cliques</th>
+                  <th style={{ textAlign: 'right', padding: 'var(--space-3) var(--space-4)', fontWeight: 'var(--w-medium)', color: 'var(--fg-secondary)' }}>CTR</th>
+                  <th style={{ textAlign: 'right', padding: 'var(--space-3) var(--space-4)', fontWeight: 'var(--w-medium)', color: 'var(--fg-secondary)' }}>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {data.sources.map(s => {
                   const variant =
+                    s.impressions === 0 ? 'lj-badge lj-badge-neutral' :
                     s.ctr >= 0.05 ? 'lj-badge lj-badge-success' :
                     s.ctr >= 0.02 ? 'lj-badge lj-badge-info' :
-                    s.impressions === 0 ? 'lj-badge lj-badge-neutral' :
                     'lj-badge lj-badge-warning';
                   const status =
                     s.impressions === 0 ? 'Sem dados' :
                     s.ctr >= 0.05 ? 'Alto' :
                     s.ctr >= 0.02 ? 'Médio' : 'Baixo';
                   return (
-                    <tr key={s.source} className="border-b" style={{ borderColor: 'var(--border)' }}>
-                      <td className="p-3">{s.label}</td>
-                      <td className="p-3 text-right">{fmtNum(s.impressions)}</td>
-                      <td className="p-3 text-right">{fmtNum(s.clicks)}</td>
-                      <td className="p-3 text-right font-medium">{fmtPct(s.ctr)}</td>
-                      <td className="p-3 text-right">
+                    <tr key={s.source} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td style={{ padding: 'var(--space-3) var(--space-4)' }}>{s.label}</td>
+                      <td className="numeric" style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>{fmtNum(s.impressions)}</td>
+                      <td className="numeric" style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>{fmtNum(s.clicks)}</td>
+                      <td className="numeric" style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right', fontWeight: 'var(--w-medium)' }}>{fmtPct(s.ctr)}</td>
+                      <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>
                         <span className={variant}>{status}</span>
                       </td>
                     </tr>
@@ -132,10 +141,10 @@ export default function RecomendacoesCtrPage() {
             </table>
           </div>
 
-          <p className="text-xs text-gray-500 mt-3">
+          <p className="caption" style={{ marginTop: 'var(--space-3)' }}>
             Período: últimos {data.days} dias · desde {new Date(data.since).toLocaleDateString('pt-BR')}
           </p>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="caption" style={{ marginTop: 'var(--space-1)' }}>
             Benchmarks: alto ≥ 5% · médio ≥ 2% · baixo &lt; 2%
           </p>
         </>

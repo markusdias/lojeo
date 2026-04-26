@@ -65,7 +65,7 @@ export default function ExperimentResultsPage({ params }: { params: Promise<{ id
     : null;
 
   return (
-    <div className="p-8 max-w-5xl space-y-6">
+    <div style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }} className="space-y-6">
       <header className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <a href="/experiments" className="text-xs" style={{ color: 'var(--fg-secondary)' }}>← Experimentos</a>

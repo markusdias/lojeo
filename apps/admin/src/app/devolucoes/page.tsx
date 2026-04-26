@@ -161,10 +161,12 @@ export default function DevolucoesPage() {
   }
 
   return (
-    <div className="p-8 max-w-5xl space-y-6">
+    <div style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }} className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold">Devoluções e trocas</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginBottom: 'var(--space-2)' }}>
+          Devoluções e trocas
+        </h1>
+        <p className="body-s">
           Solicitações abertas pelos clientes. Aprovar gera estado &quot;aguardando peça&quot;; ao receber, marque como recebido e finalize.
         </p>
       </header>

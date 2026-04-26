@@ -69,7 +69,7 @@ export default function IntegracoesPage() {
   }, {});
 
   return (
-    <div className="p-8 max-w-5xl space-y-6">
+    <div style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }} className="space-y-6">
       <header>
         <h1 className="text-2xl font-semibold">Integrações</h1>
         <p className="text-sm" style={{ color: 'var(--fg-secondary)' }}>

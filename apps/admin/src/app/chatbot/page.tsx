@@ -66,7 +66,7 @@ export default function ChatbotStatsPage() {
   const costUsd = estimateCostUsd(stats.totalTokensIn, stats.totalTokensOut);
 
   return (
-    <div className="p-8 max-w-5xl space-y-6">
+    <div style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }} className="space-y-6">
       <header>
         <h1 className="text-xl font-semibold">Chatbot</h1>
         <p className="text-sm text-gray-500 mt-1">Telemetria das últimas {stats.windowDays} dias</p>
