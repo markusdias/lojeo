@@ -79,17 +79,40 @@ export function Topbar({ userName, userEmail }: TopbarProps) {
   return (
     <header className="lj-topbar">
       <nav className="lj-breadcrumb" aria-label="Trilha de navegação">
-        {crumbs.length === 0 && <span className="lj-breadcrumb-current">Início</span>}
-        {crumbs.map((c, i) => (
-          <span key={c.href} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            {i > 0 && <span className="lj-breadcrumb-sep" aria-hidden>/</span>}
-            {c.last ? (
-              <span className="lj-breadcrumb-current">{c.label}</span>
-            ) : (
-              <Link href={c.href}>{c.label}</Link>
-            )}
-          </span>
-        ))}
+        {/* Raiz fixa "Loja" muted, sem link — identidade visual hierárquica do design oficial */}
+        <span
+          className="lj-breadcrumb-root"
+          style={{ color: 'var(--fg-muted)', fontSize: 'var(--text-body-s)' }}
+        >
+          Loja
+        </span>
+        {crumbs.length === 0 ? (
+          <>
+            <span className="lj-breadcrumb-sep" aria-hidden style={{ color: 'var(--fg-muted)' }}>/</span>
+            <span
+              className="lj-breadcrumb-current"
+              style={{ color: 'var(--fg)', fontWeight: 'var(--w-medium)' }}
+            >
+              Início
+            </span>
+          </>
+        ) : (
+          crumbs.map((c) => (
+            <span key={c.href} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <span className="lj-breadcrumb-sep" aria-hidden style={{ color: 'var(--fg-muted)' }}>/</span>
+              {c.last ? (
+                <span
+                  className="lj-breadcrumb-current"
+                  style={{ color: 'var(--fg)', fontWeight: 'var(--w-medium)' }}
+                >
+                  {c.label}
+                </span>
+              ) : (
+                <Link href={c.href} style={{ color: 'var(--fg-secondary)' }}>{c.label}</Link>
+              )}
+            </span>
+          ))
+        )}
       </nav>
 
       <div className="lj-search">
