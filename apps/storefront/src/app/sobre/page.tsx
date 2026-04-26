@@ -3,54 +3,137 @@ import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Nossa história — Atelier',
-  description: 'Joalheria contemporânea produzida com ourives independentes em São Paulo.',
+  description: 'Joias feitas à mão, ouro 18k e prata 925 certificada. Atelier em São Paulo.',
 };
 
 export default function SobrePage() {
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', padding: '80px var(--container-pad)' }}>
-      <p className="eyebrow" style={{ marginBottom: 16 }}>Nossa história</p>
-      <h1 style={{ marginBottom: 40, lineHeight: 1.05 }}>
-        Cada peça começa<br />numa pequena bancada.
-      </h1>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-        <p style={{ fontSize: 17, color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}>
-          Trabalhamos com ourives independentes em São Paulo. Cada peça passa por um processo artesanal rigoroso — da concepção ao acabamento final — antes de chegar até você.
-        </p>
-        <p style={{ fontSize: 17, color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}>
-          Usamos ouro 18k certificado e prata 925 com rastreabilidade garantida. Acreditamos que uma joia deve durar gerações, não temporadas.
-        </p>
-        <p style={{ fontSize: 17, color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}>
-          Se você quiser, gravamos sua história à mão. Datas, coordenadas, nomes — qualquer detalhe que transforme uma peça em memória.
-        </p>
-      </div>
-
-      <div style={{
-        marginTop: 64, padding: '32px 0', borderTop: '1px solid var(--divider)',
-        display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 32, textAlign: 'center',
+    <article>
+      {/* Hero match Static.jsx PageAbout */}
+      <section style={{
+        aspectRatio: '21/8',
+        background: 'linear-gradient(135deg, #E8DDC9, #D4C5A8)',
+        display: 'grid',
+        placeItems: 'center',
+        color: 'var(--text-primary)',
       }}>
-        {[
-          { num: '12+', label: 'Anos de ofício' },
-          { num: '2.400+', label: 'Peças criadas' },
-          { num: '12m', label: 'Garantia em todas' },
-        ].map(s => (
-          <div key={s.label}>
-            <p style={{ fontSize: 32, fontFamily: 'var(--font-display)', margin: '0 0 8px' }}>{s.num}</p>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>{s.label}</p>
-          </div>
-        ))}
-      </div>
+        <div style={{ textAlign: 'center', maxWidth: 700, padding: 40 }}>
+          <p className="eyebrow" style={{ marginBottom: 16 }}>Nossa história</p>
+          <h1 style={{
+            fontSize: 'clamp(40px, 6vw, 72px)',
+            margin: 0,
+            lineHeight: 1.05,
+            fontFamily: 'var(--font-display)',
+          }}>
+            Joias feitas à mão, para durar uma vida.
+          </h1>
+        </div>
+      </section>
 
-      <div style={{ marginTop: 64 }}>
-        <Link href="/produtos" style={{
-          display: 'inline-block', padding: '14px 32px',
-          background: 'var(--text-primary)', color: 'var(--text-on-dark)',
-          fontSize: 14, fontWeight: 500, borderRadius: 8,
+      {/* Long content + sections */}
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 var(--container-pad)' }}>
+        <div style={{ maxWidth: 720, fontSize: 18, lineHeight: 1.7, color: 'var(--text-secondary)', padding: '60px 0 30px' }}>
+          <p>
+            Começamos em 2014, em uma pequena bancada no centro de São Paulo. Hoje, três
+            joalheiras trabalham com a gente — e cada peça ainda é finalizada à mão.
+          </p>
+        </div>
+
+        <ContentSection
+          title="Materiais"
+          body="Trabalhamos exclusivamente com ouro 18k, ouro branco e prata 925 certificada. Nada de banhos. Nada de aço. Apenas metais nobres que envelhecem bonito."
+        />
+        <ContentSection
+          title="Processo"
+          body="Cada peça é desenhada, fundida, polida e aferida manualmente. Levamos de 3 a 5 dias úteis para finalizar — sob medida, até 21 dias."
+        />
+        <ContentSection
+          title="Garantia"
+          body="Toda peça tem 1 ano de cobertura contra defeitos de fabricação. Polimento e ajustes leves são vitalícios."
+        />
+
+        {/* Gallery */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, padding: '60px 0' }}>
+          {[0, 1, 2].map(i => (
+            <div
+              key={i}
+              style={{
+                aspectRatio: i === 1 ? '3/4' : '4/5',
+                background: '#F4F1E9',
+                borderRadius: 4,
+                display: 'grid',
+                placeItems: 'center',
+                color: '#A89B8C',
+                fontSize: 32,
+              }}
+              aria-hidden
+            >
+              ◆
+            </div>
+          ))}
+        </div>
+
+        {/* CTA */}
+        <div style={{
+          background: 'var(--surface)',
+          padding: 48,
+          borderRadius: 8,
+          textAlign: 'center',
+          margin: '20px 0 80px',
         }}>
-          Ver coleção
-        </Link>
+          <h3 style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 32,
+            margin: '0 0 14px',
+          }}>
+            Conheça as peças
+          </h3>
+          <Link
+            href="/produtos"
+            style={{
+              display: 'inline-block',
+              padding: '14px 32px',
+              background: 'var(--text-primary)',
+              color: 'var(--text-on-dark)',
+              fontSize: 14,
+              fontWeight: 500,
+              borderRadius: 8,
+              textDecoration: 'none',
+            }}
+          >
+            Ver coleção
+          </Link>
+        </div>
       </div>
+    </article>
+  );
+}
+
+function ContentSection({ title, body }: { title: string; body: string }) {
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: '200px 1fr',
+      gap: 60,
+      padding: '32px 0',
+      borderTop: '1px solid var(--divider)',
+    }}>
+      <h3 style={{
+        fontFamily: 'var(--font-display)',
+        fontSize: 28,
+        margin: 0,
+      }}>
+        {title}
+      </h3>
+      <p style={{
+        margin: 0,
+        color: 'var(--text-secondary)',
+        fontSize: 16,
+        lineHeight: 1.7,
+        maxWidth: 580,
+      }}>
+        {body}
+      </p>
     </div>
   );
 }
