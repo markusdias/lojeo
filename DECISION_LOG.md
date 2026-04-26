@@ -1168,3 +1168,44 @@ Antes de marcar promessas como concluídas, validei via Playwright nas URLs reai
 - hreflang multi-idioma — Fase 1.2
 
 **20 commits, 63 testes verdes, zero regressão.** Próximo ciclo sem bloqueador: pixel orchestration via `<Pixels>` ouvindo eventos de cart_add/purchase para chamar `fbq('track','AddToCart')`/`gtag('event','purchase')`, instruções contextuais admin, A/B test integration com homepage hero, sync recently_viewed → DB ao login, ampliar funil (search → product_view, attribution UTM).
+
+---
+
+## 2026-04-26 — Sprint 12+13: pixel orchestration + PWA + magic bytes upload
+
+**Pixel orchestration (Sprint 12):**
+- `pixel-events.ts` wrapper único `trackPixelEvent(name, data)` dispara fbq + gtag + ttq + dataLayer simultaneamente
+- Mapeamento por vendor: GA4 add_to_cart, TikTok AddToCart, Meta AddToCart (ttq usa 'CompletePayment' para Purchase)
+- Normalização de value cents → unidade (Meta/GA esperam decimal)
+- Hooks integrados: CartProvider.addItem → AddToCart; PDP mount → ViewContent; /checkout/endereco mount → InitiateCheckout; /checkout/pagamento order success → Purchase
+- Respeita consent LGPD (marketing=false → noop)
+
+**PWA manifest (Sprint 13):**
+- `app/manifest.ts` dinâmico via `getActiveTemplate()` (nome/locale do template)
+- Service worker `/sw.js` minimal: shell cache network-first, `caches.match` fallback offline para `/`
+- Excludes: `/api/`, `/checkout/`, `/conta/`, `/_next/data/` (privacy + freshness)
+- ServiceWorkerRegister componente client-side em prod com delay 1.5s para não competir com hidratação inicial
+- Metadata: manifest URL, appleWebApp capable+title, viewport themeColor #1A1A1A
+
+**Validação upload magic bytes (Sprint 13):**
+- `packages/engine/src/file-signature.ts` puro: detectImageMime() lê primeiros bytes vs assinaturas conhecidas
+  - JPEG (FF D8 FF), PNG (89 50 4E 47 0D 0A 1A 0A), WebP (RIFF + WEBP @8), GIF (47 49 46 38 [37|39] 61), HEIC/HEIF (ftyp @4)
+- 6 testes (engine 34 → 40)
+- Integrado: `POST /api/products/[id]/images` (admin) + `POST /api/ugc` (storefront)
+- Bloqueia HTML/SVG/scripts disfarçados antes de chamar sharp() (defesa rápida primeiro <100 bytes lidos)
+
+**Decisões técnicas:**
+- **Pixel events fire-and-forget try/catch.** Justificativa (UX): pixel falhar nunca pode quebrar carrinho/checkout. Cada chamada vendor isolada por try/catch interno
+- **PWA SW excludes /api+/checkout+/conta.** Privacy (não cachear sessões), freshness (orders, status pagamento devem ser sempre frescos)
+- **PWA SW network-first vs cache-first.** Network-first dá fallback offline mantendo conteúdo fresco quando online. Cache-first daria stale dados de produto/preço
+- **Magic bytes ANTES de sharp().** Sharp é tolerant — converte alguns formatos malformados ou levanta erro lento. Verificar header em ~12 bytes elimina 99% dos ataques antes de processar
+- **HEIC/HEIF aceito.** iOS Safari upload nativo. Sharp converte para WebP automaticamente
+- **SVG rejeitado.** SVG aceita `<script>` inline → vetor XSS. Cliente que precisa SVG deve uploader como `<img>` em CMS, não galeria
+
+**Bloqueadores Sprint 13 restantes:**
+- Push notifications PWA — exige service worker push subscription + servidor envia VAPID
+- Pixel Conversions API server-side Meta/TikTok — OAuth tokens
+- Backup automático Neon — depende provider real (não local docker)
+- Status page sob domínio público — DNS
+
+**21 commits, 63 testes verdes (engine 34→40), zero regressão.** Próximo ciclo: A/B test live no hero da homepage (usa engine A/B já criado), instruções contextuais microcopy admin, override manual de recomendações, validação Zod centralizada.
