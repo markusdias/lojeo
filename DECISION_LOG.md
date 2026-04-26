@@ -2280,3 +2280,40 @@ User mostrou 2 screenshots oficiais Claude Design da tela /aparencia. Implementa
 - VariantPicker por tipo (anel 12-22 + colar 40-60cm + brinco fecho) na PDP
 
 **98 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão** funcional.
+
+---
+
+## 2026-04-26 — Iteração 21: Tickets templates + ⌘+↵ + bot variant + 2 subagents paralelos
+
+**Commit 3f74b4d** — /tickets/[id] match Tickets.jsx prototype
+
+- **Templates dropdown:** botão toggle reveal card com 4 templates pré-definidos (Reenviar etiqueta, Pedido com atraso, Defeito de fabricação, Cupom não aplica). Cada template body interpola `{nome}` (firstName customer), `{pedido}` (orderId.slice 0-8), `{produto}` (placeholder), `{data}` (Date+5d toLocaleDateString) ao clicar
+- **Atalho ⌘+↵:** onKeyDown captura metaKey/ctrlKey + Enter → preventDefault + form.requestSubmit() quando reply.trim() não vazio. Hint mono "⌘ + ↵ pra enviar" no toolbar
+- **Bot message variant:** senderType='bot' renderiza com `var(--accent)` border + `var(--accent-soft)` bg + ícone ✦ + label "FaqZap (IA)" verde + 3 botões inline (Aprovar e responder primary, Editar antes de enviar secondary, Descartar muted) — primeiros 2 inserem msg.body no composer
+- Composer placeholder dinâmico "Responder pra {firstName}…", botão envio "Enviar pra {firstName}"
+
+**Subagents paralelos despachados:**
+
+1. **a74f477d** — jewelry-v1 prototypes pixel-perfect:
+   - PDP VariantPicker por tipo (anel 12-22 + link "como medir aro?", colar 40-60cm, brinco fecho)
+   - UrgencyBadge 3 estados (none/viewing/low-stock) baseado em **telemetria real** (behavior_events product_view 60min count distinct anonymousId >= 5; inventory totalQty - reserved <= 3)
+   - Pix 5% incentivo destacado no Checkout step pagamento
+
+2. **aa00912f** — Components admin reutilizáveis:
+   - Toast component (`apps/admin/src/components/ui/toast.tsx`) com Provider + useToast hook + 4 variants
+   - MetricCard component extraindo inline do Dashboard, aplicar em /insights e /recomendacoes/ctr
+   - DataTable genérica com sort client-side
+
+**Decisões importantes:**
+- **Templates {nome}/{pedido}/{produto}/{data} client-side** — interpolação no momento do click, não persiste no body do template (body fica no const). Future: API pra lojista editar templates próprios via /tickets/templates
+- **Atalho ⌘+↵ universal** — match shortcut convention de produtos como Linear, Slack, Notion
+- **Bot variant pronto para integração FaqZap** — Sprint 9 chatbot real preencherá messages com senderType='bot' + body sugerido
+
+**Próximo ciclo:**
+- Receber subagents resultados
+- Aplicar VariantPicker/UrgencyBadge/Pix5% deploy storefront
+- Aplicar MetricCard refactor + Toast Provider deploy admin
+- Customer profile tabs (Garantias/Tickets/Marketing/Notas)
+- Account.jsx Tracking branded com mapa SVG
+
+**99 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão** funcional. 2 subagents rodando paralelos.
