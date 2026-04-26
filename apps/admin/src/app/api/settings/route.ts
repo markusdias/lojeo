@@ -35,11 +35,14 @@ export async function GET() {
   });
 }
 
+// Templates registrados — SOT para validação ao trocar template ativo
+const REGISTERED_TEMPLATES = new Set<string>(['jewelry-v1']);
+
 export async function PATCH(req: Request) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
 
-  const body = await req.json() as { name?: string; config?: TenantConfig };
+  const body = await req.json() as { name?: string; config?: TenantConfig; templateId?: string };
 
   const tid = tenantId();
   const tenant = await db.query.tenants?.findFirst({ where: eq(tenants.id, tid) });
@@ -47,6 +50,18 @@ export async function PATCH(req: Request) {
 
   const update: Record<string, unknown> = { updatedAt: new Date() };
   if (body.name?.trim()) update.name = body.name.trim().slice(0, 200);
+
+  if (body.templateId) {
+    const candidate = body.templateId.trim();
+    if (!REGISTERED_TEMPLATES.has(candidate)) {
+      return NextResponse.json({
+        error: 'template_not_registered',
+        message: `Template "${candidate}" ainda não está disponível. Templates registrados: ${[...REGISTERED_TEMPLATES].join(', ')}.`,
+      }, { status: 400 });
+    }
+    update.templateId = candidate;
+  }
+
   if (body.config) {
     const existing = (tenant.config ?? {}) as TenantConfig;
     update.config = { ...existing, ...body.config };

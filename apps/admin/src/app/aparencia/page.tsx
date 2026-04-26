@@ -381,7 +381,29 @@ export default function AparenciaPage() {
         </div>
       </form>
 
-      {showSwitcher && <TemplateSwitcherModal templates={TEMPLATES} activeId={activeTemplate.id} onClose={() => setShowSwitcher(false)} onApply={() => setShowSwitcher(false)} />}
+      {showSwitcher && <TemplateSwitcherModal
+        templates={TEMPLATES}
+        activeId={activeTemplate.id}
+        onClose={() => setShowSwitcher(false)}
+        onApply={async (id) => {
+          const res = await fetch('/api/settings', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ templateId: id }),
+          });
+          if (res.ok) {
+            setSettings(prev => prev ? { ...prev, templateId: id } : prev);
+            setShowSwitcher(false);
+            setSaved(true);
+            setTimeout(() => setSaved(false), 3000);
+          } else {
+            const err = await res.json() as { error?: string; message?: string };
+            setError(err.message ?? err.error ?? 'Falha ao trocar template');
+            setShowSwitcher(false);
+            setTimeout(() => setError(''), 5000);
+          }
+        }}
+      />}
     </main>
   );
 }
