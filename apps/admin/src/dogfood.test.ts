@@ -6,6 +6,8 @@ import {
   productVariants,
   collections,
   productCollections,
+  inventoryStock,
+  inventoryMovements,
   behaviorEvents,
   sessionsBehavior,
 } from '@lojeo/db';
@@ -31,6 +33,10 @@ import {
   DELETE as deleteCollection,
   POST as assignToCollection,
 } from './app/api/collections/[id]/route';
+import {
+  GET as listStock,
+  POST as adjustStockApi,
+} from './app/api/inventory/route';
 import { POST as track } from './app/api/track/route';
 import { GET as health } from './app/api/health/route';
 
@@ -61,6 +67,10 @@ beforeAll(async () => {
 afterAll(async () => {
   await db.delete(behaviorEvents).where(eq(behaviorEvents.anonymousId, ANON_ID));
   await db.delete(sessionsBehavior).where(eq(sessionsBehavior.anonymousId, ANON_ID));
+  if (variantId) {
+    await db.delete(inventoryMovements).where(eq(inventoryMovements.variantId, variantId)).catch(() => {});
+    await db.delete(inventoryStock).where(eq(inventoryStock.variantId, variantId)).catch(() => {});
+  }
   if (productId) {
     await db
       .delete(productCollections)
@@ -252,6 +262,43 @@ describe('dogfood — caso de uso completo', () => {
       .from(behaviorEvents)
       .where(eq(behaviorEvents.anonymousId, ANON_ID));
     expect(events.length).toBe(1);
+  });
+
+  it('inventory: ajusta estoque (+10 inbound)', async () => {
+    const res = await adjustStockApi(
+      jsonReq('http://t/api/inventory', 'POST', {
+        variantId,
+        qtyDelta: 10,
+        movementType: 'inbound',
+        reason: 'Recebimento dogfood',
+      }),
+    );
+    expect(res.status).toBe(201);
+    const json = await res.json();
+    expect(json.stock.qty).toBeGreaterThanOrEqual(10);
+  });
+
+  it('inventory: lista stock por variante', async () => {
+    const res = await listStock(
+      jsonReq(`http://t/api/inventory?variantId=${variantId}`, 'GET'),
+    );
+    const json = await res.json();
+    expect(json.stock.length).toBeGreaterThanOrEqual(1);
+    expect(json.stock[0].qty).toBeGreaterThanOrEqual(10);
+  });
+
+  it('inventory: ajuste negativo (-3 outbound)', async () => {
+    const res = await adjustStockApi(
+      jsonReq('http://t/api/inventory', 'POST', {
+        variantId,
+        qtyDelta: -3,
+        movementType: 'outbound',
+        reason: 'Venda simulada',
+      }),
+    );
+    expect(res.status).toBe(201);
+    const json = await res.json();
+    expect(json.stock.qty).toBeGreaterThanOrEqual(7);
   });
 
   it('DELETE variante', async () => {

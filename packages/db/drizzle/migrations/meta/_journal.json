@@ -8,6 +8,13 @@
       "when": 1777200072993,
       "tag": "0000_dazzling_firebird",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1777205960204,
+      "tag": "0001_classy_boom_boom",
+      "breakpoints": true
     }
   ]
 }
