@@ -14,7 +14,7 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
     const tenant = await db.query.tenants?.findFirst({ where: eq(tenants.id, tid) });
     const config = (tenant?.config ?? {}) as { robotsTxt?: string };
     customRobots = config.robotsTxt;
-  } catch {}
+  } catch { /* fall through to defaults */ }
 
   if (customRobots) {
     // Custom robots.txt: return raw (Next.js will use our default rules, but we override via headers)

@@ -24,7 +24,7 @@ export class LocalDriver implements StorageDriver {
   }
 
   async delete(key: string): Promise<void> {
-    await unlink(this.path(key)).catch((e: NodeJS.ErrnoException) => {
+    await unlink(this.path(key)).catch((e: Error & { code?: string }) => {
       if (e.code !== 'ENOENT') throw e;
     });
   }

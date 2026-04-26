@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 
 interface TenantConfig {
   contactEmail?: string;
@@ -54,7 +54,7 @@ export default function SettingsPage() {
     fetch('/api/settings').then(r => r.json()).then(setSettings);
   }, []);
 
-  async function handleSave(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSave(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!settings) return;
     setSaving(true);

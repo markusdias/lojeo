@@ -40,7 +40,7 @@ describe('Tracker', () => {
     const t = new Tracker({ tenantId: 'tnt-1', flushIntervalMs: 60_000 });
     setConsent({ analytics: false });
     t.track({ type: 'product_scroll', metadata: { depth: 50 } });
-    const spy = vi.spyOn(globalThis, 'fetch' as 'fetch').mockResolvedValue(new Response());
+    const spy = vi.spyOn(globalThis, 'fetch' as const).mockResolvedValue(new Response());
     await t.flush();
     expect(spy).not.toHaveBeenCalled();
   });
@@ -48,7 +48,7 @@ describe('Tracker', () => {
   it('faz POST quando há eventos essenciais', async () => {
     setConsent({ analytics: true });
     const t = new Tracker({ tenantId: 'tnt-1', flushIntervalMs: 60_000 });
-    const spy = vi.spyOn(globalThis, 'fetch' as 'fetch').mockResolvedValue(new Response());
+    const spy = vi.spyOn(globalThis, 'fetch' as const).mockResolvedValue(new Response());
     t.track({ type: 'product_view', entityId: 'p1' });
     await t.flush();
     expect(spy).toHaveBeenCalledOnce();
