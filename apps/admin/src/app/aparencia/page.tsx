@@ -2,7 +2,6 @@
 
 import { useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
-import { InfoTooltip } from '../../components/ui/info-tooltip';
 
 interface AppearanceConfig {
   typo?: string;

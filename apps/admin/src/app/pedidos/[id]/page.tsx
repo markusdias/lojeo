@@ -349,7 +349,6 @@ export default async function PedidoDetailPage({ params }: PageProps) {
               {items.map(item => (
                 <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
                   {item.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
                     <img src={item.imageUrl} alt={item.productName} style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 'var(--radius-sm)', flexShrink: 0 }} />
                   ) : (
                     <div style={{ width: 40, height: 40, background: 'var(--neutral-100)', borderRadius: 'var(--radius-sm)', flexShrink: 0 }} />

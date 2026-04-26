@@ -14,7 +14,7 @@ import {
   behaviorEvents,
   sessionsBehavior,
 } from '@lojeo/db';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { POST as createProduct, GET as listProducts } from './app/api/products/route';
 import {
   GET as getProduct,

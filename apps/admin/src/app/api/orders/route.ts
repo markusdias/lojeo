@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { db, orders, orderItems } from '@lojeo/db';
-import { eq, and, desc, gte, inArray, sql } from 'drizzle-orm';
+import { db, orders } from '@lojeo/db';
+import { eq, and, desc, gte, sql } from 'drizzle-orm';
 
 const tenantId = () => process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
 
