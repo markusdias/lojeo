@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { trackPixelEvent } from '../marketing/pixel-events';
 
 export interface CartItem {
   id: string;
@@ -67,14 +68,23 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addItem = useCallback((incoming: Omit<CartItem, 'qty'> & { qty?: number }) => {
+    const qty = incoming.qty ?? 1;
     setItems(prev => {
-      const qty = incoming.qty ?? 1;
       const existing = prev.find(i => i.id === incoming.id);
       const next = existing
         ? prev.map(i => i.id === incoming.id ? { ...i, qty: i.qty + qty } : i)
         : [...prev, { ...incoming, qty }];
       saveCart(next);
       return next;
+    });
+    // Pixel event: AddToCart
+    trackPixelEvent('AddToCart', {
+      value: incoming.priceCents * qty,
+      currency: 'BRL',
+      content_ids: [incoming.productId],
+      content_type: 'product',
+      contents: [{ id: incoming.productId, quantity: qty, item_price: incoming.priceCents }],
+      num_items: qty,
     });
   }, []);
 

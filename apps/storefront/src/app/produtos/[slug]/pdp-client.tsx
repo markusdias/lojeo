@@ -7,6 +7,7 @@ import { useCart } from '../../../components/cart/cart-provider';
 import { useTracker } from '../../../components/tracker-provider';
 import { HeartButton } from '../../../components/wishlist/heart-button';
 import { useTrackRecentlyViewed } from '../../../components/products/recently-viewed';
+import { trackPixelEvent } from '../../../components/marketing/pixel-events';
 
 type UrgencyKind = 'none' | 'viewing' | 'low-stock';
 
@@ -156,6 +157,16 @@ export function PDPClient({ product, variants, images, urgency, viewersNow, tota
     priceCents: product.priceCents,
     imageUrl: images[0]?.url,
   });
+
+  // Pixel event: ViewContent (uma vez ao montar PDP)
+  useEffect(() => {
+    trackPixelEvent('ViewContent', {
+      value: product.priceCents,
+      currency: 'BRL',
+      content_ids: [product.id],
+      content_type: 'product',
+    });
+  }, [product.id]);
 
   const selectedVariant = variants.find(v => v.id === selectedVariantId) ?? variants[0];
   const effectivePrice = selectedVariant?.priceCents ?? product.priceCents;

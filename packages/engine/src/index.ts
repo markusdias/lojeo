@@ -8,3 +8,4 @@ export * from './churn';
 export * from './inventory-forecast';
 export * from './warranty';
 export * from './market-basket';
+export * from './file-signature';

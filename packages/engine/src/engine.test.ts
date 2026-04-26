@@ -322,3 +322,40 @@ describe('market basket (FBT)', () => {
     expect(anelColar?.cooccurrence).toBe(2); // não 3
   });
 });
+
+import { detectImageMime, isValidImageUpload } from './file-signature';
+
+describe('file signature validation', () => {
+  it('detecta JPEG por magic bytes', () => {
+    const buf = Buffer.from([0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0, 0]);
+    expect(detectImageMime(buf)).toBe('image/jpeg');
+  });
+
+  it('detecta PNG por magic bytes', () => {
+    const buf = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0]);
+    expect(detectImageMime(buf)).toBe('image/png');
+  });
+
+  it('detecta WebP por RIFF + WEBP markers', () => {
+    const buf = Buffer.from([
+      0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00,
+      0x57, 0x45, 0x42, 0x50, 0x00, 0x00,
+    ]);
+    expect(detectImageMime(buf)).toBe('image/webp');
+  });
+
+  it('rejeita HTML disfarçado de imagem', () => {
+    const buf = Buffer.from('<html><script>alert(1)</script></html>');
+    expect(detectImageMime(buf)).toBeNull();
+    expect(isValidImageUpload(buf)).toBe(false);
+  });
+
+  it('rejeita SVG (não suportado)', () => {
+    const buf = Buffer.from('<?xml version="1.0"?><svg>...</svg>');
+    expect(isValidImageUpload(buf)).toBe(false);
+  });
+
+  it('rejeita buffer muito pequeno', () => {
+    expect(detectImageMime(Buffer.from([0xFF]))).toBeNull();
+  });
+});

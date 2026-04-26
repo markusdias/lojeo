@@ -6,6 +6,7 @@ import { useCheckout, type CheckoutAddress } from '../../../components/checkout/
 import { useCart } from '../../../components/cart/cart-provider';
 import { useTracker } from '../../../components/tracker-provider';
 import { CheckoutSummary } from '../../../components/checkout/checkout-summary';
+import { trackPixelEvent } from '../../../components/marketing/pixel-events';
 
 const STATES = [
   'AC','AL','AM','AP','BA','CE','DF','ES','GO','MA','MG','MS','MT',
@@ -64,6 +65,16 @@ export default function EnderecoPage() {
 
   useEffect(() => {
     tracker?.track({ type: 'checkout_step_start', entityType: 'checkout', entityId: 'endereco', metadata: { step: 1 } });
+    // Pixel event: InitiateCheckout — disparado uma vez ao entrar no fluxo
+    const totalCents = items.reduce((s, i) => s + i.priceCents * i.qty, 0);
+    trackPixelEvent('InitiateCheckout', {
+      value: totalCents,
+      currency: 'BRL',
+      content_ids: items.map(i => i.productId),
+      content_type: 'product',
+      contents: items.map(i => ({ id: i.productId, quantity: i.qty, item_price: i.priceCents })),
+      num_items: items.reduce((s, i) => s + i.qty, 0),
+    });
   }, [tracker]);
 
   // ViaCEP autocomplete

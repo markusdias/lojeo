@@ -7,6 +7,7 @@ import { ConsentBanner } from '../components/consent-banner';
 import { Header } from '../components/layout/header';
 import { Footer } from '../components/layout/footer';
 import { Pixels } from '../components/marketing/pixels';
+import { ServiceWorkerRegister } from '../components/pwa/sw-register';
 import { db, tenants } from '@lojeo/db';
 import { eq } from 'drizzle-orm';
 import './globals.css';
@@ -15,6 +16,14 @@ import '@lojeo/template-jewelry-v1/tokens.css';
 export const metadata = {
   title: 'Joias — Atelier',
   description: 'Joalheria contemporânea em ouro 18k e prata 925, com garantia de um ano.',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: { capable: true, statusBarStyle: 'default' as const, title: 'Atelier' },
+};
+
+export const viewport = {
+  themeColor: '#1A1A1A',
+  width: 'device-width',
+  initialScale: 1,
 };
 
 interface PixelConfig {
@@ -51,6 +60,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     >
       <body>
         <Pixels config={pixelConfig} />
+        <ServiceWorkerRegister />
         <WishlistProvider>
         <CartProvider>
           <TrackerProvider tenantId={tenantId} endpoint="/api/track">

@@ -3,6 +3,7 @@ import sharp from 'sharp';
 import { eq, and, desc } from 'drizzle-orm';
 import { db, ugcPosts } from '@lojeo/db';
 import { getStorage } from '@lojeo/storage';
+import { isValidImageUpload } from '@lojeo/engine';
 import { auth } from '../../../auth';
 
 export const dynamic = 'force-dynamic';
@@ -58,6 +59,11 @@ export async function POST(req: NextRequest) {
   const rawBuffer = Buffer.from(await file.arrayBuffer());
   if (rawBuffer.byteLength > MAX_BYTES) {
     return NextResponse.json({ error: 'file_too_large', maxBytes: MAX_BYTES }, { status: 400 });
+  }
+
+  // Magic bytes validation — bloqueia HTML/scripts disfarçados
+  if (!isValidImageUpload(rawBuffer)) {
+    return NextResponse.json({ error: 'invalid_image_signature' }, { status: 400 });
   }
 
   // Validate it's actually an image (sharp throws on non-image)

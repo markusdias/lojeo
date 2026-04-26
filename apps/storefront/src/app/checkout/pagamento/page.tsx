@@ -7,6 +7,7 @@ import { useCart } from '../../../components/cart/cart-provider';
 import { useTracker } from '../../../components/tracker-provider';
 import { CheckoutSummary } from '../../../components/checkout/checkout-summary';
 import { Icon } from '../../../components/ui/icon';
+import { trackPixelEvent } from '../../../components/marketing/pixel-events';
 
 const CURRENCY = 'BRL';
 const FREE_SHIPPING_ABOVE = 50000;
@@ -103,6 +104,19 @@ export default function PagamentoPage() {
 
       setOrder(data.orderId, data.orderNumber);
       setStep('confirmacao');
+
+      // Pixel event: Purchase (BEFORE clear() — items ainda no carrinho para metadata)
+      const totalCents = items.reduce((s, i) => s + i.priceCents * i.qty, 0);
+      trackPixelEvent('Purchase', {
+        value: totalCents,
+        currency: 'BRL',
+        order_id: data.orderId,
+        content_ids: items.map(i => i.productId),
+        content_type: 'product',
+        contents: items.map(i => ({ id: i.productId, quantity: i.qty, item_price: i.priceCents })),
+        num_items: items.reduce((s, i) => s + i.qty, 0),
+      });
+
       clear();
       tracker?.track({ type: 'checkout_step_complete', entityType: 'checkout', entityId: 'pagamento', metadata: { step: 3, method } });
       router.push('/checkout/confirmacao');

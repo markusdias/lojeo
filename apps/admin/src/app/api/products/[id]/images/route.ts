@@ -4,6 +4,7 @@ import sharp from 'sharp';
 import { db, productImages, products } from '@lojeo/db';
 import { getStorage } from '@lojeo/storage';
 import { ai } from '@lojeo/ai';
+import { isValidImageUpload } from '@lojeo/engine';
 
 const SIZES = [
   { suffix: 'sm', width: 200 },
@@ -45,6 +46,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const rawBuffer = Buffer.from(await file.arrayBuffer());
   if (rawBuffer.byteLength > MAX_BYTES) {
     return NextResponse.json({ error: 'file_too_large', maxBytes: MAX_BYTES }, { status: 400 });
+  }
+
+  // Magic bytes validation — bloqueia upload de scripts/HTML disfarçados
+  if (!isValidImageUpload(rawBuffer)) {
+    return NextResponse.json({ error: 'invalid_image_signature' }, { status: 400 });
   }
 
   const storage = getStorage();
