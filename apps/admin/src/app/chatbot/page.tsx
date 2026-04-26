@@ -35,13 +35,33 @@ export default function ChatbotStatsPage() {
 
   useEffect(() => {
     fetch('/api/chatbot/stats')
-      .then(r => r.json())
-      .then((d: Stats) => { setStats(d); setLoading(false); })
-      .catch((e: unknown) => { setError(String(e)); setLoading(false); });
+      .then(async r => {
+        const d = await r.json() as Partial<Stats> & { error?: string };
+        if (!r.ok || d.error) {
+          setError(d.error ?? `HTTP ${r.status}`);
+        } else if (typeof d.total === 'number') {
+          setStats(d as Stats);
+        } else {
+          setError('Resposta inesperada do servidor');
+        }
+      })
+      .catch((e: unknown) => setError(String(e)))
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading) return <div className="p-8 text-sm text-gray-500">Carregando...</div>;
-  if (error || !stats) return <div className="p-8 text-sm text-red-500">Erro: {error}</div>;
+  if (error || !stats) return (
+    <div className="p-8 max-w-3xl space-y-3">
+      <h1 className="text-xl font-semibold">Chatbot</h1>
+      <div className="bg-amber-50 border border-amber-200 rounded p-4 text-sm text-amber-800">
+        <p className="font-medium">Sem dados de telemetria ainda.</p>
+        {error && <p className="text-xs text-amber-700 mt-1">Detalhe: {error}</p>}
+        <p className="text-xs mt-2 text-amber-700">
+          Os dados aparecerão aqui assim que o widget de chat receber as primeiras conversas em produção.
+        </p>
+      </div>
+    </div>
+  );
 
   const costUsd = estimateCostUsd(stats.totalTokensIn, stats.totalTokensOut);
 

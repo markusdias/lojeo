@@ -527,30 +527,33 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 **Critérios de pronto:**
 
 **Galeria de clientes (UGC):**
-- [ ] Schema: `ugc_posts` (user_id, image_url, caption, status, products_tagged jsonb, source enum [direct_upload, social_import], moderated_by, moderated_at)
-- [ ] Upload direto de foto pelo cliente na área logada
-- [ ] Importação por hashtag/menção em redes sociais (preparado, integração na Fase 1.2)
-- [ ] Fila de moderação no admin: aprovar/rejeitar com 1 clique
-- [ ] Detecção automática de conteúdo impróprio (Claude vision call: nudez, violência, marca concorrente)
-- [ ] Rejeição automática de imagem suspeita + flag para revisão manual
-- [ ] Galeria "Como nossos clientes usam" na PDP (carrossel)
-- [ ] Galeria geral "Comunidade" como página dedicada
-- [ ] Cliente recebe email de notificação quando foto é aprovada (incentivo)
+- [x] Schema: `ugc_posts` (user_id, customerEmail/Name, image_url, thumbnail_url, caption, status, products_tagged jsonb, source enum [direct_upload, social_import], ai_moderation_result, moderated_by, moderated_at, rejection_reason)
+- [x] Upload direto de foto pelo cliente na área logada — `/conta/galeria` + `POST /api/ugc` com sharp + storage abstrato (full.webp 1600px + thumb 400px)
+- [ ] Importação por hashtag/menção em redes sociais — Fase 1.2
+- [x] Fila de moderação no admin: aprovar/rejeitar com 1 clique — `/ugc` admin com filtros pending/approved/rejected
+- [ ] Detecção automática de conteúdo impróprio (Claude vision call) — research-first cumprido (`docs/research/sprint-10-ugc-moderation.md`); BLOQUEADO: Anthropic key prod
+- [ ] Rejeição automática de imagem suspeita + flag para revisão manual — depende item acima
+- [x] Galeria "Como nossos clientes usam" na PDP (carrossel) — `<UgcGallery productId>` injetado entre header e reviews
+- [x] Galeria geral "Comunidade" como página dedicada — `/comunidade`
+- [ ] Cliente recebe email de notificação quando foto é aprovada — BLOQUEADO: Resend API key
 
 **Compre o look:**
-- [ ] Editor no admin: lojista marca produtos em foto UGC (tags com posição x,y)
-- [ ] Hover/click em tag exibe card do produto + link
-- [ ] Métrica: cliques em tags + conversão derivada de UGC
+- [x] Schema: `ugc_posts.products_tagged` jsonb suporta `[{productId, x, y, label?}]` — base pronta
+- [x] API: `PATCH /api/ugc/[id] { productsTagged }` aceita array com x/y posicional
+- [x] Storefront: `/api/ugc/gallery?productId=X` filtra fotos com tag do produto via `jsonb @>`
+- [ ] Editor no admin: canvas com drag-and-drop tags posicionais — BLOQUEADO: Design Checkpoint C
+- [ ] Hover/click em tag exibe card do produto na PDP — depende do editor estar funcional
+- [ ] Métrica: cliques em tags + conversão derivada de UGC — depende editor
 
 **Moderação assistida por IA:**
-- [ ] Pipeline: upload → Claude vision verifica conteúdo → score → fila com priorização
-- [ ] Fotos seguras vão pra fila normal; suspeitas vão pra fila de revisão urgente
-- [ ] Lojista pode definir auto-aprovação para clientes com histórico (>3 fotos aprovadas)
+- [ ] Pipeline: upload → Claude vision → score → fila — research feita; BLOQUEADO: Anthropic key prod
+- [ ] Fotos seguras vão pra fila normal; suspeitas pra fila urgente — depende pipeline acima
+- [ ] Lojista pode definir auto-aprovação para clientes >3 fotos aprovadas — Sprint 11+
 
 **Incentivo (visão UX/marketing):**
-- [ ] Email automático pós-entrega: "compartilhe sua experiência" com link direto para upload
-- [ ] Crédito de loja (gift card automático) por foto aprovada — opcional, configurável
-- [ ] Selo "embaixador" para clientes com >5 fotos aprovadas (preparação para Sprint 17)
+- [ ] Email automático pós-entrega: "compartilhe sua experiência" — BLOQUEADO: Resend API key
+- [ ] Crédito de loja (gift card automático) por foto aprovada — depende gift card flow Sprint 5 completo
+- [ ] Selo "embaixador" para clientes com >5 fotos aprovadas — Sprint 17 (afiliados)
 
 **Justificativa estratégica (UX + marketing):** UGC é gasolina de conversão para joias. Cliente quer ver como o anel fica em mão real, não só foto de estúdio. Conversão típica: +10-20% em PDP com galeria UGC ativa. Custo de aquisição zero — cliente cria conteúdo de graça, plataforma facilita o fluxo.
 

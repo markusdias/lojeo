@@ -192,6 +192,21 @@ export async function POST(req: NextRequest) {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_orders_customer_email ON orders(tenant_id, customer_email)`);
     results.push('orders.customer_email: ok');
 
+    // Schema reconciliation — columns from packages/db schema not in 0002 base
+    await db.execute(sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS anonymous_id varchar(64)`);
+    await db.execute(sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_carrier varchar(100)`);
+    await db.execute(sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_service varchar(100)`);
+    await db.execute(sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_deadline_days integer`);
+    await db.execute(sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_gateway varchar(50)`);
+    await db.execute(sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS gateway_payment_id varchar(200)`);
+    await db.execute(sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS gateway_status varchar(50)`);
+    await db.execute(sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS coupon_discount_cents integer DEFAULT 0`);
+    await db.execute(sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS fraud_score integer`);
+    await db.execute(sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS invoice_key varchar(60)`);
+    await db.execute(sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS invoice_url text`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_orders_gateway_payment ON orders(gateway_payment_id)`);
+    results.push('orders.schema_reconciliation: ok');
+
     // Sprint 9 — chatbot telemetry sessions
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS chatbot_sessions (
