@@ -81,6 +81,106 @@ export async function POST(req: NextRequest) {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_ticket_templates_tenant ON ticket_templates(tenant_id)`);
     results.push('indexes: ok');
 
+    // Migration 0002 — orders + order_items + order_events + customer_addresses (CRITICAL)
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS orders (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL,
+        order_number varchar(30) NOT NULL,
+        user_id uuid,
+        customer_name varchar(200),
+        customer_phone varchar(30),
+        status varchar(30) DEFAULT 'pending' NOT NULL,
+        payment_status varchar(30) DEFAULT 'pending' NOT NULL,
+        payment_method varchar(40),
+        subtotal_cents integer NOT NULL,
+        shipping_cents integer DEFAULT 0 NOT NULL,
+        discount_cents integer DEFAULT 0 NOT NULL,
+        tax_cents integer DEFAULT 0 NOT NULL,
+        total_cents integer NOT NULL,
+        currency varchar(3) DEFAULT 'BRL' NOT NULL,
+        shipping_address jsonb,
+        billing_address jsonb,
+        shipping_method varchar(60),
+        tracking_code varchar(60),
+        coupon_code varchar(40),
+        utm_source varchar(100),
+        utm_medium varchar(100),
+        utm_campaign varchar(100),
+        notes text,
+        metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+        paid_at timestamptz,
+        shipped_at timestamptz,
+        delivered_at timestamptz,
+        cancelled_at timestamptz,
+        created_at timestamptz DEFAULT now() NOT NULL,
+        updated_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    results.push('orders: ok');
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_orders_tenant_status ON orders(tenant_id, status)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_orders_tenant_created ON orders(tenant_id, created_at)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_orders_number ON orders(tenant_id, order_number)`);
+
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS order_items (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        order_id uuid NOT NULL,
+        tenant_id uuid NOT NULL,
+        variant_id uuid,
+        product_name varchar(300) NOT NULL,
+        variant_name varchar(200),
+        sku varchar(100),
+        image_url text,
+        options jsonb DEFAULT '{}'::jsonb NOT NULL,
+        unit_price_cents integer NOT NULL,
+        qty integer NOT NULL,
+        total_cents integer NOT NULL
+      )
+    `);
+    results.push('order_items: ok');
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id)`);
+
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS order_events (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        order_id uuid NOT NULL,
+        tenant_id uuid NOT NULL,
+        event_type varchar(60) NOT NULL,
+        from_status varchar(30),
+        to_status varchar(30),
+        actor varchar(100) DEFAULT 'system' NOT NULL,
+        notes text,
+        metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+        created_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    results.push('order_events: ok');
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_order_events_order ON order_events(order_id)`);
+
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS customer_addresses (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL,
+        user_id uuid,
+        label varchar(100),
+        recipient_name varchar(200) NOT NULL,
+        phone varchar(30),
+        postal_code varchar(20) NOT NULL,
+        street varchar(300) NOT NULL,
+        number varchar(30) NOT NULL,
+        complement varchar(100),
+        neighborhood varchar(100),
+        city varchar(150) NOT NULL,
+        state varchar(50) NOT NULL,
+        country varchar(2) DEFAULT 'BR' NOT NULL,
+        created_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    results.push('customer_addresses: ok');
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_addresses_user ON customer_addresses(user_id)`);
+
     // Migration 0004 — gift columns on orders (idempotent)
     await db.execute(sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS is_gift boolean DEFAULT false NOT NULL`);
     await db.execute(sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS gift_message text`);
