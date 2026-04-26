@@ -44,9 +44,9 @@ export default async function ClientesPage() {
   const profiles = scoreCustomers(inputs);
 
   return (
-    <div style={{ padding: '32px 40px', maxWidth: 1100 }}>
+    <div style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }} className="space-y-6">
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 24 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 600, color: '#f9fafb' }}>Clientes</h1>
+        <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginBottom: 'var(--space-2)' }}>Clientes</h1>
         <span style={{ fontSize: 13, color: '#6b7280' }}>{profiles.length} clientes</span>
       </div>
       <ClientesTable customers={profiles} />

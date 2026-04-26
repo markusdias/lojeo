@@ -79,9 +79,9 @@ export default function UgcModerationPage() {
   }
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-6">
+    <div style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }} className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold">Galeria de Clientes</h1>
+        <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginBottom: 'var(--space-2)' }}>Galeria de Clientes</h1>
         <p className="text-sm text-gray-500 mt-1">Moderação de fotos enviadas pelos clientes</p>
       </header>
 

@@ -41,10 +41,10 @@ export default function InventoryPage() {
   const lowCount = stock.filter(r => alertLevel(r) === 'low').length;
 
   return (
-    <div className="p-8 max-w-5xl">
+    <div style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }} className="space-y-6">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 600 }}>Estoque</h1>
+          <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginBottom: 'var(--space-2)' }}>Estoque</h1>
           <p style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>Visão consolidada por variante</p>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>

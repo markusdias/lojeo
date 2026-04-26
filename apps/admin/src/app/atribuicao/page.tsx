@@ -67,9 +67,9 @@ export default function AtribuicaoPage() {
   } as const;
 
   return (
-    <main className="p-8 max-w-6xl">
+    <main style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }} className="space-y-6">
       <header style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 600 }}>Atribuição multi-touch</h1>
+        <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginBottom: 'var(--space-2)' }}>Atribuição multi-touch</h1>
         <p style={{ fontSize: 14, color: '#6B7280', marginTop: 4 }}>
           Receita e conversão por origem de tráfego (UTM source / medium / campaign)
         </p>

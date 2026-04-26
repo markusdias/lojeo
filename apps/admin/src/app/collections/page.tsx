@@ -43,10 +43,10 @@ export default function CollectionsPage() {
   }
 
   return (
-    <div className="p-8 max-w-4xl">
+    <div style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }} className="space-y-6">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 600 }}>Coleções</h1>
+          <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginBottom: 'var(--space-2)' }}>Coleções</h1>
           <p style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>Agrupe produtos em coleções para exibir no storefront</p>
         </div>
         <span style={{ fontSize: 13, color: '#6B7280' }}>{list.length} coleção(ões)</span>

@@ -220,11 +220,11 @@ export default function IaAnalystPage() {
   }
 
   return (
-    <main style={{ padding: 'var(--space-6)', maxWidth: 920, margin: '0 auto', display: 'flex', flexDirection: 'column', height: '100vh' }}>
+    <main style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto', display: 'flex', flexDirection: 'column', height: '100vh' }} className="space-y-6">
       <header style={{ marginBottom: 'var(--space-4)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <h1 style={{ fontSize: 22, fontWeight: 600, margin: 0 }}>IA Analyst</h1>
+            <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginBottom: 'var(--space-2)' }}>IA Analyst</h1>
             <p style={{ fontSize: 13, color: 'var(--neutral-500)', marginTop: 4 }}>
               Pergunte sobre receita, conversão, clientes ou comportamento. O Analyst consulta seus dados em tempo real.
             </p>

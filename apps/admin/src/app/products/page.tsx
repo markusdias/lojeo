@@ -29,9 +29,9 @@ export default async function ProductsPage() {
   } catch { /* DB indisponível */ }
 
   return (
-    <div className="p-8">
+    <div style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }} className="space-y-6">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 600 }}>Produtos</h1>
+        <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginBottom: 'var(--space-2)' }}>Produtos</h1>
         <span style={{ fontSize: 13, color: '#6B7280' }}>{list.length} produto(s)</span>
       </div>
 

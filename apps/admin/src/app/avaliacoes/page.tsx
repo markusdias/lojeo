@@ -62,8 +62,8 @@ export default function AvaliacoesPage() {
   };
 
   return (
-    <div className="p-6 max-w-4xl">
-      <h1 className="text-xl font-semibold mb-6">Avaliações</h1>
+    <div style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }} className="space-y-6">
+      <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginBottom: 'var(--space-2)' }}>Avaliações</h1>
 
       {/* Tabs */}
       <div className="flex gap-1 mb-6 border-b border-neutral-200">
