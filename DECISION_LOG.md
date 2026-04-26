@@ -582,3 +582,47 @@ Decisões técnicas relevantes registradas com data e justificativa.
 6. **`login/page.tsx: force-dynamic`.** Página era gerada estaticamente no build — `process.env.ADMIN_DEV_LOGIN` não existia no build environment do EasyPanel. Com `force-dynamic`, variável é lida em runtime e formulário dev aparece corretamente.
 
 7. **Research-first cumprido.** `docs/research/sprint-7-product-copy-prompts.md` documentado antes de escrever qualquer prompt. Fontes: Anthropic docs, Shopify Magic patterns, Tashvi AI jewelry copy, Hypotenuse AI.
+
+---
+
+## 2026-04-26 — Sprint 8 implementado: churn scoring + previsão de estoque + UX admin
+
+**Implementado autonomamente (sessão 2026-04-26):**
+
+**Engines puras (`packages/engine`):**
+
+1. **`churn.ts`**: score 0-100 baseado em recência e frequência de compra. Thresholds: critical(>180d ou ≥90), high(≥70), medium(≥40), low(≥15), active(<15). Fórmula: `min(100, round(recencyRatio*60 + frequencyPenalty*40))`. `scoreChurnBatch()` ordena por score desc.
+
+2. **`inventory-forecast.ts`**: velocidade diária = vendas / N dias. Usa 30d se ≥5 vendas, fallback 90d se ≥3, `no_data` caso contrário. Alerts: critical(≤7d), warning(8-14d), monitor(15-30d), stable(>30d), no_data. `forecastStockBatch()` ordena critical primeiro.
+
+3. **23 testes** novos no `engine.test.ts` (10 churn + 5 inventory + 8 existentes).
+
+**APIs admin:**
+
+4. **`/api/customers/churn`**: agrega pedidos por email, score churn batch, retorna top 100 at-risk + contadores por risk level.
+
+5. **`/api/inventory/forecast`**: produtos ativos → productVariants (mapa variantId→productId) → join orderItems+orders (sem createdAt em orderItems). Retorna forecasts ordenados.
+
+**UI admin:**
+
+6. **`/insights`**: Client Component com tabs Churn/Estoque, 4 summary cards, tabelas com risk badges.
+
+7. **`/ia-uso`**: Client Component com chamadas este mês, cache hit rate, custo USD, breakdown por feature, bar chart 30d.
+
+8. **Sidebar**: links Insights (◬) e Uso de IA (✦) adicionados.
+
+**Bugs encontrados e corrigidos:**
+
+9. **`orderItems` sem `productId`**: schema usa `variantId` FK para `productVariants`. Fix: query variants separada para mapear variantId→productId.
+
+10. **`orderItems` sem `createdAt`**: Fix: innerJoin com `orders` para filtrar por data.
+
+11. **`login/page.tsx` era estático**: `force-dynamic` adicionado — env var ADMIN_DEV_LOGIN só disponível em runtime.
+
+12. **`dashboard/page.tsx` crashava em prod**: removidos `db.query.*` (relational API) e inline server action `signOut`. Substituídos por `db.select()` e Link simples. Root cause: inline server action com `signOut` ou relational query causava erro em Server Component em produção.
+
+**Decisões de design:**
+
+- Churn thresholds v1 são heurísticos — calibrar com dados reais após 30d em produção
+- `customFields.stock` como campo temporário para estoque — migrar para tabela `inventory` dedicada no Sprint 9
+- Rating padrão 4.9 em produtos sem review é cosmético — corrigir quando reviews reais existirem

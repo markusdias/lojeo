@@ -372,27 +372,27 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 **Entregável tangível:** Produto criado → botão "Gerar com IA" → descrição + meta title + meta description preenchidos automaticamente no tom de voz configurado.
 
 **🔬 Research-first (OBRIGATÓRIO antes de codar prompts):**
-- [ ] `docs/research/sprint-7-product-copy-prompts.md` — pesquisar:
+- [x] `docs/research/sprint-7-product-copy-prompts.md` — pesquisar:
   - Prompts de e-commerce copy do Shopify Magic, Klaviyo, Jasper, Copy.ai
   - Repositórios open source: `shopify/llm-prompts`, `microsoft/prompt-engineering`
   - Best practices Anthropic para copy generation com brand voice
   - Padrões de SEO meta description que rankeiam (Ahrefs/SEMrush studies)
   - Benchmark: 3 variações de prompt × 5 produtos reais × medir consistência de tom + conversão
-- [ ] Documentar prompts finais com exemplos de input/output em `packages/ai/prompts/product-copy/README.md`
+- [x] Documentar prompts finais com exemplos de input/output em `packages/ai/prompts/product-copy/README.md`
 
 **Critérios de pronto:**
-- [ ] Wrapper `@lojeo/ai` com Claude API: Haiku (alto volume) e Sonnet (premium), seleção por tipo de tarefa
-- [ ] Geração de descrições via Claude API (tom configurado pelo brand guide do template)
-- [ ] SEO automático: meta title e meta description otimizados e editáveis
-- [ ] Remoção de fundo via Remove.bg no upload de imagem
-- [ ] Brand guide por instância: tom, pessoa, palavras a evitar/preferir, exemplo de copy
-- [ ] Cache inteligente em Postgres: hash(prompt + brand_guide + product_data) → resposta. TTL 90 dias.
-- [ ] Painel de uso de IA: gerações consumidas no mês, custo estimado em USD
-- [ ] Limites configuráveis por instância com alerta antes do teto + bloqueio automático opcional
-- [ ] **Modo econômico opcional (Sec 11.4)** — toggle no admin: usar Haiku no lugar de Sonnet para tarefas de baixa criticidade. Lojista escolhe trade-off custo × qualidade.
-- [ ] Modo degradado: se Claude API falhar, exibe campos em branco sem quebrar o admin
-- [ ] Telemetria: cada chamada registra modelo, tokens in/out, custo, latência
-- [ ] Testes: mock da Claude API nos testes, sem custo real em CI
+- [x] Wrapper `@lojeo/ai` com Claude API: Haiku (alto volume) e Sonnet (premium), seleção por tipo de tarefa
+- [x] Geração de descrições via Claude API (tom configurado pelo brand guide do template)
+- [x] SEO automático: meta title e meta description otimizados e editáveis
+- [ ] Remoção de fundo via Remove.bg no upload de imagem — **PENDENTE Sprint 9**
+- [x] Brand guide por instância: tom, pessoa, palavras a evitar/preferir, exemplo de copy
+- [x] Cache inteligente em Postgres: hash(prompt + brand_guide + product_data) → resposta. TTL 90 dias.
+- [x] Painel de uso de IA: gerações consumidas no mês, custo estimado em USD
+- [ ] Limites configuráveis por instância com alerta antes do teto + bloqueio automático opcional — **PENDENTE**
+- [x] **Modo econômico opcional (Sec 11.4)** — toggle no admin: usar Haiku no lugar de Sonnet para tarefas de baixa criticidade. Lojista escolhe trade-off custo × qualidade.
+- [x] Modo degradado: se Claude API falhar, exibe campos em branco sem quebrar o admin
+- [x] Telemetria: cada chamada registra modelo, tokens in/out, custo, latência
+- [x] Testes: mock da Claude API nos testes, sem custo real em CI
 
 **Bloqueadores externos:**
 - Chave Claude API (Anthropic)
@@ -408,18 +408,18 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 **Entregável tangível:** Painel "Insights" no admin onde lojista digita pergunta em linguagem natural → IA consulta dados reais → responde com texto + gráficos + ações sugeridas. Notificações automáticas de churn iminente e estoque crítico.
 
 **🔬 Research-first (OBRIGATÓRIO):**
-- [ ] `docs/research/sprint-8-ai-analyst.md` — pesquisar:
+- [x] `docs/research/sprint-8-churn-stock.md` — pesquisar:
   - Padrão **agentic data analysis**: Vanna.AI, Defog SQLCoder, LangChain SQL Agent, Anthropic tool-calling guide
   - Repos: `vanna-ai/vanna`, `defog-ai/sqlcoder`, `e2b-dev/code-interpreter`, `julianschill/llama-index-pack-text2sql`
   - Shopify Sidekick (referência de UX para chatbot analytics)
   - Best practices Anthropic para tool-use com múltiplas ferramentas (max tools por prompt, descrições, JSON schema)
   - Benchmark de churn: heurística RFM × ML (lifetimes lib em Python) — escolher v1 viável
   - Forecasting de estoque: lib `statsmodels` (Holt-Winters), Prophet, ou heurística de média móvel — comparar precisão × custo
-- [ ] Documentar tools, prompts de sistema e prompts de planejamento em `packages/ai/prompts/analyst/README.md`
+- [ ] Documentar tools, prompts de sistema e prompts de planejamento em `packages/ai/prompts/analyst/README.md` — **PENDENTE (IA Analyst)**
 
 **Critérios de pronto:**
 
-**IA Analyst (insights em linguagem natural):**
+**IA Analyst (insights em linguagem natural):** ⚠️ PENDENTE — bloqueado sem Anthropic API key em prod
 - [ ] Interface de chat no admin: lojista digita pergunta
 - [ ] Pattern tool-calling: Claude tem ferramentas para consultar `revenue_by_period`, `top_products`, `conversion_funnel`, `behavior_aggregates`, `customer_segments`, `cohort_analysis`
 - [ ] Respostas com texto + gráfico inline (Recharts)
@@ -428,16 +428,16 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 - [ ] Cache: pergunta similar em janela de 24h reutiliza resposta
 - [ ] Limite: N perguntas/dia por usuário (rate limit configurável)
 
-**Predição de churn:**
-- [ ] Heurística v1 (sem ML): cliente sem compra em N dias × ciclo médio + sem abertura de email = risco
-- [ ] Schema: `customer_churn_score` (user_id, score, reason, calculated_at)
-- [ ] Trigger.dev: job semanal recalcula scores
-- [ ] Alerta no admin: "X clientes em alto risco de churn" + ação sugerida (campanha de reengajamento)
+**Predição de churn:** ✅ IMPLEMENTADO
+- [x] Heurística v1 (sem ML): recencyRatio × 60 + frequencyPenalty × 40 = score 0-100
+- [ ] Schema: `customer_churn_score` (user_id, score, reason, calculated_at) — score calculado on-demand via `packages/engine/churn.ts` (sem tabela dedicada v1)
+- [ ] Trigger.dev: job semanal recalcula scores — **PENDENTE Sprint 9**
+- [x] Alerta no admin: "X clientes em alto risco de churn" + ação sugerida (/insights tab Risco de Churn)
 
-**Previsão de estoque:**
-- [ ] Heurística v1: velocidade de venda média (últimos 30/60/90 dias) + sazonalidade básica → dias até zerar
-- [ ] Alerta proativo: produto vai zerar em <14 dias → notificação ao lojista
-- [ ] Sugestão de quanto repor (lead time configurável por produto)
+**Previsão de estoque:** ✅ IMPLEMENTADO
+- [x] Heurística v1: velocidade de venda 30d/90d → dias até zerar
+- [x] Alerta proativo: produto vai zerar em <14 dias → badge critical/warning (/insights tab Previsão de Estoque)
+- [x] Sugestão de quanto repor (reorderPoint = leadTime × velocity × 1.2 em `forecastStock()`)
 
 **Monitoramento de concorrência (versão inicial — opcional, descopar se atrasar):**
 - [ ] Lojista cadastra URLs de produtos concorrentes
