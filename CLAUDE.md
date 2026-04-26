@@ -106,3 +106,23 @@ Ainda não definidos — a discutir e aprovar antes de qualquer código:
 ## Log de decisões técnicas
 
 Manter arquivo `DECISION_LOG.md` no repositório. Toda decisão técnica relevante: data, contexto, opções consideradas, escolha feita, justificativa.
+
+## Infra EasyPanel (NÃO criar serviços novos)
+
+Mapa oficial de serviços está documentado em `DECISION_LOG.md` seção "2026-04-26 — Mapa oficial de serviços EasyPanel". Regras:
+
+- Apenas `services.app.deployService` é permitido autonomamente (token master `c620cb5a...`)
+- **Nunca** invocar `services.app.createService` sem aprovação explícita do stakeholder
+- Service names canônicos: `lojeo-admin`, `lojeo-storefront` (não usar `admin`/`storefront` puros — retornam "Invariant failed")
+- `lojeo-postgres` (DB principal Lojeo) ≠ `trigger-postgres` (DB interno do Trigger.dev) — não confundir
+- Migrations em produção via `apps/admin/src/app/api/migrate/route.ts` (idempotente, `CREATE TABLE IF NOT EXISTS`)
+
+## Verificação de promessas (anti-alucinação)
+
+A cada ciclo de desenvolvimento, antes de marcar checkbox `[x]` como concluído no roadmap, validar a feature em produção:
+
+1. **UX testing com Playwright** em URL real (`apps-lojeo-{admin,storefront}.m9axtw.easypanel.host`), não apenas build local
+2. **Feature marcada `[x]` deve responder ao fluxo real** (usuário consegue executar a ação ponta a ponta)
+3. **Erros de console = regressão silenciosa** — registrar e corrigir antes de continuar
+4. **404, links quebrados, CTAs sem destino** — bloqueiam novo desenvolvimento até serem fixados
+5. **Quando uma promessa antiga falhar em UX testing**, fixar ANTES de implementar nova feature — débito de promessa não acumula

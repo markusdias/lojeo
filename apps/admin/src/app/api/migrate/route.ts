@@ -81,6 +81,17 @@ export async function POST(req: NextRequest) {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_ticket_templates_tenant ON ticket_templates(tenant_id)`);
     results.push('indexes: ok');
 
+    // Migration 0004 — gift columns on orders (idempotent)
+    await db.execute(sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS is_gift boolean DEFAULT false NOT NULL`);
+    await db.execute(sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS gift_message text`);
+    await db.execute(sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS gift_packaging_cents integer DEFAULT 0`);
+    results.push('orders.gift_columns: ok');
+
+    // Migration 0006 — customer_email on orders (CRITICAL — used in /api/orders, /clientes)
+    await db.execute(sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_email varchar(300)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_orders_customer_email ON orders(tenant_id, customer_email)`);
+    results.push('orders.customer_email: ok');
+
     return NextResponse.json({ ok: true, results });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

@@ -663,3 +663,33 @@ Decisões técnicas relevantes registradas com data e justificativa.
 - Widget chatbot UI: requer Design D (briefing pendente)
 - FaqZap: requer conta + API
 - Chatbot backend (tool-calling): próxima implementação sem bloqueador externo
+
+---
+
+## 2026-04-26 — Mapa oficial de serviços EasyPanel (anti-duplicação)
+
+**Contexto:** Stakeholder identificou 6 serviços `lojeo-*` / `trigger-*` no painel EasyPanel e questionou possível duplicação. Verificação confirmou que **nenhum serviço foi criado pelo agente** — apenas `services.app.deployService` é disparado (operação idempotente sobre serviços pré-existentes desde Sprint 0).
+
+**Inventário oficial — projeto `apps` no EasyPanel (host 31.97.174.116):**
+
+| Serviço | Função | Origem | Documentação |
+|---|---|---|---|
+| `lojeo-admin` | App admin (apps/admin) | Sprint 0 deploy | URL: apps-lojeo-admin.m9axtw.easypanel.host |
+| `lojeo-storefront` | App storefront (apps/storefront) | Sprint 0 deploy | URL: apps-lojeo-storefront.m9axtw.easypanel.host |
+| `lojeo-postgres` | DB **principal Lojeo** (pedidos, produtos, behavior_events, tickets) | Sprint 0 | porta interna 5432, externa 5433 (controle via tRPC) |
+| `lojeo-trigger` | Trigger.dev self-hosted (jobs Trigger.dev) | Sprint 0 (planejado, parado) | Adiado conforme decisão Sprint 1 — Trigger.dev image instável |
+| `trigger-postgres` | DB **interno do Trigger.dev** (jobs/runs/schedules) — NÃO é o DB Lojeo | Sprint 0 (auxiliar lojeo-trigger) | Manter parado enquanto lojeo-trigger parado |
+| `trigger-redis` | Cache do Trigger.dev | Sprint 0 (auxiliar lojeo-trigger) | Idem |
+
+**Serviços não-Lojeo no mesmo projeto** (NÃO TOCAR): `aut-app-br`, `meritto-ivina`, `meritto-marcus`, `merritto-app-landing`, `wordpress`, `wordpress-db`.
+
+**Regras invioláveis para o agente:**
+1. **Nunca criar serviço novo** via `services.app.createService` — qualquer necessidade de novo serviço requer aprovação explícita do stakeholder
+2. **Apenas `services.app.deployService`** é permitido autonomamente (deploy de código já versionado nos serviços existentes)
+3. **Service names canônicos:** `lojeo-admin`, `lojeo-storefront`. Antes desta sessão tentei `admin` e `storefront` (incorretos) — retornavam "Invariant failed". Token correto: master EasyPanel `c620cb5a...`
+4. **Tokens por serviço (`cb91175f...` admin, `0c8f82c0...` storefront)** são webhook tokens — formato de URL diferente, não confundir com tokens master tRPC
+5. **Não confundir `lojeo-postgres` com `trigger-postgres`** — DBs distintos com finalidades distintas
+
+**Justificativa documental:** este mapa elimina ambiguidade em sessões futuras. Antes desta documentação, agente não sabia o nome canônico do serviço (testou 6 variações até descobrir). Próximo agente lê o mapa e usa direto.
+
+**Nota CLAUDE.md:** adicionar referência cruzada nesta seção para `apps/admin/src/app/api/migrate/route.ts` (rota legítima de migração interna, não criação de serviço).
