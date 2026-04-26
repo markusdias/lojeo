@@ -1877,3 +1877,47 @@ Antes de marcar promessas como concluídas, validei via Playwright nas URLs reai
 - Cron backup VPS produção (precisa SSH)
 
 **68 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão**.
+
+---
+
+## 2026-04-26 — Iteração 13: Refactor visual detail pages + settings sub-pages (3 commits)
+
+**Foco:** alinhar pages de detalhe + settings com tokens design system. Atenção máxima paridade design.
+
+**Commits:**
+
+1. **fcb1312** — refactor /pedidos/[id] detail + /ugc galeria moderação
+   - **/pedidos/[id]:** container tokens + breadcrumb caption + h1 token + status badge dinâmico (success/info/warning/neutral por status); layout 2:1 main/sidebar; section "Itens" com lj-card + tabular-nums em qty/preço, total bg-elevated; "Histórico" timeline caption numeric; "Atualizar status" lj-input + lj-btn-primary/lj-btn-danger; "Endereço" address tag tokens; "Pagamento" dl tokens
+   - **/ugc:** pill chip filtros (Todos/Pendente/Aprovada/Rejeitada) com bullet colorido + counter + active dark bg pattern unificado (mesmo /pedidos /clientes); grid auto-fill 240px+ cards lj-card; card UGC aspect-ratio 1 + badge status absoluto; botões aprovar/rejeitar lj-btn-primary/secondary
+
+2. **33d94d7** — refactor /tickets/[id] detail
+   - Container tokens + h1 + layout 2:1 main/sidebar
+   - Mensagens em lj-card com bg dinâmico (warning-soft nota interna, info-soft admin reply, bg-subtle cliente) + border (warning dashed vs solid)
+   - Form reply lj-input com border var(--warning) quando interna; botões "Responder" lj-btn-primary / "Salvar nota" lj-btn-secondary com tokens warning
+   - Sidebar 3 cards lj-card: Status/Prioridade selects lj-input; Cliente body-s + accent link order; Detalhes numeric data + var(--error) SLA expirado
+
+3. **3b694c2** — refactor /settings sub-pages (2fa + audit + users) via subagent paralelo
+   - ~37 substituições de hex/Tailwind ad-hoc → tokens em 3 pages (~150s vs ~30min sequencial)
+   - **2fa:** body-s/caption, lj-input em 3 inputs, var(--bg-subtle), var(--success) recovery codes
+   - **audit:** badges código var(--accent)/var(--info-soft), error box var(--warning-soft), divisores var(--border), select lj-input
+   - **users:** banners accepted/invite var(--success-soft)/var(--info-soft), form lj-input, thead eyebrow + var(--bg-subtle), status colors tokens, botão Copiar lj-btn-primary
+
+**UX validation Playwright:**
+- /ugc em prod: pill chips deployed perfeitos com bullets coloridos, h1 36px, sidebar Galeria UGC ativo, empty state body-s. Zero console errors.
+
+**Decisões:**
+- **Pill chip pattern unificado** em /pedidos /clientes /ugc — bullet colorido + label + counter tabular-nums + active dark bg `var(--neutral-900)`. Reutilização aumenta familiaridade do operador.
+- **Lj-card com tabela** padding 0 e cell padding próprio — preserva overflow-hidden e mantém visual pristino.
+- **Banner mensagens tickets** dual-tone: warning-soft (interna), info-soft (admin), bg-subtle (cliente) — diferencia origem visualmente sem icon clutter.
+- **Subagent paralelo** validado novamente em refactor mecânico (37 substituições em 3 arquivos, typecheck verde no fim).
+
+**Próximo ciclo:**
+- /experiments/[id] (não results) — page detail experimento
+- /tickets templates page
+- /settings/appearance template selector
+- Storefront /conta/* sub-pages refactor
+- /chatbot detail interno
+- Sparklines com dados sintéticos quando real é zero (mock onboarding)
+- Cron backup VPS produção (precisa SSH)
+
+**73 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão**.
