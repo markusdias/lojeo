@@ -6,6 +6,7 @@ import { getActiveTemplate } from '../../../template';
 import { PDPClient } from './pdp-client';
 import { ReviewSection } from '../../../components/reviews/review-section';
 import { UgcGallery } from '../../../components/ugc/ugc-gallery';
+import { FrequentlyBoughtTogether } from '../../../components/products/frequently-bought-together';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,7 +76,8 @@ export default async function PDPPage({ params }: PDPProps) {
   else if (viewersNow >= URGENCY_THRESHOLD) urgency = 'viewing';
 
   const primaryImage = images[0];
-  const jsonLdData = {
+  const baseUrl = process.env.STOREFRONT_URL ?? '';
+  const productJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: product.name,
@@ -87,15 +89,26 @@ export default async function PDPPage({ params }: PDPProps) {
       priceCurrency: tpl.currency,
       price: (product.priceCents / 100).toFixed(2),
       availability: totalStock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-      url: `${process.env.STOREFRONT_URL ?? ''}/produtos/${product.slug}`,
+      url: `${baseUrl}/produtos/${product.slug}`,
     },
   };
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Início', item: `${baseUrl}/` },
+      { '@type': 'ListItem', position: 2, name: 'Produtos', item: `${baseUrl}/produtos` },
+      { '@type': 'ListItem', position: 3, name: product.name, item: `${baseUrl}/produtos/${product.slug}` },
+    ],
+  };
   // Escape </script> to prevent premature script closing — all data comes from our own DB
-  const safeJsonLd = JSON.stringify(jsonLdData).replace(/<\/script>/gi, '<\\/script>');
+  const safeJsonLd = JSON.stringify(productJsonLd).replace(/<\/script>/gi, '<\\/script>');
+  const safeBreadcrumbJsonLd = JSON.stringify(breadcrumbJsonLd).replace(/<\/script>/gi, '<\\/script>');
 
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeBreadcrumbJsonLd }} />
       <PDPClient
         product={{
           id: product.id,
@@ -128,6 +141,7 @@ export default async function PDPPage({ params }: PDPProps) {
         currency={tpl.currency}
       />
       <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '0 var(--container-pad) 80px' }}>
+        <FrequentlyBoughtTogether productId={product.id} />
         <UgcGallery productId={product.id} />
         <ReviewSection productId={product.id} />
       </div>

@@ -257,3 +257,68 @@ describe('warranty engine', () => {
     expect(filtered.map(r => r.orderId).sort()).toEqual(['a']);
   });
 });
+
+import { computeFrequentPairs, topPairsForProduct } from './market-basket';
+
+describe('market basket (FBT)', () => {
+  it('retorna vazio para zero pedidos', () => {
+    expect(computeFrequentPairs([])).toEqual([]);
+  });
+
+  it('detecta par compartilhado em 2+ pedidos', () => {
+    const orders = [
+      { orderId: 'o1', productIds: ['anel', 'colar'] },
+      { orderId: 'o2', productIds: ['anel', 'colar'] },
+      { orderId: 'o3', productIds: ['anel'] },
+    ];
+    const pairs = computeFrequentPairs(orders, 2);
+    // 2 pares direcionais: anel→colar e colar→anel
+    expect(pairs).toHaveLength(2);
+    const anelColar = pairs.find(p => p.productId === 'anel' && p.recommendedProductId === 'colar');
+    expect(anelColar?.cooccurrence).toBe(2);
+    expect(anelColar?.confidence).toBeCloseTo(2 / 3); // P(colar|anel)
+  });
+
+  it('respeita minCooccurrence', () => {
+    const orders = [
+      { orderId: 'o1', productIds: ['a', 'b'] },
+      { orderId: 'o2', productIds: ['c', 'd'] },
+    ];
+    expect(computeFrequentPairs(orders, 2)).toEqual([]);
+    expect(computeFrequentPairs(orders, 1).length).toBeGreaterThan(0);
+  });
+
+  it('lift > 1 para par associado', () => {
+    const orders = [
+      { orderId: 'o1', productIds: ['anel', 'colar'] },
+      { orderId: 'o2', productIds: ['anel', 'colar'] },
+      { orderId: 'o3', productIds: ['anel', 'colar'] },
+      { orderId: 'o4', productIds: ['outro'] },
+    ];
+    const pairs = computeFrequentPairs(orders);
+    const anelColar = pairs.find(p => p.productId === 'anel' && p.recommendedProductId === 'colar');
+    expect(anelColar?.lift).toBeGreaterThan(1);
+  });
+
+  it('topPairsForProduct ordena por score desc', () => {
+    const orders: { orderId: string; productIds: string[] }[] = [];
+    // anel + brinco aparece 4 vezes
+    for (let i = 0; i < 4; i++) orders.push({ orderId: `o${i}`, productIds: ['anel', 'brinco'] });
+    // anel + colar aparece 2 vezes
+    for (let i = 4; i < 6; i++) orders.push({ orderId: `o${i}`, productIds: ['anel', 'colar'] });
+    const pairs = computeFrequentPairs(orders);
+    const top = topPairsForProduct(pairs, 'anel', 5);
+    expect(top[0]?.recommendedProductId).toBe('brinco');
+    expect(top[1]?.recommendedProductId).toBe('colar');
+  });
+
+  it('ignora duplicatas dentro de um pedido', () => {
+    const orders = [
+      { orderId: 'o1', productIds: ['anel', 'anel', 'colar'] },
+      { orderId: 'o2', productIds: ['anel', 'colar'] },
+    ];
+    const pairs = computeFrequentPairs(orders, 2);
+    const anelColar = pairs.find(p => p.productId === 'anel' && p.recommendedProductId === 'colar');
+    expect(anelColar?.cooccurrence).toBe(2); // não 3
+  });
+});
