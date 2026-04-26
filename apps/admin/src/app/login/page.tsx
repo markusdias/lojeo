@@ -2,7 +2,7 @@ import { signIn } from '../../auth';
 
 export default function LoginPage() {
   const hasGoogle = !!process.env.AUTH_GOOGLE_ID;
-  const isDev = process.env.NODE_ENV !== 'production';
+  const isDev = process.env.NODE_ENV !== 'production' || process.env.ADMIN_DEV_LOGIN === 'true';
   return (
     <main className="min-h-screen flex items-center justify-center p-8 bg-neutral-50">
       <div className="max-w-sm w-full bg-white rounded-lg shadow p-8 space-y-6">

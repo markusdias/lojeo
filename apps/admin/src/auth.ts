@@ -16,16 +16,24 @@ if (process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET) {
   );
 }
 
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== 'production' || process.env.ADMIN_DEV_LOGIN === 'true') {
   providers.push(
     Credentials({
       id: 'dev-login',
       name: 'Dev login (sem provider)',
       credentials: { email: { label: 'Email', type: 'email' } },
       async authorize(credentials) {
-        const email = String(credentials?.email ?? '').toLowerCase();
+        const email = String(credentials?.email ?? '').toLowerCase().trim();
         if (!email) return null;
-        const user = await db.query.users.findFirst({ where: eq(users.email, email) });
+        let user = await db.query.users.findFirst({ where: eq(users.email, email) });
+        if (!user) {
+          const [created] = await db.insert(users).values({
+            email,
+            name: email.split('@')[0],
+            emailVerified: new Date(),
+          }).returning();
+          user = created;
+        }
         if (!user) return null;
         return { id: user.id, email: user.email, name: user.name ?? undefined };
       },
