@@ -32,6 +32,31 @@
 
 ---
 
+## Bloqueadores externos (credenciais / OAuth)
+
+> Documento detalhado com custos, tempo de setup e justificativa CFO/PO: [`docs/decisions/external-blockers-priority.md`](../../decisions/external-blockers-priority.md).
+>
+> Setup wizard para o lojista acompanhar progresso de conexão: `/settings/onboarding`.
+
+| Prioridade | Provedor | Feature destravada | Sprint que precisa |
+|---|---|---|---|
+| **P0** | Mercado Pago | Pix, cartão, boleto BR (checkout real) | Sprint 3 |
+| **P0** | Resend | E-mail transacional (pedido, recuperação, NF) | Sprint 4 |
+| **P0** | Anthropic Claude API | IA real (descrições, IA Analyst, moderação UGC) | Sprint 7 |
+| **P1** | Bling NF-e | Emissão automática NF-e | Sprint 4 |
+| **P1** | Melhor Envio | Cotação + etiqueta Correios/Jadlog | Sprint 4 |
+| **P1** | Trigger.dev (self-hosted) | Jobs assíncronos (e-mail, embeddings, IA noturna) | Sprint 0 (provisionado) → Sprint 7 (ativo) |
+| **P2** | VAPID keys | Push notifications PWA | Sprint 12+ |
+| **P2** | Cloudflare R2 | Storage assets em produção | Sprint 0 (driver pronto) → produção pré-Black Friday |
+| **P2** | Microsoft Clarity | Heatmaps + IA insights UX | Sprint 12 |
+| **P3** | Stripe / PayPal | Pagamentos USD internacional | Fase 1.2 (loja café) |
+| **P3** | DHL / FedEx | Frete internacional | Fase 1.2 (loja café) |
+| **P3** | Pagar.me / Olist / SendGrid | Backup/redundância dos provedores principais | Só se P0/P1 falhar |
+
+**Top-3 recomendado para MVP que vende de verdade:** MP + Resend + Anthropic. Custo total marginal ~R$ 380/mês fixo + take rate MP variável. Sem isso, Sprints 3, 4 e 7 entregam apenas modo simulado.
+
+---
+
 ## Mapa de sprints
 
 | Sprint | Tema | Duração | Bloqueador externo |
