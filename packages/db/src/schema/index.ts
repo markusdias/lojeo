@@ -11,3 +11,4 @@ export * from './support';
 export * from './chatbot';
 export * from './ugc';
 export * from './admin';
+export * from './experiments';

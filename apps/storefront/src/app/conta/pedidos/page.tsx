@@ -1,8 +1,9 @@
 import { auth } from '../../../auth';
-import { db, orders, orderItems } from '@lojeo/db';
-import { eq, and, desc, or } from 'drizzle-orm';
+import { db, orders, orderItems, products } from '@lojeo/db';
+import { eq, and, desc, or, inArray } from 'drizzle-orm';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { RebuySuggestion } from '../../../components/account/rebuy-suggestion';
 
 export const dynamic = 'force-dynamic';
 
@@ -74,6 +75,14 @@ export default async function PedidosPage() {
     return acc;
   }, {});
 
+  // Buscar produtos por nome para resolver warrantyMonths (sugestão de recompra)
+  const productNames = Array.from(new Set(items.map(i => i.productName)));
+  const productLookup = productNames.length > 0
+    ? await db.select({ productName: products.name, warrantyMonths: products.warrantyMonths })
+        .from(products)
+        .where(and(eq(products.tenantId, tid), inArray(products.name, productNames)))
+    : [];
+
   return (
     <div>
       <h1 style={{ fontSize: 22, fontWeight: 500, marginBottom: 32 }}>Meus pedidos</h1>
@@ -142,6 +151,27 @@ export default async function PedidosPage() {
           );
         })}
       </div>
+
+      {rows.length > 0 && (
+        <RebuySuggestion
+          orders={rows.map(o => ({
+            id: o.id,
+            status: o.status,
+            createdAt: o.createdAt,
+            deliveredAt: o.deliveredAt,
+          }))}
+          items={items.map(i => ({
+            orderId: i.orderId,
+            productName: i.productName,
+            sku: i.sku,
+            variantId: i.variantId,
+          }))}
+          products={productLookup.map(p => ({
+            productName: p.productName,
+            warrantyMonths: p.warrantyMonths,
+          }))}
+        />
+      )}
     </div>
   );
 }

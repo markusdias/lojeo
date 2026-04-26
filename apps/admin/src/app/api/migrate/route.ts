@@ -305,6 +305,63 @@ export async function POST(req: NextRequest) {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_logs(user_id)`);
     results.push('audit_logs: ok');
 
+    // Sprint 5+12 — A/B testing nativo
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS experiments (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL,
+        key varchar(80) NOT NULL,
+        name varchar(200) NOT NULL,
+        description text,
+        status varchar(20) DEFAULT 'draft' NOT NULL,
+        target_metric varchar(60) DEFAULT 'conversion' NOT NULL,
+        variants jsonb DEFAULT '[]'::jsonb NOT NULL,
+        audience jsonb DEFAULT '{}'::jsonb NOT NULL,
+        started_at timestamptz,
+        ended_at timestamptz,
+        created_at timestamptz DEFAULT now() NOT NULL,
+        updated_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS uniq_experiments_tenant_key ON experiments(tenant_id, key)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_experiments_tenant_status ON experiments(tenant_id, status)`);
+    results.push('experiments: ok');
+
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS experiment_assignments (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL,
+        experiment_id uuid NOT NULL,
+        anonymous_id varchar(64) NOT NULL,
+        user_id uuid,
+        variant_key varchar(40) NOT NULL,
+        assigned_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS uniq_assignment_anon_experiment ON experiment_assignments(experiment_id, anonymous_id)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_assignment_tenant_experiment ON experiment_assignments(tenant_id, experiment_id)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_assignment_user ON experiment_assignments(user_id)`);
+    results.push('experiment_assignments: ok');
+
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS experiment_events (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL,
+        experiment_id uuid NOT NULL,
+        variant_key varchar(40) NOT NULL,
+        anonymous_id varchar(64) NOT NULL,
+        user_id uuid,
+        event_type varchar(40) NOT NULL,
+        value integer DEFAULT 0,
+        metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+        created_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_exp_events_tenant_experiment ON experiment_events(tenant_id, experiment_id)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_exp_events_experiment_variant ON experiment_events(experiment_id, variant_key)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_exp_events_type ON experiment_events(experiment_id, event_type)`);
+    results.push('experiment_events: ok');
+
     // Sprint 5+13 — 2FA TOTP
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS user_two_factor (
