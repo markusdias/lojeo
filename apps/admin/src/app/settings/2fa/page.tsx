@@ -98,14 +98,14 @@ export default function TwoFactorPage() {
     }
   }
 
-  if (loading) return <div className="p-8 text-sm text-gray-500">Carregando...</div>;
-  if (error) return <div className="p-8 text-sm text-red-500">Erro: {error}</div>;
+  if (loading) return <div className="p-8 body-s">Carregando...</div>;
+  if (error) return <div className="p-8 body-s" style={{ color: 'var(--error)' }}>Erro: {error}</div>;
 
   return (
     <div className="p-8 max-w-2xl space-y-6">
       <header>
         <h1 className="text-2xl font-semibold">Autenticação de dois fatores</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="body-s mt-1">
           Adiciona uma camada de segurança ao login: além da senha, exige código de 6 dígitos do app autenticador.
         </p>
       </header>
@@ -149,7 +149,7 @@ export default function TwoFactorPage() {
           </p>
 
           <form onSubmit={disable2fa} className="mt-4 space-y-2">
-            <p className="text-sm text-green-900">Para desabilitar, digite o código atual do app:</p>
+            <p className="body-s" style={{ color: 'var(--success)' }}>Para desabilitar, digite o código atual do app:</p>
             <input
               type="text"
               inputMode="numeric"
@@ -157,7 +157,7 @@ export default function TwoFactorPage() {
               value={disableToken}
               onChange={e => setDisableToken(e.target.value.replace(/\D/g, ''))}
               placeholder="000000"
-              className="w-32 border border-gray-300 rounded px-3 py-2 text-sm font-mono text-center"
+              className="lj-input w-32 mono text-center"
             />
             <button
               type="submit"
@@ -174,13 +174,13 @@ export default function TwoFactorPage() {
       {!status?.enabled && setupQr && (
         <div className="lj-card p-5 space-y-4">
           <h2 className="font-semibold">1. Escaneie o QR code</h2>
-          <p className="text-sm text-gray-600">
+          <p className="body-s">
             Use Google Authenticator, 1Password, Bitwarden ou Authy para escanear o QR abaixo.
           </p>
           <img src={setupQr} alt="QR Code 2FA" className="w-60 h-60" />
           <details>
-            <summary className="text-sm text-indigo-600 cursor-pointer">Não consegue escanear? Use o segredo manual</summary>
-            <code className="block mt-2 text-xs bg-gray-50 p-2 rounded font-mono">{setupSecret}</code>
+            <summary className="body-s cursor-pointer" style={{ color: 'var(--accent)' }}>Não consegue escanear? Use o segredo manual</summary>
+            <code className="block mt-2 caption mono p-2 rounded" style={{ background: 'var(--bg-subtle)' }}>{setupSecret}</code>
           </details>
           <hr className="my-4" />
           <h2 className="font-semibold">2. Digite o código de 6 dígitos do app</h2>
@@ -193,7 +193,7 @@ export default function TwoFactorPage() {
               onChange={e => setToken(e.target.value.replace(/\D/g, ''))}
               placeholder="000000"
               autoFocus
-              className="w-32 border border-gray-300 rounded px-3 py-2 text-sm font-mono text-center text-lg"
+              className="lj-input w-32 mono text-center text-lg"
             />
             <button
               type="submit"
@@ -205,7 +205,7 @@ export default function TwoFactorPage() {
             <button
               type="button"
               onClick={() => { setSetupQr(null); setSetupSecret(null); }}
-              className="text-sm text-gray-500 underline"
+              className="body-s underline"
             >
               Cancelar
             </button>
@@ -216,7 +216,7 @@ export default function TwoFactorPage() {
       {/* Estado: 2FA não habilitado */}
       {!status?.enabled && !setupQr && !recoveryCodes && (
         <div className="lj-card p-5">
-          <p className="text-gray-700 mb-3">2FA não está habilitado nesta conta.</p>
+          <p className="body-s mb-3">2FA não está habilitado nesta conta.</p>
           <button
             onClick={startSetup}
             disabled={busy}
@@ -227,7 +227,7 @@ export default function TwoFactorPage() {
         </div>
       )}
 
-      <div className="text-xs text-gray-400">
+      <div className="caption">
         Apps recomendados: Google Authenticator, 1Password, Bitwarden, Authy.
       </div>
     </div>

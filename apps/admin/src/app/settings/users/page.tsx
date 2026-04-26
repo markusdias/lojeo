@@ -170,21 +170,21 @@ export default function UsersPage() {
     <div className="p-8 max-w-4xl space-y-6">
       <header>
         <h1 className="text-2xl font-semibold">Usuários e papéis</h1>
-        <p className="text-sm text-gray-500 mt-1">Quem pode acessar este admin e o que cada um pode fazer.</p>
+        <p className="body-s mt-1">Quem pode acessar este admin e o que cada um pode fazer.</p>
       </header>
 
       {accepted && (
-        <div className="bg-green-50 border border-green-200 rounded p-3 text-sm text-green-900">
+        <div className="rounded p-3 body-s" style={{ background: 'var(--success-soft)', border: '1px solid var(--border)', color: 'var(--success)' }}>
           Convite aceito com sucesso. Bem-vindo(a)!
         </div>
       )}
 
       {issuedInvite && (
-        <div className="bg-blue-50 border border-blue-200 rounded p-4 space-y-2">
-          <div className="text-sm font-semibold text-blue-900">
-            Convite criado para <span className="font-mono">{issuedInvite.email}</span> ({issuedInvite.role})
+        <div className="rounded p-4 space-y-2" style={{ background: 'var(--info-soft)', border: '1px solid var(--border)' }}>
+          <div className="body-s font-semibold" style={{ color: 'var(--accent)' }}>
+            Convite criado para <span className="mono">{issuedInvite.email}</span> ({issuedInvite.role})
           </div>
-          <p className="text-xs text-blue-800">
+          <p className="caption" style={{ color: 'var(--accent)' }}>
             Copie e envie a URL abaixo para a pessoa convidada. O convite vale por 7 dias.
           </p>
           <div className="flex gap-2 items-center">
@@ -192,20 +192,21 @@ export default function UsersPage() {
               type="text"
               readOnly
               value={issuedInvite.url}
-              className="flex-1 border border-blue-300 rounded px-2 py-1 text-xs font-mono bg-white"
+              className="lj-input flex-1 caption mono"
               onFocus={e => e.currentTarget.select()}
             />
             <button
               type="button"
               onClick={() => copyInviteUrl(issuedInvite.url)}
-              className="text-xs px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="lj-btn-primary caption"
             >
               Copiar
             </button>
             <button
               type="button"
               onClick={() => setIssuedInvite(null)}
-              className="text-xs px-2 py-1 text-blue-700 hover:underline"
+              className="caption px-2 py-1 hover:underline"
+              style={{ color: 'var(--accent)' }}
             >
               Fechar
             </button>
@@ -215,28 +216,28 @@ export default function UsersPage() {
 
       {/* Invite form */}
       <form onSubmit={handleInvite} className="lj-card p-5">
-        <h2 className="text-sm font-semibold text-gray-700 mb-3">Convidar pessoa</h2>
+        <h2 className="body-s font-semibold mb-3">Convidar pessoa</h2>
         <div className="flex gap-2 items-end flex-wrap">
           <div className="flex-1 min-w-[240px]">
-            <label className="block text-xs text-gray-600 mb-1">Email</label>
+            <label className="block caption mb-1">Email</label>
             <input
               type="email"
               required
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="pessoa@empresa.com"
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+              className="lj-input w-full"
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-600 mb-1">
+            <label className="block caption mb-1">
               Papel
               <InfoTooltip text="Owner = todas permissões. Admin = todas exceto billing. Operador = pedidos+atendimento. Editor = produtos+UGC. Atendimento = só tickets+chatbot. Financeiro = pedidos+relatórios." />
             </label>
             <select
               value={role}
               onChange={e => setRole(e.target.value)}
-              className="border border-gray-300 rounded px-3 py-2 text-sm"
+              className="lj-input"
             >
               {ROLES.map(r => <option key={r.v} value={r.v}>{r.label}</option>)}
             </select>
@@ -249,18 +250,18 @@ export default function UsersPage() {
             {saving ? 'Enviando...' : 'Convidar'}
           </button>
         </div>
-        <p className="text-xs text-gray-400 mt-3">{ROLES.find(r => r.v === role)?.desc}</p>
+        <p className="caption mt-3">{ROLES.find(r => r.v === role)?.desc}</p>
       </form>
 
       {/* Pending invites */}
       {pendingInvites.length > 0 && (
         <section className="lj-card p-5">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">
+          <h2 className="body-s font-semibold mb-3">
             Convites pendentes
             <InfoTooltip text="Convites criados ainda não aceitos. Cada convite vale 7 dias. Compartilhe a URL manualmente — o aceite ocorre automaticamente quando o convidado fizer login com o email convidado." />
           </h2>
           <table className="w-full text-sm">
-            <thead className="text-xs uppercase text-gray-500">
+            <thead className="eyebrow">
               <tr>
                 <th className="text-left pb-2">Email</th>
                 <th className="text-left pb-2">Papel</th>
@@ -270,24 +271,26 @@ export default function UsersPage() {
             </thead>
             <tbody>
               {pendingInvites.map(inv => (
-                <tr key={inv.id} className="border-t border-gray-100">
+                <tr key={inv.id} style={{ borderTop: '1px solid var(--border)' }}>
                   <td className="py-2">{inv.email}</td>
-                  <td className="py-2 text-xs">{ROLE_LABEL[inv.role] ?? inv.role}</td>
-                  <td className="py-2 text-xs text-gray-500">
+                  <td className="py-2 caption">{ROLE_LABEL[inv.role] ?? inv.role}</td>
+                  <td className="py-2 caption">
                     {new Date(inv.expiresAt).toLocaleDateString('pt-BR')}
                   </td>
                   <td className="py-2 text-right space-x-2">
                     <button
                       type="button"
                       onClick={() => copyInviteUrl(buildAbsoluteUrl(inv.inviteUrl))}
-                      className="text-xs text-blue-600 hover:underline"
+                      className="caption hover:underline"
+                      style={{ color: 'var(--accent)' }}
                     >
                       Copiar URL
                     </button>
                     <button
                       type="button"
                       onClick={() => revokeInvite(inv.id, inv.email)}
-                      className="text-xs text-red-500 hover:underline"
+                      className="caption hover:underline"
+                      style={{ color: 'var(--error)' }}
                     >
                       Revogar
                     </button>
@@ -301,15 +304,15 @@ export default function UsersPage() {
 
       {/* List */}
       {loading ? (
-        <p className="text-sm text-gray-500">Carregando...</p>
+        <p className="body-s">Carregando...</p>
       ) : error ? (
-        <div className="bg-amber-50 border border-amber-200 rounded p-3 text-sm text-amber-800">{error}</div>
+        <div className="rounded p-3 body-s" style={{ background: 'var(--warning-soft)', border: '1px solid var(--border)', color: 'var(--warning)' }}>{error}</div>
       ) : rows.length === 0 ? (
-        <p className="text-sm text-gray-500">Nenhum usuário cadastrado ainda.</p>
+        <p className="body-s">Nenhum usuário cadastrado ainda.</p>
       ) : (
-        <div className="lj-card overflow-hidden">
+        <div className="lj-card overflow-hidden" style={{ padding: 0 }}>
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+            <thead className="eyebrow" style={{ background: 'var(--bg-subtle)' }}>
               <tr>
                 <th className="text-left px-4 py-2">Email</th>
                 <th className="text-left px-4 py-2">Papel</th>
@@ -320,31 +323,32 @@ export default function UsersPage() {
             </thead>
             <tbody>
               {rows.map(u => (
-                <tr key={u.id} className="border-t border-gray-100">
+                <tr key={u.id} style={{ borderTop: '1px solid var(--border)' }}>
                   <td className="px-4 py-2">{u.email}</td>
                   <td className="px-4 py-2">
                     <select
                       value={u.role}
                       onChange={e => changeRole(u.id, e.target.value)}
-                      className="text-xs border border-gray-300 rounded px-2 py-1"
+                      className="lj-input caption"
                     >
                       {ROLES.map(r => <option key={r.v} value={r.v}>{r.label}</option>)}
                     </select>
                   </td>
-                  <td className="px-4 py-2 text-xs">
+                  <td className="px-4 py-2 caption">
                     {u.acceptedAt ? (
-                      <span className="text-green-700">Ativo</span>
+                      <span style={{ color: 'var(--success)' }}>Ativo</span>
                     ) : (
-                      <span className="text-amber-700">Aguardando login</span>
+                      <span style={{ color: 'var(--warning)' }}>Aguardando login</span>
                     )}
                   </td>
-                  <td className="px-4 py-2 text-xs text-gray-500">
+                  <td className="px-4 py-2 caption">
                     {new Date(u.invitedAt).toLocaleDateString('pt-BR')}
                   </td>
                   <td className="px-4 py-2 text-right">
                     <button
                       onClick={() => removeUser(u.id, u.email)}
-                      className="text-xs text-red-500 hover:underline"
+                      className="caption hover:underline"
+                      style={{ color: 'var(--error)' }}
                     >
                       Remover
                     </button>
