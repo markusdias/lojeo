@@ -61,8 +61,20 @@ export default function IaUsoPage() {
     <main style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }} className="space-y-6">
       <header>
         <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginBottom: 'var(--space-2)' }}>Uso de IA</h1>
-        <p className="text-sm text-neutral-500 mt-1">Mês atual: {data.month}</p>
+        <p className="body-s">Mês atual: {data.month}</p>
       </header>
+
+      <div className="lj-ai-banner">
+        <span aria-hidden style={{ fontSize: 18, color: 'var(--accent)' }}>✦</span>
+        <div>
+          <p className="lj-ai-eyebrow">IA · CONSUMO DE TOKENS</p>
+          <p className="body-s" style={{ color: 'var(--fg)', marginTop: 4 }}>
+            {data.totalCalls === 0
+              ? 'Nenhuma chamada de IA neste mês. Recursos como IA Analyst, geração de copy e moderação UGC consomem tokens — defina limite em Configurações.'
+              : `${data.totalCalls} chamadas neste mês · cache hit ${cacheRate}% (cada hit economiza ~100% do custo). ${cacheRate < 30 ? 'Cache rate baixo — considere aumentar TTL ou normalizar prompts.' : cacheRate >= 70 ? 'Cache excelente — uso eficiente.' : 'Cache moderado.'}`}
+          </p>
+        </div>
+      </div>
 
       {/* Orçamento mensal */}
       {budget && budget.monthlyLimitUsd > 0 && (

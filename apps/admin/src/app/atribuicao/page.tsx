@@ -68,12 +68,23 @@ export default function AtribuicaoPage() {
 
   return (
     <main style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }} className="space-y-6">
-      <header style={{ marginBottom: 24 }}>
+      <header>
         <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginBottom: 'var(--space-2)' }}>Atribuição multi-touch</h1>
-        <p style={{ fontSize: 14, color: '#6B7280', marginTop: 4 }}>
+        <p className="body-s">
           Receita e conversão por origem de tráfego (UTM source / medium / campaign)
         </p>
       </header>
+
+      <div className="lj-ai-banner">
+        <span aria-hidden style={{ fontSize: 18, color: 'var(--accent)' }}>✦</span>
+        <div>
+          <p className="lj-ai-eyebrow">IA · MODELO DE ATRIBUIÇÃO</p>
+          <p className="body-s" style={{ color: 'var(--fg)', marginTop: 4 }}>
+            Last-click subestima topo de funil; first-click ignora retargeting. Linear distribui crédito igualmente entre todos os toques —
+            recomendado para análise de aquisição. Compare 2 modelos para identificar canais subvalorizados.
+          </p>
+        </div>
+      </div>
 
       {/* Controls */}
       <div className="lj-card" style={{ padding: 16, marginBottom: 16, display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>

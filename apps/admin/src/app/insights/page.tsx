@@ -87,22 +87,39 @@ export default function InsightsPage() {
 
   return (
     <main style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }} className="space-y-6">
-      <header style={{ marginBottom: 24 }}>
+      <header>
         <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginBottom: 'var(--space-2)' }}>Insights</h1>
-        <p style={{ fontSize: 14, color: '#6B7280', marginTop: 4 }}>Churn de clientes e previsão de ruptura de estoque</p>
+        <p className="body-s">Churn de clientes e previsão de ruptura de estoque</p>
       </header>
 
-      {/* Alertas rápidos */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
+      <div className="lj-ai-banner">
+        <span aria-hidden style={{ fontSize: 18, color: 'var(--accent)' }}>✦</span>
+        <div>
+          <p className="lj-ai-eyebrow">IA · ALERTAS DE RETENÇÃO</p>
+          <p className="body-s" style={{ color: 'var(--fg)', marginTop: 4 }}>
+            {(churn?.critical ?? 0) > 0
+              ? `${churn?.critical} cliente(s) em estado crítico de churn (>180 dias sem comprar). Acionar campanha de retenção urgente.`
+              : (churn?.high ?? 0) > 0
+                ? `${churn?.high} cliente(s) em risco alto. Sugestão: cupom -10% via WhatsApp/email.`
+                : (forecast?.critical ?? 0) > 0
+                  ? `${forecast?.critical} produto(s) com ruptura prevista em ≤7 dias. Verifique reposição.`
+                  : 'Nenhum alerta crítico — base de clientes saudável e estoque suficiente para o período.'}
+          </p>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 'var(--space-3)' }}>
         {[
-          { label: 'Clientes críticos', value: churn?.critical ?? '—', color: '#991B1B', bg: '#FEF2F2' },
-          { label: 'Clientes risco alto', value: churn?.high ?? '—', color: '#92400E', bg: '#FFF7ED' },
-          { label: 'Produtos críticos', value: forecast?.critical ?? '—', color: '#991B1B', bg: '#FEF2F2' },
-          { label: 'Produtos em alerta', value: forecast?.warning ?? '—', color: '#92400E', bg: '#FFF7ED' },
+          { label: 'Clientes críticos', value: churn?.critical ?? '—', tone: 'error' as const },
+          { label: 'Clientes risco alto', value: churn?.high ?? '—', tone: 'warning' as const },
+          { label: 'Produtos críticos', value: forecast?.critical ?? '—', tone: 'error' as const },
+          { label: 'Produtos em alerta', value: forecast?.warning ?? '—', tone: 'warning' as const },
         ].map(c => (
-          <div key={c.label} style={{ background: c.bg, border: `1px solid ${c.color}30`, borderRadius: 8, padding: '12px 16px' }}>
-            <p style={{ fontSize: 12, color: c.color, fontWeight: 600, marginBottom: 4 }}>{c.label}</p>
-            <p style={{ fontSize: 24, fontWeight: 700, color: c.color }}>{String(c.value)}</p>
+          <div key={c.label} className="lj-card" style={{ padding: 'var(--space-5)' }}>
+            <p className="eyebrow" style={{ marginBottom: 'var(--space-2)', color: c.tone === 'error' ? 'var(--error)' : 'var(--warning)' }}>{c.label}</p>
+            <p className="numeric" style={{ fontSize: 'var(--text-h2)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', color: c.tone === 'error' ? 'var(--error)' : 'var(--warning)' }}>
+              {String(c.value)}
+            </p>
           </div>
         ))}
       </div>

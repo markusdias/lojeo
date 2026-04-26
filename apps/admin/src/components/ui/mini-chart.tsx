@@ -151,3 +151,42 @@ export function MiniFunnelChart({
     </svg>
   );
 }
+
+/**
+ * Sparkline — linha minúscula inline, sem axes/labels.
+ * Para uso em metric cards (acompanha número grande, indica tendência).
+ */
+export function Sparkline({
+  values,
+  width = 80,
+  height = 24,
+  color = 'var(--accent)',
+  fill,
+}: {
+  values: number[];
+  width?: number;
+  height?: number;
+  color?: string;
+  fill?: string;
+}) {
+  if (values.length < 2) return null;
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  const range = max - min || 1;
+  const stepX = width / (values.length - 1);
+
+  const points = values.map((v, i) => ({
+    x: i * stepX,
+    y: height - ((v - min) / range) * height,
+  }));
+
+  const lineD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+  const fillD = `${lineD} L ${width} ${height} L 0 ${height} Z`;
+
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden role="img">
+      {fill && <path d={fillD} fill={fill} />}
+      <path d={lineD} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
