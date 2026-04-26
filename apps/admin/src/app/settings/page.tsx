@@ -113,6 +113,10 @@ export default function SettingsPage() {
           Template: <code className="bg-neutral-100 px-1 rounded">{settings.templateId}</code>
           {settings.domain && <> · Domínio: <code className="bg-neutral-100 px-1 rounded">{settings.domain}</code></>}
         </p>
+        <nav className="flex gap-3 text-sm mt-3">
+          <a href="/settings/users" className="text-indigo-600 hover:underline">👥 Usuários e papéis</a>
+          <a href="/settings/audit" className="text-indigo-600 hover:underline">🔍 Logs de auditoria</a>
+        </nav>
       </header>
 
       <form onSubmit={handleSave} className="space-y-8">

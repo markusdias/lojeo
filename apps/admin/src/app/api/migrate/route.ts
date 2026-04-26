@@ -263,6 +263,48 @@ export async function POST(req: NextRequest) {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_ugc_user ON ugc_posts(user_id)`);
     results.push('ugc_posts indexes: ok');
 
+    // Sprint 5 — user roles + audit logs
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS user_roles (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL,
+        user_id uuid NOT NULL,
+        email varchar(300) NOT NULL,
+        role varchar(30) NOT NULL,
+        invited_by_user_id uuid,
+        invited_at timestamptz DEFAULT now() NOT NULL,
+        accepted_at timestamptz,
+        created_at timestamptz DEFAULT now() NOT NULL,
+        updated_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_user_roles_tenant_user ON user_roles(tenant_id, user_id)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_user_roles_tenant_email ON user_roles(tenant_id, email)`);
+    results.push('user_roles: ok');
+
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS audit_logs (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL,
+        user_id uuid,
+        user_email varchar(300),
+        action varchar(80) NOT NULL,
+        entity_type varchar(60),
+        entity_id uuid,
+        before jsonb,
+        after jsonb,
+        metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+        ip_address varchar(45),
+        user_agent text,
+        created_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_audit_tenant_created ON audit_logs(tenant_id, created_at)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_audit_tenant_action ON audit_logs(tenant_id, action)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_audit_tenant_entity ON audit_logs(tenant_id, entity_type, entity_id)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_logs(user_id)`);
+    results.push('audit_logs: ok');
+
     return NextResponse.json({ ok: true, results });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

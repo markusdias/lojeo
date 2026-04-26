@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db, supportTickets } from '@lojeo/db';
 import { eq, and } from 'drizzle-orm';
 import { auth } from '../../../../auth';
+import { recordAuditLog } from '../../../../lib/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,10 +59,22 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     update.assignedToUserId = body.assignedToUserId ?? null;
   }
 
+  const [before] = await db.select().from(supportTickets)
+    .where(and(eq(supportTickets.tenantId, TENANT_ID()), eq(supportTickets.id, id))).limit(1);
+
   await db
     .update(supportTickets)
     .set(update)
     .where(and(eq(supportTickets.tenantId, TENANT_ID()), eq(supportTickets.id, id)));
+
+  await recordAuditLog({
+    session,
+    action: 'ticket.update',
+    entityType: 'ticket',
+    entityId: id,
+    before: before ? { status: before.status, priority: before.priority, assignedToUserId: before.assignedToUserId } : undefined,
+    after: update,
+  });
 
   return NextResponse.json({ ok: true });
 }

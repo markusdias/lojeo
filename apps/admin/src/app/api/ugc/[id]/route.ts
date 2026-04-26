@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { eq, and } from 'drizzle-orm';
 import { db, ugcPosts } from '@lojeo/db';
+import { auth } from '../../../../auth';
+import { recordAuditLog, requirePermission } from '../../../../lib/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +18,12 @@ interface PatchBody {
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth();
+  try {
+    await requirePermission(session, 'ugc', 'write');
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 403 });
+  }
   const { id } = await params;
   let body: PatchBody;
   try {
@@ -61,15 +69,38 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     .returning();
 
   if (!updated) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+
+  await recordAuditLog({
+    session,
+    action: body.status === 'approved' ? 'ugc.approve' : body.status === 'rejected' ? 'ugc.reject' : 'ugc.update',
+    entityType: 'ugc_post',
+    entityId: id,
+    after: { status: body.status, productsTagged: body.productsTagged, rejectionReason: body.rejectionReason },
+  });
+
   return NextResponse.json(updated);
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth();
+  try {
+    await requirePermission(session, 'ugc', 'write');
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 403 });
+  }
   const { id } = await params;
   const [deleted] = await db
     .delete(ugcPosts)
     .where(and(eq(ugcPosts.id, id), eq(ugcPosts.tenantId, TENANT_ID)))
     .returning();
   if (!deleted) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+
+  await recordAuditLog({
+    session,
+    action: 'ugc.delete',
+    entityType: 'ugc_post',
+    entityId: id,
+  });
+
   return NextResponse.json({ ok: true });
 }

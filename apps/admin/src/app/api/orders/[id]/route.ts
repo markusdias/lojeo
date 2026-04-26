@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { db, orders, orderEvents } from '@lojeo/db';
 import { eq, and } from 'drizzle-orm';
+import { auth } from '../../../../auth';
+import { recordAuditLog, requirePermission } from '../../../../lib/roles';
 
 const tenantId = () => process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
 
@@ -17,6 +19,13 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const session = await auth();
+  try {
+    await requirePermission(session, 'orders', 'write');
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 403 });
+  }
+
   const { id } = await params;
   const tid = tenantId();
 
@@ -56,8 +65,18 @@ export async function PATCH(
     eventType: 'status_changed',
     fromStatus: order.status,
     toStatus: newStatus,
-    actor: 'admin',
+    actor: session?.user?.email ? `admin:${session.user.email}` : 'admin',
     notes: body.notes ?? null,
+  });
+
+  await recordAuditLog({
+    session,
+    action: 'order.status_change',
+    entityType: 'order',
+    entityId: id,
+    before: { status: order.status },
+    after: { status: newStatus, trackingCode: body.trackingCode ?? null },
+    metadata: { notes: body.notes ?? null },
   });
 
   return NextResponse.json({ id, status: newStatus });
