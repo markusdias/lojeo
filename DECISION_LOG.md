@@ -150,6 +150,29 @@ Decisões técnicas relevantes registradas com data e justificativa.
 
 ---
 
+## 2026-04-26 — Sprint 4+5 (parcial): UTM, search tracking, admin orders, feeds, wishlist
+
+**Implementado autonomamente (sessão 2026-04-26):**
+
+1. **UTM attribution**: TrackerProvider captura utm_source/medium/campaign na landing, armazena em `sessionStorage('lojeo_utm')`. Checkout/pagamento lê e envia ao POST /api/orders. Campos `utmSource/Medium/Campaign` persistidos na tabela orders para análise de canal de aquisição.
+
+2. **search_performed / search_clicked**: SearchTracker (Client Component) dispara `search_performed` com query+count ao renderizar /busca. PLPFilters rastreia `search_clicked` ao clicar em produto vindo de busca.
+
+3. **Admin orders queue**: GET /api/orders com filtros status/days/page. PATCH /api/orders/:id com state machine validada (pending→paid→preparing→shipped→delivered + cancelado de qualquer estado). Cada transição cria `orderEvent` de auditoria. Dashboard atualizado com métricas reais de 30d.
+
+4. **Catalog feeds**: GET /api/feed/google (RSS XML com namespace g:) + GET /api/feed/meta (CSV). Base URL derivada do request host, cache 1h/24h stale. Pronto para colar no Google Merchant Center e Meta Commerce Manager.
+
+5. **Wishlist anônima**: WishlistProvider (localStorage, hidratação segura). HeartButton SVG animado. Página /wishlist. ProductCard com coração overlay. PDP com HeartButton + RestockButton (email capture quando esgotado). `wishlist_items`, `restock_notifications`, `gift_cards` no schema + migration 0003.
+
+**Decisões pontuais:**
+- UTM armazenado em sessionStorage (não localStorage): atribuição por sessão, não persiste entre visitas
+- State machine de pedido validada no servidor (client não pode pular estados) — segurança operacional
+- Feeds com cache `s-maxage=3600, stale-while-revalidate=86400` — Google atualiza feeds diariamente, cache reduz carga no banco
+- Wishlist localStorage→DB migration reservada para quando Auth.js estiver configurado para clientes (Sprint 5 completo)
+- `brand: 'Atelier'` hardcoded nos feeds — deve vir do `tenants.name` quando admin tiver campo configurável
+
+---
+
 ## 2026-04-25 — Sprint 8 dedicado a IA Analyst + churn + previsão de estoque
 
 **Decisão:** Insights em linguagem natural ("por que minhas vendas caíram?"), predição de churn e previsão de estoque entram em sprint próprio (Sprint 8), não como expansão do Sprint 7.

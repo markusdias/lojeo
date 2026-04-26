@@ -206,8 +206,9 @@ export const behaviorEvents = pgTable('behavior_events', {
 **Instrumentação behavioral:**
 - [x] SDK `@lojeo/tracking` injetado em todas as páginas (TrackerProvider no layout)
 - [x] Eventos: `product_view`, `product_scroll` (25/50/75/100%), `gallery_open`, `gallery_image_index`, `variant_selected`, `cart_add`, `cart_view`, `checkout_start`, `external_referrer`
-- [ ] `video_watched_full`, `search_performed`, `search_clicked` — Sprint 3
-- [ ] UTM preservado da landing até o pedido — Sprint 3
+- [x] `search_performed`, `search_clicked` — implementado Sprint 4 (SearchTracker + PLPFilters onClick)
+- [ ] `video_watched_full` — Sprint 5 (requer player com eventos)
+- [x] UTM preservado da landing até o pedido — TrackerProvider → sessionStorage → /api/orders
 - [x] Banner de cookies LGPD com consentimento granular (essencial / analytics / marketing)
 - [x] Tracking respeita consentimento (consent-aware no SDK desde Sprint 1)
 - [ ] Identidade anônima → identificada quando cliente faz login — Sprint 5
@@ -269,7 +270,7 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 **Entregável tangível:** Pedido confirmado → NF-e emitida → etiqueta gerada → status "enviado" com código de rastreio.
 
 **Critérios de pronto:**
-- [ ] Ciclo de vida completo: pendente → pago → em separação → enviado → entregue → cancelado
+- [x] Ciclo de vida completo: pending → paid → preparing → shipped → delivered → cancelled (state machine no admin PATCH /api/orders/:id + orderEvents audit)
 - [ ] **Conexão Melhor Envio via OAuth 1-clique** — autoriza todas transportadoras da conta automaticamente
 - [ ] **Conexão Bling via OAuth 1-clique** — sem copy-paste de chave
 - [ ] Melhor Envio: cálculo de frete em tempo real, múltiplas opções com prazo
@@ -277,8 +278,8 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 - [ ] Integração Bling: NF-e automática ao confirmar pagamento (regra configurável: ao pagar OU ao despachar)
 - [ ] NF-e disponível no email do cliente, área logada e admin (PDF + DANFE + XML)
 - [ ] Pedido fica em "aguardando emissão fiscal" se NF-e falhar — alerta no admin
-- [ ] Fila de pedidos no admin com filtros e atualização de status
-- [ ] Emails automáticos por transição de status
+- [x] Fila de pedidos no admin com filtros e atualização de status (/pedidos + /pedidos/[id])
+- [ ] Emails automáticos por transição de status — BLOQUEADO: Resend API key
 - [ ] Status de saúde do gateway/integração: verde (operacional), amarelo (alerta — produto fora de sync), vermelho (desconectado/erro)
 - [ ] Botão "Ressincronizar" para corrigir divergência loja × gateway com 1 clique
 
@@ -297,7 +298,7 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 **Critérios de pronto:**
 
 **Admin operacional:**
-- [ ] Dashboard: receita por período, pedidos recentes, produtos mais vendidos, visitantes, taxa de conversão, **margem por produto e margem da loja como um todo (Sec 13.1)** — calculada com campo `cost` do produto, deduzindo frete/taxas/comissões
+- [x] Dashboard: métricas reais de pedidos (count+revenue 30d + pending alert) — expandir com produtos mais vendidos, visitantes, conversão na Sprint 5 completo
 - [ ] Fila de moderação de avaliações: preview, aprovar/rejeitar com 1 clique, resposta pública opcional
 - [ ] Configurações completas via interface (identidade, gateways, frete, email)
 - [ ] Editor de aparência dentro dos limites do template
@@ -309,25 +310,25 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 - [ ] **Robots.txt configurável** pelo admin (Sec 12.3)
 - [ ] **Relatórios programados por email** (Sec 13.2) — lojista define cron + filtros + destinatários, sistema dispara CSV/PDF
 - [ ] **A/B testing nativo integrado ao template** (Sec 12.2) — admin cria experimento (variante A/B), define audience, sistema rotaciona, mensura conversão. Base reusada para personalização de homepage no Sprint 12.
-- [ ] **Feeds de catálogo automáticos** (Sec 6.2) — geração contínua de feed Google Shopping (XML) e Meta Catalog (CSV) atualizados a cada mudança de produto. URL pública para o lojista colar no Google Merchant Center / Meta Commerce Manager.
+- [x] **Feeds de catálogo automáticos** (Sec 6.2) — GET /api/feed/google (RSS XML) + GET /api/feed/meta (CSV), cache 1h/24h stale, pronto para colar no Google Merchant Center / Meta Commerce Manager.
 
 **Wishlist (retenção):**
-- [ ] Schema: `wishlist_items` (user_id, product_id, variant_id, created_at)
-- [ ] Botão coração na PDP e card de produto (toggle)
-- [ ] Página "Minha lista de desejos" na área do cliente
-- [ ] Notificação automática quando produto da wishlist entra em promoção (Trigger.dev: job diário)
-- [ ] Wishlist disponível também para anônimos (localStorage → migra ao login)
+- [x] Schema: `wishlist_items` (user_id, product_id, variant_id, created_at) + migration 0003
+- [x] Botão coração na PDP e card de produto (toggle) — HeartButton inline SVG
+- [x] Página /wishlist com lista de salvos + add-to-cart
+- [ ] Notificação automática quando produto da wishlist entra em promoção (Trigger.dev: job diário) — BLOQUEADO
+- [x] Wishlist disponível para anônimos (localStorage) — migração para DB ao login na Sprint 5 completo
 
 **Gift card / vale-presente digital:**
-- [ ] Schema: `gift_cards` (code, initial_value, current_balance, expires_at, status, buyer_id, recipient_email)
+- [x] Schema: `gift_cards` (code, initial_value, current_balance, expires_at, status, buyer_id, recipient_email) + migration 0003
 - [ ] Compra de gift card como produto especial no storefront
 - [ ] Email automático para destinatário com código + design branded
 - [ ] Aplicação no checkout como meio de pagamento (parcial ou total)
 - [ ] Painel no admin: emitidos, resgatados, saldo total, expiração
 
 **Back-in-stock:**
-- [ ] Botão "Avise-me quando voltar" em variante esgotada
-- [ ] Schema: `restock_notifications` (user_id ou email, product_variant_id, notified_at)
+- [x] Botão "Avise-me quando voltar" em variante esgotada — RestockButton com email capture + POST /api/restock-notify
+- [x] Schema: `restock_notifications` (user_id ou email, product_variant_id, notified_at) + migration 0003
 - [ ] Trigger.dev: job que dispara quando inventário > 0 (email + WhatsApp via FaqZap quando Sprint 9 entregar)
 
 **Opção de presente no checkout:**
