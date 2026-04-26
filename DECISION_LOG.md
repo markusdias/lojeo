@@ -383,3 +383,40 @@ Decisões técnicas relevantes registradas com data e justificativa.
 3. **ConsentBanner inline-styled sem tokens CSS.** Alternativa: usar CSS tokens do template. Decisão (UX): Banner é componente do motor (Lojeo), não do template jewelry-v1. Tokens visuais do template não devem vazar para componentes do motor. Banner usa CSS vars com fallback neutro.
 
 4. **`TrackerProvider` com `useRef` em vez de `useState`.** Justificativa (Arquiteto): `Tracker` é singleton stateful (buffer + timer). `useRef` garante uma única instância mesmo em Strict Mode (React 18+ monta componente duas vezes em dev). `useState(() => new Tracker())` teria o mesmo efeito mas `useRef` é mais idiomático para objetos mutáveis não-React.
+
+---
+
+## 2026-04-26 — Sprint 2 concluído autonomamente
+
+**Decisão:** Sprint 2 executado de forma autônoma (Blocos A–G) com decisões PO / Arquiteto / CTO / CFO / UX / Marketing consolidadas.
+
+**Entregáveis:**
+
+| Bloco | Feature | Arquivos principais |
+|---|---|---|
+| A | Design system jewelry-v1 + layout base | `tokens.css` (5 typography combos, 5 accents, 4 BG tones), Header sticky, Footer dark, CartProvider, TrackerProvider |
+| B | Homepage + PLP | `app/page.tsx` (hero/categorias/novidades/sobre/trust), `app/produtos/page.tsx` + `plp-filters.tsx` (client-side filters/sort/pagination) |
+| C | PDP com urgência real | `app/produtos/[slug]/page.tsx` (behavior_events COUNT last 5min, inventoryStock SUM), `pdp-client.tsx` (galeria, variantes, UrgencyBadge) |
+| D | Carrinho | `app/carrinho/page.tsx` (qty controls, free-shipping bar, resumo, trust row) |
+| E | SEO + behavioral | `sitemap.ts` dinâmico, `robots.ts`, Schema.org JSON-LD na PDP, `product_scroll` IntersectionObserver (25/50/75/100%), `gallery_open/image_index`, `external_referrer` |
+| F | Busca + estáticas + admin API | `/busca`, `/sobre`, `/politica`, `/trocas`, `/privacidade`, `admin /api/events` (daily + byType) |
+| G | Testes + deploy + log | 31 testes passando (10/10 packages sem admin), zero regressões |
+
+**Métricas finais Sprint 2:**
+- 31 testes passando (10 packages sem admin — admin dogfood requer DB expose porta 5433)
+- 5 commits atômicos por bloco (A–G)
+- Deploy: webhook EasyPanel disparado após push
+
+**Decisões autônomas pontuais:**
+
+1. **PLP arquitetura Server+Client.** Server Component busca todos os produtos (limit 72 = PAGE_SIZE×3) e passa para Client Component (`PLPFilters`). Client faz filtros/sort/paginação sem round-trip. Alternativa (URL params): cada filtro força full page reload no Next.js App Router com `force-dynamic`. Decisão (Arquiteto): client-side para UX fluido.
+
+2. **UrgencyBadge com dados reais, nunca fake.** Dois queries paralelos: `behavior_events COUNT` (últimos 5min) + `inventoryStock SUM`. Thresholds configuráveis por env (`URGENCY_THRESHOLD`, `LOW_STOCK_QTY`). Números falsos destroem credibilidade quando cliente percebe (CFO/Marketing).
+
+3. **JSON-LD com sanitização.** Script JSON-LD usa `__html` com conteúdo sanitizado via `replace(/<\/script>/gi)` — previne script injection mesmo com dados do BD maliciosos. Hook de segurança alertou; mitigação aplicada.
+
+4. **`product_scroll` via IntersectionObserver (não scroll event).** `IntersectionObserver` com `threshold: [0.25, 0.5, 0.75, 1.0]` no div raiz da PDP captura depth sem polling. `scrolledDepths` como `useRef<Set<number>>` garante disparo único por threshold. Alternativa: `window.addEventListener('scroll')` — mais custoso, menos preciso.
+
+5. **`external_referrer` via `sessionStorage`.** Uma vez por sessão (não por page_view). Key `lojeo_ext_ref_{tenantId}` por tenant para suporte multi-tenant futuro.
+
+6. **Admin dogfood tests requerem DB expose.** 25 testes de integração necessitam `DATABASE_URL` com porta 5433 aberta no EasyPanel. Rodar com: expor porta → testar → fechar. Sprint 3 terá Postgres local via docker-compose para testes sem DB remoto.
