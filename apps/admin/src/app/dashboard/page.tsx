@@ -1,25 +1,29 @@
 import Link from 'next/link';
-import { auth, signOut } from '../../auth';
 import { db, products, tenants, orders } from '@lojeo/db';
 import { eq, and, gte, sql } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
-  let session = null;
-  try { session = await auth(); } catch { /* auth falha sem cookie */ }
-  const user = session?.user;
   const tenantId = process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
   const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-  const [tenant, productCount, orderSummary] = await Promise.all([
-    db.query.tenants.findFirst({ where: eq(tenants.id, tenantId) }),
-    db.select({ c: sql<number>`COUNT(*)` }).from(products).where(eq(products.tenantId, tenantId)).then(r => Number(r[0]?.c ?? 0)),
+
+  const [tenantRows, productCountRows, orderRows] = await Promise.all([
+    db.select({ name: tenants.name, templateId: tenants.templateId })
+      .from(tenants)
+      .where(eq(tenants.id, tenantId))
+      .limit(1),
+    db.select({ c: sql<number>`COUNT(*)::int` }).from(products).where(eq(products.tenantId, tenantId)),
     db.select({
-      count: sql<number>`COUNT(*)`,
-      revenue: sql<number>`COALESCE(SUM(${orders.totalCents}), 0)`,
-      pending: sql<number>`COUNT(*) FILTER (WHERE ${orders.status} = 'pending')`,
-    }).from(orders).where(and(eq(orders.tenantId, tenantId), gte(orders.createdAt, since30d))).then(r => r[0]),
+      count: sql<number>`COUNT(*)::int`,
+      revenue: sql<number>`COALESCE(SUM(total_cents), 0)::int`,
+      pending: sql<number>`COUNT(*) FILTER (WHERE status = 'pending')::int`,
+    }).from(orders).where(and(eq(orders.tenantId, tenantId), gte(orders.createdAt, since30d))),
   ]);
+
+  const tenant = tenantRows[0];
+  const productCount = productCountRows[0]?.c ?? 0;
+  const orderSummary = orderRows[0];
 
   return (
     <main className="min-h-screen p-8 max-w-5xl mx-auto space-y-6">
@@ -36,14 +40,9 @@ export default async function DashboardPage() {
             )}
           </p>
         </div>
-        <form
-          action={async () => {
-            'use server';
-            await signOut({ redirectTo: '/' });
-          }}
-        >
-          <button className="text-sm text-neutral-600 hover:text-neutral-900">Sair</button>
-        </form>
+        <Link href="/api/auth/signout" className="text-sm text-neutral-600 hover:text-neutral-900">
+          Sair
+        </Link>
       </header>
 
       <section className="grid grid-cols-4 gap-4">
@@ -65,13 +64,6 @@ export default async function DashboardPage() {
             {(Number(orderSummary?.revenue ?? 0) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
           </p>
         </div>
-      </section>
-
-      <section className="bg-white rounded-lg shadow p-6">
-        <p className="text-xs uppercase tracking-wide text-neutral-500">Sessão</p>
-        <pre className="mt-2 text-xs bg-neutral-50 p-4 rounded overflow-auto">
-          {JSON.stringify(user, null, 2)}
-        </pre>
       </section>
     </main>
   );
