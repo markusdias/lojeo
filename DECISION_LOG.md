@@ -2017,3 +2017,61 @@ Antes de marcar promessas como concluídas, validei via Playwright nas URLs reai
 - Re-auditar pós-fixes pra subir paridade de 38% pra 60%+
 
 **81 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão**.
+
+---
+
+## 2026-04-26 — Iteração 16: 3 subagents paralelos + /aparencia Claude Design
+
+**Trigger user:** "deixe rodando em paralelo com subagentes... Fixes paridade visual + Sprint 13 + bloqueadores externos. /loop"
+
+**Bonus user:** screenshots oficiais Claude Design da tela /aparencia → implementação imediata paridade exata.
+
+### Subagents paralelos
+
+1. **Auditor preview HTML** (aa6f702de9) — `docs/audit/components-parity-audit-2026-04-26.md`:
+   - 42 previews auditados (21 admin + 21 storefront jewelry-v1)
+   - Admin ~85% paridade, Storefront ~55%
+   - Top gaps: storefront sem Button/Badge/Input/Chip components; admin sem Toast/MetricCard/DataTable; trust signals usam glyphs Unicode
+
+2. **Sprint 13 LGPD + Zod + security** (a55737f7) — 3 commits:
+   - 0ecf44a: banner LGPD storefront com consent granular (essential/analytics/marketing)
+   - a25474a: Zod aplicado em /api/coupons (POST/PATCH) e /api/experiments (POST)
+   - (security-audit script ainda rodando)
+
+3. **Bloqueadores externos + onboarding** (a7e86f5c) — 4 commits:
+   - d46d5e2: `docs/decisions/external-blockers-priority.md` 14 provedores P0/P1/P2/P3
+   - 8ec7b84: fix coupons typecheck regressão (`?? 0` em value/minOrderCents)
+   - f925b28: `apps/admin/src/app/settings/onboarding/page.tsx` setup wizard com checklist visual + progress bar
+   - aa1e91e: roadmap atualizado com seção bloqueadores
+   - **Top-3 recomendado MVP BR joias:** MP P0 (take rate variável), Resend P0 (~US$20/mês), Anthropic P0 (~US$50/mês). Total ~R$380/mês fixo
+
+### /aparencia Claude Design (commit 126cdea)
+
+User mostrou 2 screenshots oficiais Claude Design da tela /aparencia. Implementação:
+
+- **/aparencia/page.tsx** (~500 linhas client component):
+  - Header h1 "Aparência" + subtitle "Template ativo, identidade visual e brand guide pra IA"
+  - **Card TEMPLATE ATIVO:** thumb 150x150 com gradiente + paleta + eyebrow + h3 + caption mono versão + descrição + 2 botões (Trocar template + Ver changelog) + meta "Atualização disponível v1.4.3"
+  - **Layout 2 colunas:** left config sections colapsáveis + right preview LIVE com toolbar Desktop/Tablet/Mobile + iframe storefront real
+  - **Combinação tipográfica:** 3 cards "Atelier Verde" preview com fonts reais
+  - **Save bar sticky bottom**
+  - **Modal "Trocar template":** 4 templates (jewelry/coffee/fashion/beauty) cada com thumb + paleta swatches + Tipos + Bom pra + botão Aplicar
+
+- **Sidebar:** novo item "Aparência" com icon palette antes de "Configurações"
+
+**Decisões:**
+- **Subagents paralelos seguros** quando tasks disjuntas (auditoria readonly + features em paths diferentes). Conflitos zero. ~7min wall-clock vs ~45min sequencial.
+- **/aparencia separado de /settings** — Settings continua para políticas comerciais, pixels, robots.txt; /aparencia foca em template + tipografia + brand IA. Match design oficial.
+- **Preview LIVE iframe** — vai recarregar quando submit acontece, mas mudanças instantâneas exigem postMessage broadcast ou storefront ler config via fetch — TODO próxima iter.
+- **Modal trocar template** com 4 templates onde só jewelry-v1 está realmente registrado — coffee/fashion/beauty mostrados como visão de futuro do produto (placeholder).
+
+**Próximo ciclo:**
+- Aplicar template real funcional (PATCH /api/settings com templateId, restart storefront)
+- Storefront preview reativo (postMessage broadcast)
+- Components.toasts.html → criar Toast component
+- Components.metric-cards.html → DataTable, MetricCard reutilizáveis
+- VariantChip + ReviewCard storefront jewelry-v1
+- Trust signals SVG (substituir glyphs Unicode)
+- Sprint 13 security audit script (subagent ainda rodando)
+
+**89 commits totais sessão**, **73 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão** funcional.
