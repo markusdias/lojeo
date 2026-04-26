@@ -1,0 +1,78 @@
+'use client';
+
+import { useEffect, useState, useMemo } from 'react';
+
+interface RecommendedProduct {
+  productId: string;
+  name: string;
+  slug: string;
+  priceCents: number;
+}
+
+function fmt(cents: number): string {
+  return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+/**
+ * FBT no carrinho — recomendações baseadas no PRIMEIRO produto do cart
+ * (heurística simples). Filtra itens já no cart.
+ */
+export function FrequentlyBoughtTogetherCart({
+  cartProductIds,
+}: {
+  cartProductIds: string[];
+}) {
+  const [items, setItems] = useState<RecommendedProduct[] | null>(null);
+  const primaryId = cartProductIds[0];
+  const inCart = useMemo(() => new Set(cartProductIds), [cartProductIds]);
+
+  useEffect(() => {
+    if (!primaryId) { setItems([]); return; }
+    fetch(`/api/recommendations?productId=${primaryId}&type=fbt&limit=6`)
+      .then(r => r.json())
+      .then((d: { products?: RecommendedProduct[] }) => {
+        setItems((d.products ?? []).filter(p => !inCart.has(p.productId)).slice(0, 4));
+      })
+      .catch(() => setItems([]));
+  }, [primaryId, inCart]);
+
+  if (!items || items.length === 0) return null;
+
+  return (
+    <section style={{
+      padding: '32px 0',
+      borderTop: '1px solid var(--divider)',
+      marginTop: 32,
+    }}>
+      <div style={{ marginBottom: 20 }}>
+        <p style={{ fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8 }}>
+          Que tal levar também
+        </p>
+        <h3 style={{ fontSize: 20, fontWeight: 400, fontFamily: 'var(--font-display)' }}>
+          Combina com seu carrinho
+        </h3>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
+        {items.map(p => (
+          <a
+            key={p.productId}
+            href={`/produtos/${p.slug}`}
+            style={{
+              textDecoration: 'none',
+              color: 'inherit',
+              padding: 12,
+              border: '1px solid var(--divider)',
+              borderRadius: 4,
+              background: 'var(--surface)',
+              display: 'block',
+              fontSize: 13,
+            }}
+          >
+            <p style={{ fontWeight: 500, marginBottom: 4, lineHeight: 1.3 }}>{p.name}</p>
+            <p style={{ color: 'var(--text-primary)' }}>{fmt(p.priceCents)}</p>
+          </a>
+        ))}
+      </div>
+    </section>
+  );
+}
