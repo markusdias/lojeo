@@ -8,6 +8,7 @@ import { ReviewSection } from '../../../components/reviews/review-section';
 import { UgcGallery } from '../../../components/ugc/ugc-gallery';
 import { FrequentlyBoughtTogether } from '../../../components/products/frequently-bought-together';
 import { RecentlyViewed } from '../../../components/products/recently-viewed';
+import { RelatedProducts } from '../../../components/products/related-products';
 
 export const dynamic = 'force-dynamic';
 
@@ -143,6 +144,7 @@ export default async function PDPPage({ params }: PDPProps) {
       />
       <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '0 var(--container-pad) 80px' }}>
         <FrequentlyBoughtTogether productId={product.id} />
+        <RelatedProducts productId={product.id} />
         <UgcGallery productId={product.id} />
         <RecentlyViewed currentProductId={product.id} />
         <ReviewSection productId={product.id} />
