@@ -693,3 +693,49 @@ Decisões técnicas relevantes registradas com data e justificativa.
 **Justificativa documental:** este mapa elimina ambiguidade em sessões futuras. Antes desta documentação, agente não sabia o nome canônico do serviço (testou 6 variações até descobrir). Próximo agente lê o mapa e usa direto.
 
 **Nota CLAUDE.md:** adicionar referência cruzada nesta seção para `apps/admin/src/app/api/migrate/route.ts` (rota legítima de migração interna, não criação de serviço).
+
+---
+
+## 2026-04-26 — Sprint 9 fechamento: templates, telemetria, fixes UX
+
+**Implementado nesta sessão (continuação Sprint 9):**
+
+1. **Templates de resposta para tickets:**
+   - API CRUD: `GET/POST /api/tickets/templates`, `PATCH/DELETE /api/tickets/templates/[id]`
+   - UI admin: `/tickets/templates` (form criar/editar inline + lista com excluir)
+   - Link rápido no header de `/tickets` apontando para templates
+   - Variables `{nome}` e `{pedido}` documentadas como hint, expansão real no PATCH do ticket message acontece em fase futura quando UI de "usar template" entrar no detalhe do ticket
+
+2. **Chatbot telemetry (Sprint 9 último item não-bloqueado):**
+   - Schema `chatbot_sessions` (tenant_id, sessionKey, productContext, msgCount, toolCallCount, tokensIn/Out, resolved, escalated, escalatedReason, topics jsonb, lastSeenAt)
+   - `/api/chat` agora persiste telemetria via upsert por sessionKey (não bloqueia resposta — `void persistTelemetry()`)
+   - Tracking de tokens via `res.usage.input_tokens / output_tokens` Anthropic SDK
+   - Topics extraídos dos `toolNamesUsed` (search_products, get_faq_answer, etc.) — proxy para "tópicos mais perguntados"
+   - Endpoint `GET /api/chatbot/stats`: 30d window, total/resolved/escalated, resolutionRate, escalationRate, totalTokens, top 10 tools via `jsonb_array_elements_text(topics)`
+   - Página admin `/chatbot`: 4 cards (conversas/resolvidas/escaladas/custo USD), bar chart de tópicos, link no sidebar 🤖
+
+3. **Fixes UX detectados via Playwright (validação de promessas):**
+   - **Segurança `/conta/*`:** centralizado auth guard em `apps/storefront/src/app/conta/layout.tsx` — antes `/conta/enderecos` retornava 200 sem login (apenas `/conta/pedidos` redirecionava). Promessa Sprint 6A "área do cliente com auth obrigatória" estava parcialmente quebrada.
+   - **`/pedidos` e `/clientes` 500 em prod:** root cause = migrations 0004 (gift_columns) e 0006 (orders.customer_email) nunca aplicadas em prod. Fix: estendido `/api/migrate` com `ALTER TABLE IF NOT EXISTS` idempotente para essas colunas.
+   - **PDP gaps (galeria/variantes/material) NÃO são bug** — produto dogfood criado nos testes não tem variantes nem imagens (`variantsCount: 0`, `imagesCount: 0`). Sprint 2 PDP funcional, dependente de produto real.
+
+4. **Documentação anti-alucinação:**
+   - CLAUDE.md ganhou seção "Verificação de promessas" — antes de marcar `[x]` no roadmap, validar feature em URL real com Playwright (não só build local). Erros de console/404/500 = regressão silenciosa que bloqueia novo desenvolvimento.
+   - CLAUDE.md ganhou seção "Infra EasyPanel — não criar serviços novos"
+   - DECISION_LOG ganhou mapa oficial de serviços EasyPanel (entrada anterior)
+
+**Decisões técnicas:**
+
+- **Telemetria via upsert por sessionKey, não append-only.** Justificativa (CFO): sessão pode durar muitas mensagens; insert por mensagem inflaria a tabela em 1-2 ordens de grandeza. Upsert mantém 1 linha por sessão com contadores incrementais, custo storage estável.
+- **`escalated` é flag latch (true permanece true).** Sessão escalada não volta a "não escalada" mesmo se cliente continua tentando.
+- **`persistTelemetry` em try/catch + `void`.** Falha em telemetria nunca pode quebrar a resposta do chatbot (UX > observabilidade).
+- **Modelo Haiku 4.5 hard-coded em `/chatbot` page.** Custo calculado: $0.80/MTok in + $4/MTok out. Quando tiering for habilitado, expor `model` em chatbot_sessions.
+
+**Pendências Sprint 9 (todas com bloqueador externo confirmado):**
+- Widget chatbot UI no storefront — **bloqueado: Design D**
+- FaqZap notificações + escalação — **bloqueado: conta FaqZap**
+- Atribuição automática de tickets (round-robin) — descopado v1, entra Sprint 11+
+- Catálogo via embeddings pgvector — Sprint 12
+- Recuperação carrinho abandonado — bloqueado Trigger.dev
+
+**Sprint 9 declarado fechado** com bloqueadores externos documentados. Próximo sprint sem dependência: Sprint 10 (UGC + moderação) — research-first cumprido em `docs/research/sprint-10-ugc-moderation.md`.

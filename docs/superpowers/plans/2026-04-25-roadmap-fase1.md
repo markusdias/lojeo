@@ -482,7 +482,7 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 **Sistema de tickets:**
 - [x] Caixa com histórico, status, responsável, prioridade
 - [x] Ticket vinculado ao pedido e ao cliente
-- [ ] Templates de resposta com variáveis (nome cliente, número pedido, produto) — `ticket_templates` schema criado, UI pendente
+- [x] Templates de resposta com variáveis (nome cliente, número pedido, produto) — CRUD completo: API `GET/POST /api/tickets/templates`, `PATCH/DELETE /api/tickets/templates/[id]` + UI `/tickets/templates`
 - [x] SLA configurável com alerta visual
 - [ ] **Atribuição automática ou manual de tickets (Sec 9.2)** — regras: round-robin por equipe, atribuição por palavra-chave, atribuição manual via drag-and-drop
 - [x] **Notas internas** visíveis só pra equipe (não enviadas ao cliente)
@@ -496,7 +496,7 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 - [x] Personalidade alinhada ao brand guide do template (system prompt jewelry-v1)
 - [x] Rate limit por sessão (anti-abuso): 20 mensagens/15min por sessão
 - [ ] Escalação para FaqZap WhatsApp quando bot não resolve — **BLOQUEADO: FaqZap**
-- [ ] Telemetria: % resoluções pelo bot, % escalações, tópicos mais perguntados
+- [x] Telemetria: % resoluções pelo bot, % escalações, tópicos mais perguntados — schema `chatbot_sessions` (msgCount, toolCallCount, tokens, escalated, topics) + admin `/chatbot` com cards (total/resolvidas/escaladas/custo) + bar chart top tools, janela 30d
 - [x] Modo degradado: se Claude API cair, widget exibe FAQ estática + botão WhatsApp
 
 **Bloqueadores externos:**
