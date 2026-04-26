@@ -916,3 +916,47 @@ Antes de marcar promessas como concluídas, validei via Playwright nas URLs reai
 - A/B testing nativo — Sprint 12 (homepage personalizada)
 
 **14 commits, 56 testes verdes, zero regressão.** Próximo ciclo sem bloqueador: A/B testing nativo (Sprint 5+12 reusable), garantias por produto + alertas (Sprint 6), ou aprofundar Sprint 13 (CSRF, sanitização inputs, lazy loading UGC, auditoria custo IA já com base `ai_calls`).
+
+---
+
+## 2026-04-26 — Sprint 5+6+13: 2FA TOTP + auditoria custo IA + garantias
+
+**2FA TOTP admin (Sprint 5+13):**
+- Schema `user_two_factor` (secret base32, recovery_codes_hash SHA-256, enabled, last_used_at) — unique por userId, sem FK p/ idempotência
+- Helper `apps/admin/src/lib/totp.ts`: otplib (window=1 = ±30s clock skew) + qrcode 240×240 + recovery codes legíveis xxxxx-xxxxx
+- API `/api/2fa`: GET status / POST setup gera QR / PATCH verify+enable retorna recovery codes uma vez / DELETE requer token TOTP atual (anti session-hijack)
+- UI `/settings/2fa`: 4 estados (sem 2FA / setup com QR + secret manual fallback em `<details>` / habilitado com banner verde / banner amber pós-enable mostrando recovery codes "salve agora")
+- Audit log: `2fa.enable`, `2fa.disable`
+
+**Auditoria de custo IA (Sprint 13):**
+- API `/api/ai-budget`: lê `tenants.config.brandGuide.aiMonthlyLimitCents`, agrega `SUM(cost_usd_micro)` em `ai_calls` desde dia 1 do mês, calcula projeção linear `(MTD/diaAtual) × diasNoMes`, classifica alert `ok` / `warn` (≥80%) / `over_forecast` (forecast ≥ limit) / `over` (MTD ≥ limit)
+- UI `/ia-uso` ganha card de orçamento condicional com background colorido por alert, grid 3 colunas (Limite | Gasto MTD | Projeção fim do mês), progress bar e mensagem explicativa. Banner amber quando sem limite configurado
+
+**Garantias (Sprint 6):**
+- Engine puro `packages/engine/src/warranty.ts`: `computeWarranty/Batch`, `expiringWithinDays`, status `active`/`expiring_soon` (≤30d)/`expired`/`none`. MONTH_MS = 30d para previsibilidade. 5 testes (engine 23 → 28)
+- API `/api/warranties?expiringIn=30/60/90&customerEmail=X`: orders pagos+enviados+entregues, joins com items + products.warrantyMonths (best-effort match por nome v1, fallback 12 meses), `startsAt = deliveredAt ?? shippedAt ?? createdAt`
+- UI `/garantias`: 4 cards (Ativas/Expirando/Expiradas/Sem garantia), filtros 30/60/90d, tabela ordenada por expiresAt asc
+
+**Decisões técnicas:**
+- Recovery codes hashed SHA-256 + exibidos uma única vez. Banco comprometido ≠ códigos revelados
+- otplib window=1 — ±30s tolerância clock skew sem ampliar janela de força bruta
+- Disable 2FA exige token, não só sessão — protege session hijack
+- AI budget forecast linear v1. Refinar com média móvel após dados históricos
+- Warranty match por nome (fallback 12 meses). v2: link via order_item.variantId → productVariants.productId
+- MONTH_MS = 30d (não calendário real) para 12 meses = 360d previsíveis
+
+**Validação UX prod (Playwright, zero console errors):**
+- ✅ /garantias 200 — sidebar 🛡, 4 cards summary
+- ✅ /settings/2fa 200
+- ✅ /ia-uso 200 (com card de orçamento)
+- ✅ /settings/users 200, /settings/audit 200
+
+**Migrate prod aplicado:** `user_two_factor` (1 nova op, total 17 idempotentes).
+
+**Bloqueadores Sprint 5/6 restantes (todos externos):**
+- 2FA *obrigatório* enforcement no login flow — Sprint 13
+- Convite por email com 1 clique — Resend
+- Sugestão de recompra automática (job semanal) — Trigger.dev
+- Fluxo trocas/devoluções, etiqueta reversa — Bling + Melhor Envio
+
+**16 commits, 56 testes verdes (engine 28), zero regressão.** Próximo ciclo: enforcement 2FA login admin, CSRF middleware, lazy loading UGC, sugestão de recompra storefront client-side (sem Trigger).

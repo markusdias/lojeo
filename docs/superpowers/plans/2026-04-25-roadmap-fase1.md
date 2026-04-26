@@ -303,7 +303,7 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 - [ ] Configurações completas via interface (identidade, gateways, frete, email)
 - [ ] Editor de aparência dentro dos limites do template
 - [x] Sistema de papéis (roles): Owner, Admin, Operador, Editor, Atendimento, Financeiro — schema `user_roles`, matriz `ROLE_PERMISSIONS` scope×permission, helpers `getCurrentRole()` + `requirePermission()`, API `/api/users` CRUD, UI `/settings/users` com convite + tabela
-- [ ] 2FA obrigatório para todos os papéis — Sprint 13 polimento
+- [x] 2FA TOTP admin — schema `user_two_factor` (secret base32, recovery codes SHA-256), API `/api/2fa` (setup→verify→enable→recovery codes uma única vez, disable com token), UI `/settings/2fa` com 4 estados (sem/setup com QR/habilitado/recovery), otplib window=1 para clock skew, audit log `2fa.enable`/`disable`. **Obrigatório por papel** ainda não enforcado no login flow — Sprint 13 polimento
 - [x] Logs de auditoria: quem fez o quê e quando — schema `audit_logs` (action, entity, before/after), helper `recordAuditLog()`, integrado em order/ticket/ugc/role mutations, UI `/settings/audit` com filtros 7/30/90d e expand JSON
 - [ ] Convite de usuário por email com 1 clique — convite criado em DB, envio email BLOQUEADO Resend
 - [ ] Instruções contextuais em todas as telas (fator moleza)
@@ -351,8 +351,8 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 
 **Critérios de pronto:**
 - [x] Perfil completo de cliente: dados, LTV, número de pedidos, segmento RFM, canal de aquisição, eventos comportamentais agregados
-- [ ] Garantias por produto/cliente: painel com status, alertas 30 dias antes do vencimento
-- [ ] Filtro: clientes com garantia expirando nos próximos 30/60/90 dias
+- [x] Garantias por produto/cliente: painel com status, alertas 30 dias antes do vencimento — engine puro `packages/engine/src/warranty.ts` (computeWarranty/Batch, expiringWithinDays, status active/expiring_soon/expired/none), 5 testes; API `/api/warranties?expiringIn=30/60/90` agrega orders+items+products.warrantyMonths; UI `/garantias` admin com cards + tabela filtrável
+- [x] Filtro: clientes com garantia expirando nos próximos 30/60/90 dias — `?customerEmail=X` no endpoint + filtro de janela 30/60/90
 - [ ] Fluxo de trocas/devoluções: solicitação pelo cliente → análise → aprovação → logística reversa → reembolso
 - [ ] Validação automática do prazo de troca configurado por produto
 - [ ] Estados claros: solicitada → em análise → aprovada → aguardando produto → recebida → finalizada
@@ -725,7 +725,7 @@ Qual provider de geração de imagem? Trade-off custo vs qualidade vs API reliab
 - [x] Status page pública da loja — `/status` com 6 checks (DB, catálogo, IA Claude, storage, Resend, MP), badges operational/degraded/down, tempos de resposta, mensagens explicativas. API `/api/status` para integração externa
 - [ ] Testes E2E com Playwright: fluxo completo compra, troca, login, wishlist, gift card
 - [ ] Plano de contingência Black Friday documentado
-- [ ] Auditoria de custo IA: tabela com estimativa mensal por feature, alertas configurados
+- [x] Auditoria de custo IA: tabela com estimativa mensal por feature, alertas configurados — API `/api/ai-budget` (limite, MTD, projeção fim do mês, utilization%, alert ok/warn/over_forecast/over) + card de orçamento em `/ia-uso` com progress bar, mensagem de alerta colorida
 - [ ] Documentação do operador final (lojista) — guia de uso
 
 ---
