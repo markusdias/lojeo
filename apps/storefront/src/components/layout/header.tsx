@@ -68,7 +68,7 @@ export function Header({ storeName }: { storeName: string }) {
         gap: 24,
       }}>
         {/* Nav esquerda — desktop */}
-        <nav style={{ display: 'flex', gap: 28, fontSize: 13 }}>
+        <nav aria-label="Categorias principais" style={{ display: 'flex', gap: 28, fontSize: 13 }}>
           {CATEGORIES.map(c => (
             <Link
               key={c.slug}
@@ -82,7 +82,7 @@ export function Header({ storeName }: { storeName: string }) {
         </nav>
 
         {/* Logo centro */}
-        <Link href="/" style={{ display: 'block' }}>
+        <Link href="/" style={{ display: 'block' }} aria-label={`${storeName} — voltar para a home`}>
           <span style={{
             fontFamily: 'var(--font-display)',
             fontSize: 22,
@@ -102,7 +102,7 @@ export function Header({ storeName }: { storeName: string }) {
           alignItems: 'center',
           position: 'relative',
         }}>
-          <Link href="/busca" style={iconBtn}>
+          <Link href="/busca" style={iconBtn} aria-label="Buscar produtos">
             <Icon name="search" size={20} />
           </Link>
 
@@ -177,7 +177,7 @@ export function Header({ storeName }: { storeName: string }) {
 
       {/* Mobile nav */}
       {mobileOpen && (
-        <div style={{
+        <nav aria-label="Categorias (mobile)" style={{
           borderTop: '1px solid var(--divider)',
           background: 'var(--bg)',
           padding: '16px var(--container-pad) 24px',
@@ -193,7 +193,7 @@ export function Header({ storeName }: { storeName: string }) {
               {c.label}
             </Link>
           ))}
-        </div>
+        </nav>
       )}
     </header>
   );

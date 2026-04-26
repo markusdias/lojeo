@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useId } from 'react';
 
 interface UgcPost {
   id: string;
@@ -26,6 +26,8 @@ export default function GaleriaPage() {
   const [uploading, setUploading] = useState(false);
   const [caption, setCaption] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+  const fileId = useId();
+  const captionId = useId();
 
   function load() {
     setLoading(true);
@@ -73,14 +75,22 @@ export default function GaleriaPage() {
       {/* Upload form */}
       <form onSubmit={handleSubmit} style={{ background: 'var(--surface)', border: '1px solid var(--divider)', borderRadius: 8, padding: 20, marginBottom: 32 }}>
         <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>Enviar nova foto</p>
+        <label htmlFor={fileId} style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
+          Foto da peça
+        </label>
         <input
+          id={fileId}
           ref={fileRef}
           type="file"
           accept="image/jpeg,image/png,image/webp,image/heic"
           required
           style={{ display: 'block', marginBottom: 12, fontSize: 13 }}
         />
+        <label htmlFor={captionId} style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
+          Legenda (opcional)
+        </label>
         <textarea
+          id={captionId}
           placeholder="Conte um pouco sobre a peça (opcional)"
           value={caption}
           onChange={e => setCaption(e.target.value)}

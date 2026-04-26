@@ -30,6 +30,7 @@ export function ConsentBanner() {
     <div
       role="dialog"
       aria-label="Aviso de cookies"
+      aria-live="polite"
       style={{
         position: 'fixed',
         bottom: 0,

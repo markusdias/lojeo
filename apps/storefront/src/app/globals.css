@@ -8,6 +8,36 @@ html {
   scroll-behavior: smooth;
 }
 
+/* a11y: skip-to-content link — visible on keyboard focus */
+.skip-link {
+  position: absolute;
+  top: -48px;
+  left: 8px;
+  z-index: 1000;
+  padding: 10px 16px;
+  background: var(--text-primary, #1A1612);
+  color: var(--text-on-dark, #FAFAF6);
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: top 120ms var(--ease-out, ease);
+}
+.skip-link:focus,
+.skip-link:focus-visible {
+  top: 8px;
+  outline: 2px solid var(--accent, #B8956A);
+  outline-offset: 2px;
+}
+
+/* a11y: WCAG AA contrast — overriding --text-muted (#A89B8C, ~3:1) is too low.
+   Use a darker tone for non-decorative text. Components using --text-muted as a
+   purely decorative ornament should opt into --text-muted-decorative. */
+:root {
+  --text-muted: #6B6055; /* color-ink-500 — 5.7:1 on paper-warm */
+  --text-muted-decorative: #A89B8C; /* original ink-300 for decorative use only */
+}
+
 /* Layout utilities */
 .container {
   max-width: var(--container-max);

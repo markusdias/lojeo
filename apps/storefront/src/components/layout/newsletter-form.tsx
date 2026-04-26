@@ -11,6 +11,7 @@ export function NewsletterForm() {
       <input
         type="email"
         placeholder="seu@email.com"
+        aria-label="Email para newsletter"
         required
         style={{
           flex: 1, padding: '10px 12px', fontSize: 13,

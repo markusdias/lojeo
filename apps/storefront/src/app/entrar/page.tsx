@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useId } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
@@ -13,6 +13,7 @@ function EntrarContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const isDev = process.env.NODE_ENV !== 'production';
+  const emailId = useId();
 
   async function handleDevLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -70,15 +71,17 @@ function EntrarContent() {
             Modo dev — login sem OAuth
           </p>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 500, display: 'block', marginBottom: 4, color: 'var(--text-secondary)' }}>
+            <label htmlFor={emailId} style={{ fontSize: 12, fontWeight: 500, display: 'block', marginBottom: 4, color: 'var(--text-secondary)' }}>
               Email
             </label>
             <input
+              id={emailId}
               type="email"
               required
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="seu@email.com"
+              autoComplete="email"
               style={{
                 width: '100%', padding: '10px 12px', fontSize: 14,
                 border: '1px solid var(--divider)', borderRadius: 4,
@@ -87,7 +90,7 @@ function EntrarContent() {
               }}
             />
           </div>
-          {error && <p style={{ fontSize: 13, color: '#E53E3E' }}>{error}</p>}
+          {error && <p role="alert" style={{ fontSize: 13, color: '#E53E3E' }}>{error}</p>}
           <button
             type="submit"
             disabled={loading || !email.trim()}

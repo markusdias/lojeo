@@ -77,13 +77,16 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       data-type-scale={typeScale}
     >
       <body>
+        <a href="#main-content" className="skip-link">
+          Pular para o conteúdo principal
+        </a>
         <Pixels config={pixelConfig} />
         <ServiceWorkerRegister />
         <WishlistProvider>
         <CartProvider>
           <TrackerProvider tenantId={tenantId} endpoint="/api/track">
             <Header storeName={tpl.name} />
-            <main>{children}</main>
+            <main id="main-content">{children}</main>
             <Footer storeName={tpl.name} />
             <ConsentBanner />
           </TrackerProvider>
