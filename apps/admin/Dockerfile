@@ -1,17 +1,16 @@
-# Dockerfile multi-stage para apps/admin no monorepo Lojeo (pnpm + Turborepo)
-# Build context esperado: raiz do monorepo (não o apps/admin diretamente)
-# EasyPanel: configurar build path / context = "/" (raiz do repo) e Dockerfile path = "apps/admin/Dockerfile"
-
+# Dockerfile para apps/admin no monorepo Lojeo
+# Build context: raiz do monorepo
 FROM node:20-alpine AS base
 RUN apk add --no-cache libc6-compat
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_OPTIONS="--max-old-space-size=2048"
+RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
 
-# ──────────────────── Stage 1: deps ────────────────────
-FROM base AS deps
+FROM base AS builder
 WORKDIR /repo
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json ./
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json tsconfig.base.json ./
 COPY apps/admin/package.json ./apps/admin/
 COPY apps/storefront/package.json ./apps/storefront/
 COPY packages/config/package.json ./packages/config/
@@ -24,18 +23,10 @@ COPY packages/engine/package.json ./packages/engine/
 COPY packages/ui/package.json ./packages/ui/
 COPY packages/logger/package.json ./packages/logger/
 COPY templates/jewelry-v1/package.json ./templates/jewelry-v1/
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
-
-# ──────────────────── Stage 2: build ───────────────────
-FROM base AS builder
-WORKDIR /repo
-COPY --from=deps /repo/node_modules ./node_modules
-COPY --from=deps /repo/apps/admin/node_modules ./apps/admin/node_modules
+RUN pnpm install --frozen-lockfile --prefer-offline
 COPY . .
-ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter @lojeo/admin build
 
-# ──────────────────── Stage 3: runtime ─────────────────
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production

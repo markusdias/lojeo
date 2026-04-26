@@ -1,16 +1,16 @@
-# Dockerfile multi-stage para apps/storefront no monorepo Lojeo
+# Dockerfile para apps/storefront no monorepo Lojeo
 # Build context: raiz do monorepo
-# EasyPanel: build path = "/", Dockerfile = "apps/storefront/Dockerfile"
-
 FROM node:20-alpine AS base
 RUN apk add --no-cache libc6-compat
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_OPTIONS="--max-old-space-size=2048"
+RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
 
-FROM base AS deps
+FROM base AS builder
 WORKDIR /repo
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json ./
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json tsconfig.base.json ./
 COPY apps/admin/package.json ./apps/admin/
 COPY apps/storefront/package.json ./apps/storefront/
 COPY packages/config/package.json ./packages/config/
@@ -23,14 +23,8 @@ COPY packages/engine/package.json ./packages/engine/
 COPY packages/ui/package.json ./packages/ui/
 COPY packages/logger/package.json ./packages/logger/
 COPY templates/jewelry-v1/package.json ./templates/jewelry-v1/
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
-
-FROM base AS builder
-WORKDIR /repo
-COPY --from=deps /repo/node_modules ./node_modules
-COPY --from=deps /repo/apps/storefront/node_modules ./apps/storefront/node_modules
+RUN pnpm install --frozen-lockfile --prefer-offline
 COPY . .
-ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter @lojeo/storefront build
 
 FROM node:20-alpine AS runner
