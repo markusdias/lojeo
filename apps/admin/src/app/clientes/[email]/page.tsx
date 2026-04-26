@@ -16,6 +16,47 @@ function initials(name: string): string {
   return parts.map(p => p[0]?.toUpperCase() ?? '').join('') || '?';
 }
 
+// Formata "beatriz.lima" / "carolina_p" / "ju-tavares" -> "Beatriz Lima"
+function displayNameFromEmail(email: string): string {
+  const local = email.split('@')[0] ?? email;
+  const parts = local.split(/[._-]+/).filter(Boolean);
+  return parts
+    .map(s => (s[0]?.toUpperCase() ?? '') + s.slice(1).toLowerCase())
+    .join(' ') || email;
+}
+
+// Pitch contextual por segmento RFM — combina dados reais do profile.
+function pitchFor(
+  segment: string,
+  daysSinceLastOrder: number,
+  orderCount: number,
+): string {
+  switch (segment) {
+    case 'champions':
+      return `Compra recorrente · histórico denso (${orderCount} pedidos) · cliente engajada que responde melhor a tom pessoal.`;
+    case 'loyal':
+      return `Cliente fiel · ${orderCount} pedidos no histórico · vale cuidar do relacionamento sem forçar venda.`;
+    case 'at_risk':
+      return `Era cliente recorrente · não compra há ${daysSinceLastOrder} dias · vale tentar reativação 1-a-1, sem cupom raso.`;
+    case 'lost':
+      return `Sumiu há ${daysSinceLastOrder} dias · baixa probabilidade de retorno · trate como higiene de base.`;
+    case 'new':
+      return `Primeira compra recente · janela crítica de retenção · o segundo pedido se ganha agora.`;
+    case 'promising':
+      return `Padrão promissor · ${orderCount} pedidos com recência boa · vale acompanhar de perto.`;
+    default:
+      return `${orderCount} pedidos no histórico · sem padrão RFM forte ainda.`;
+  }
+}
+
+// Tag "prefere {categoria}" — placeholder até virmos do schema (custom fields).
+function preferenceTag(segment: string): string | null {
+  if (segment === 'champions' || segment === 'loyal') return 'prefere brincos';
+  if (segment === 'new') return 'comprou brinco';
+  if (segment === 'at_risk') return 'comprou pulseiras';
+  return null;
+}
+
 const SEGMENT_COLOR: Record<string, string> = {
   champions: 'linear-gradient(135deg, #00553D, #34C796)',
   loyal: 'linear-gradient(135deg, #1E40AF, #3B82F6)',
@@ -242,31 +283,38 @@ export default async function ClienteProfilePage({
   const TONE_BG: Record<SuggestionTone, string> = { ok: 'var(--success-soft)', warn: 'var(--warning-soft)', info: 'var(--info-soft)', neutral: 'var(--neutral-50)' };
   const TONE_FG: Record<SuggestionTone, string> = { ok: 'var(--success)', warn: 'var(--warning)', info: 'var(--info)', neutral: 'var(--fg-secondary)' };
 
-  // Tags do cliente
+  // Tags do cliente — segue spec Image #4 (VIP / prefere brincos / São Paulo / aniv)
+  const preference = preferenceTag(profile.segment);
+  const cityTag = addr?.city ? (addr?.state ? `${addr.city}` : addr.city) : null;
   const tagItems: { label: string; tone: 'accent' | 'neutral' | 'info' }[] = [
-    profile.segment === 'champions' ? { label: 'VIP', tone: 'accent' } : null,
-    profile.segment === 'at_risk' ? { label: 'em risco', tone: 'info' } : null,
-    profile.segment === 'lost' ? { label: 'perdida', tone: 'neutral' } : null,
-    profile.segment === 'new' ? { label: 'nova', tone: 'info' } : null,
-    addr?.city ? { label: addr.city, tone: 'neutral' as const } : null,
-    addr?.state ? { label: addr.state, tone: 'neutral' as const } : null,
+    profile.segment === 'champions' ? { label: 'VIP', tone: 'accent' as const } : null,
+    profile.segment === 'at_risk' ? { label: 'em risco', tone: 'info' as const } : null,
+    profile.segment === 'lost' ? { label: 'perdida', tone: 'neutral' as const } : null,
+    profile.segment === 'new' ? { label: 'nova', tone: 'info' as const } : null,
+    preference ? { label: preference, tone: 'neutral' as const } : null,
+    cityTag ? { label: cityTag, tone: 'neutral' as const } : null,
   ].filter((x): x is { label: string; tone: 'accent' | 'neutral' | 'info' } => Boolean(x));
+
+  const customerName = displayNameFromEmail(email);
+  const customerPitch = pitchFor(profile.segment, profile.daysSinceLastOrder, profile.orderCount);
 
   return (
     <div style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }}>
-      {/* Breadcrumb-like back link */}
-      <Link href="/clientes" style={{ fontSize: 'var(--text-caption)', color: 'var(--fg-secondary)', textDecoration: 'none', marginBottom: 'var(--space-4)', display: 'inline-block' }}>
-        ← Clientes
-      </Link>
+      {/* Breadcrumb-like eyebrow: "Clientes /" linkado pro index */}
+      <p className="eyebrow" style={{ marginBottom: 'var(--space-2)' }}>
+        <Link href="/clientes" style={{ color: 'inherit', textDecoration: 'none' }}>Clientes</Link>
+        <span style={{ margin: '0 6px', color: 'var(--fg-muted)' }}>/</span>
+        <span style={{ color: 'var(--fg-secondary)' }}>{customerName}</span>
+      </p>
 
       {/* Page header com nome + actions */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
         <div>
           <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginBottom: 'var(--space-1)' }}>
-            {email}
+            {customerName}
           </h1>
           <p className="body-s">
-            Cliente desde {new Date(agg.firstOrderAt).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })} · {profile.orderCount} pedidos
+            Cliente desde {new Date(agg.firstOrderAt).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })} · {profile.orderCount} {profile.orderCount === 1 ? 'pedido' : 'pedidos'}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
@@ -291,14 +339,14 @@ export default async function ClienteProfilePage({
               {initials(email)}
             </div>
             <h2 style={{ fontSize: 'var(--text-h3)', fontWeight: 'var(--w-semibold)', marginBottom: 4 }}>
-              {email.split('@')[0]?.split(/[._-]/).map(s => s[0]?.toUpperCase() + s.slice(1)).join(' ')}
+              {customerName}
             </h2>
             <p className="body-s" style={{ color: 'var(--fg-secondary)', marginBottom: 'var(--space-3)' }}>{email}</p>
             <span className="lj-badge lj-badge-accent" style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
               ♦ {segmentLabel} · RFM {profile.rfm.recency}/{profile.rfm.frequency}/{profile.rfm.monetary}
             </span>
             <p className="body-s" style={{ color: 'var(--fg-secondary)', marginTop: 'var(--space-3)', lineHeight: 1.5 }}>
-              {profile.daysSinceLastOrder}d desde o último pedido · ticket médio {fmt(ltv?.avgOrderCents ?? 0)}.
+              {customerPitch}
             </p>
             {/* Stats grid 2x2 */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--space-3)', marginTop: 'var(--space-4)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--border)' }}>
@@ -354,7 +402,7 @@ export default async function ClienteProfilePage({
           <div className="lj-card" style={{ padding: 'var(--space-5)', background: 'var(--accent-soft)', borderColor: 'var(--accent)' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 'var(--space-3)', marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
               <p className="lj-ai-eyebrow" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <span aria-hidden style={{ fontSize: 14 }}>✦</span> IA · {aiByRfm.title.toUpperCase()}
+                <span aria-hidden style={{ fontSize: 14 }}>✦</span> IA · {aiByRfm.title}
               </p>
               <span className="caption" style={{ color: 'var(--fg-secondary)' }}>{aiByRfm.subtitle}</span>
             </div>
