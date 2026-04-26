@@ -47,3 +47,31 @@ self.addEventListener('fetch', (event) => {
       .catch(() => caches.match(event.request).then((cached) => cached ?? caches.match('/')))
   );
 });
+
+// ── Push notifications (Sprint 13 stub) ────────────────────────────────────
+self.addEventListener('push', (event) => {
+  let data = { title: 'Joias Atelier', body: 'Você tem uma novidade.', url: '/' };
+  if (event.data) {
+    try { data = Object.assign(data, event.data.json()); } catch (_) { /* fallback */ }
+  }
+  event.waitUntil(self.registration.showNotification(data.title, {
+    body: data.body,
+    icon: '/icon-192.svg',
+    badge: '/icon-192.svg',
+    data: { url: data.url || '/' },
+    tag: data.tag,
+  }));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || '/';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window' }).then((clients) => {
+      for (const client of clients) {
+        if (client.url.includes(url) && 'focus' in client) return client.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(url);
+    })
+  );
+});
