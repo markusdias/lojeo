@@ -1,5 +1,7 @@
 import { signIn } from '../../auth';
 
+export const dynamic = 'force-dynamic';
+
 export default function LoginPage() {
   const hasGoogle = !!process.env.AUTH_GOOGLE_ID;
   const isDev = process.env.NODE_ENV !== 'production' || process.env.ADMIN_DEV_LOGIN === 'true';
