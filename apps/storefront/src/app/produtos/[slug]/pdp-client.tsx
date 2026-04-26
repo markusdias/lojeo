@@ -50,29 +50,52 @@ interface PDPClientProps {
   currency: string;
 }
 
+/**
+ * UrgencyBadge — telemetria real apenas. Estados:
+ *   - none: sem badge (default)
+ *   - viewing: pill subtle "X pessoas vendo agora" (info) — distinct anon nos últimos 60min
+ *   - low-stock: pill warning "Restam apenas N unidades" — qty - reserved <= 3
+ *
+ * O servidor (page.tsx) já decide qual estado renderizar usando dados reais do DB.
+ * Aqui apenas refletimos visualmente; nunca falsificar números no client.
+ */
 function UrgencyBadge({ urgency, viewersNow, totalStock }: { urgency: UrgencyKind; viewersNow: number; totalStock: number }) {
-  if (urgency === 'none') return null;
   if (urgency === 'low-stock' && totalStock > 0) {
     return (
-      <div style={{
-        display: 'inline-flex', alignItems: 'center', gap: 8,
-        background: '#FEF2E6', borderRadius: 4, padding: '8px 14px',
-        marginTop: 20, fontSize: 13, color: '#9A5A1A',
-      }}>
+      <div
+        role="status"
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+          background: '#FEF2E6', borderRadius: 999, padding: '6px 14px',
+          marginTop: 20, fontSize: 13, color: '#9A5A1A', fontWeight: 500,
+          border: '1px solid #F2D9B8',
+        }}
+      >
         <span style={{ width: 7, height: 7, borderRadius: 999, background: '#E07A1A', flexShrink: 0 }} />
-        Restam apenas {totalStock} unidades
+        Restam apenas {totalStock} {totalStock === 1 ? 'unidade' : 'unidades'}
       </div>
     );
   }
-  if (urgency === 'viewing' && viewersNow >= 3) {
+  if (urgency === 'viewing' && viewersNow > 0) {
     return (
-      <div style={{
-        display: 'inline-flex', alignItems: 'center', gap: 8,
-        background: 'var(--accent-soft)', borderRadius: 4, padding: '8px 14px',
-        marginTop: 20, fontSize: 13, color: 'var(--accent)',
-      }}>
-        <span style={{ width: 7, height: 7, borderRadius: 999, background: 'var(--accent)', flexShrink: 0 }} />
-        {viewersNow} pessoas vendo agora
+      <div
+        role="status"
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+          background: 'var(--surface)', borderRadius: 999, padding: '6px 14px',
+          marginTop: 20, fontSize: 13, color: 'var(--text-secondary)',
+          border: '1px solid var(--divider)',
+        }}
+      >
+        <span
+          style={{
+            width: 6, height: 6, borderRadius: 999,
+            background: 'var(--success, #4A8A3F)', flexShrink: 0,
+            boxShadow: '0 0 0 0 var(--success, #4A8A3F)',
+            animation: 'lojeoPulse 2s infinite',
+          }}
+        />
+        {viewersNow} {viewersNow === 1 ? 'pessoa vendo' : 'pessoas vendo'} agora
       </div>
     );
   }

@@ -83,3 +83,10 @@ img {
   background-size: 800px 100%;
   animation: shimmer 1.4s infinite;
 }
+
+/* Urgency badge pulse — pill "X pessoas vendo agora" */
+@keyframes lojeoPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(74, 138, 63, 0.55); }
+  70%  { box-shadow: 0 0 0 6px rgba(74, 138, 63, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(74, 138, 63, 0); }
+}

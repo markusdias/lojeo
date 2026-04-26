@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { db, products, productVariants, productImages, inventoryStock, behaviorEvents } from '@lojeo/db';
-import { eq, and, gte, count, sql } from 'drizzle-orm';
+import { eq, and, gte, sql, inArray, countDistinct } from 'drizzle-orm';
 import { getActiveTemplate } from '../../../template';
 import { PDPClient } from './pdp-client';
 import { ReviewSection } from '../../../components/reviews/review-section';
@@ -13,8 +13,12 @@ import { RelatedProducts } from '../../../components/products/related-products';
 export const dynamic = 'force-dynamic';
 
 const tenantId = () => process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
-const URGENCY_THRESHOLD = parseInt(process.env.URGENCY_THRESHOLD ?? '3', 10);
-const LOW_STOCK_THRESHOLD = parseInt(process.env.LOW_STOCK_QTY ?? '5', 10);
+// Telemetria real (anti-falsa-urgência):
+//  - viewing: distinct anonymousId em product_view nos últimos VIEWING_WINDOW_MIN minutos, mostra se >= VIEWING_THRESHOLD
+//  - low-stock: SUM(qty - reserved) das variantes deste produto, mostra se <= LOW_STOCK_THRESHOLD (e > 0)
+const VIEWING_THRESHOLD = parseInt(process.env.URGENCY_THRESHOLD ?? '5', 10);
+const VIEWING_WINDOW_MIN = parseInt(process.env.URGENCY_WINDOW_MIN ?? '60', 10);
+const LOW_STOCK_THRESHOLD = parseInt(process.env.LOW_STOCK_QTY ?? '3', 10);
 
 interface PDPProps {
   params: Promise<{ slug: string }>;
@@ -47,35 +51,54 @@ export default async function PDPPage({ params }: PDPProps) {
   });
   if (!product) notFound();
 
-  const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
-
-  const [variants, images, viewersResult, stockResult] = await Promise.all([
+  const [variants, images] = await Promise.all([
     db.select().from(productVariants)
       .where(and(eq(productVariants.tenantId, tid), eq(productVariants.productId, product.id))),
     db.select().from(productImages)
       .where(and(eq(productImages.tenantId, tid), eq(productImages.productId, product.id)))
       .orderBy(productImages.position),
-    db.select({ cnt: count() })
-      .from(behaviorEvents)
-      .where(and(
-        eq(behaviorEvents.tenantId, tid),
-        eq(behaviorEvents.eventType, 'product_view'),
-        eq(behaviorEvents.entityId, product.id),
-        gte(behaviorEvents.createdAt, fiveMinAgo),
-      )),
-    db.select({ qty: sql<number>`COALESCE(SUM(${inventoryStock.qty} - ${inventoryStock.reserved}), 0)` })
-      .from(inventoryStock)
-      .where(and(eq(inventoryStock.tenantId, tid))),
   ]);
 
-  const viewersNow = viewersResult[0]?.cnt ?? 0;
-  const totalStock = Number(stockResult[0]?.qty ?? 0);
+  const variantIds = variants.map(v => v.id);
+  const windowAgo = new Date(Date.now() - VIEWING_WINDOW_MIN * 60 * 1000);
 
-  // Urgency signal
+  // Telemetria de urgência — falha graciosa: se DB der erro, badge não renderiza.
   type UrgencyKind = 'none' | 'viewing' | 'low-stock';
   let urgency: UrgencyKind = 'none';
-  if (totalStock > 0 && totalStock <= LOW_STOCK_THRESHOLD) urgency = 'low-stock';
-  else if (viewersNow >= URGENCY_THRESHOLD) urgency = 'viewing';
+  let viewersNow = 0;
+  let totalStock = 0;
+
+  try {
+    const [viewersResult, stockResult] = await Promise.all([
+      db.select({ cnt: countDistinct(behaviorEvents.anonymousId) })
+        .from(behaviorEvents)
+        .where(and(
+          eq(behaviorEvents.tenantId, tid),
+          eq(behaviorEvents.eventType, 'product_view'),
+          eq(behaviorEvents.entityId, product.id),
+          gte(behaviorEvents.createdAt, windowAgo),
+        )),
+      variantIds.length > 0
+        ? db.select({
+            qty: sql<number>`COALESCE(SUM(${inventoryStock.qty} - ${inventoryStock.reserved}), 0)`,
+          })
+            .from(inventoryStock)
+            .where(and(
+              eq(inventoryStock.tenantId, tid),
+              inArray(inventoryStock.variantId, variantIds),
+            ))
+        : Promise.resolve([{ qty: 0 as number | null }]),
+    ]);
+
+    viewersNow = Number(viewersResult[0]?.cnt ?? 0);
+    totalStock = Number(stockResult[0]?.qty ?? 0);
+
+    if (totalStock > 0 && totalStock <= LOW_STOCK_THRESHOLD) urgency = 'low-stock';
+    else if (viewersNow >= VIEWING_THRESHOLD) urgency = 'viewing';
+  } catch (err) {
+    // Modo degradado: não bloqueia a PDP por falha de telemetria
+    console.warn('[PDP] urgency telemetry failed', err);
+  }
 
   const primaryImage = images[0];
   const baseUrl = process.env.STOREFRONT_URL ?? '';
