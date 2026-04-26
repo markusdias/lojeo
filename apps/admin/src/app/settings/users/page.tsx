@@ -11,6 +11,21 @@ interface UserRoleRow {
   acceptedAt: string | null;
 }
 
+interface PendingInvite {
+  id: string;
+  email: string;
+  role: string;
+  inviteUrl: string;
+  expiresAt: string;
+  createdAt: string;
+}
+
+interface IssuedInvite {
+  email: string;
+  role: string;
+  url: string;
+}
+
 const ROLES = [
   { v: 'owner', label: 'Owner', desc: 'Conta dona — todas permissões + billing' },
   { v: 'admin', label: 'Admin', desc: 'Todas exceto billing' },
@@ -24,30 +39,59 @@ const ROLE_LABEL: Record<string, string> = ROLES.reduce((a, r) => ({ ...a, [r.v]
 
 export default function UsersPage() {
   const [rows, setRows] = useState<UserRoleRow[]>([]);
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('atendimento');
   const [saving, setSaving] = useState(false);
+  const [issuedInvite, setIssuedInvite] = useState<IssuedInvite | null>(null);
+  const [accepted, setAccepted] = useState(false);
+
+  function buildAbsoluteUrl(path: string): string {
+    if (typeof window === 'undefined') return path;
+    if (path.startsWith('http')) return path;
+    return `${window.location.origin}${path}`;
+  }
 
   function load() {
     setLoading(true);
-    fetch('/api/users')
-      .then(async r => {
+    Promise.all([
+      fetch('/api/users').then(async r => {
         const d = await r.json() as { users?: UserRoleRow[]; error?: string };
-        if (!r.ok) {
-          setError(d.error ?? `HTTP ${r.status}`);
-          setRows([]);
-        } else {
-          setRows(d.users ?? []);
-          setError('');
-        }
+        if (!r.ok) throw new Error(d.error ?? `HTTP ${r.status}`);
+        return d.users ?? [];
+      }),
+      fetch('/api/users/invites').then(async r => {
+        const d = await r.json() as { invites?: PendingInvite[]; error?: string };
+        if (!r.ok) return [];
+        return d.invites ?? [];
+      }),
+    ])
+      .then(([users, invites]) => {
+        setRows(users);
+        setPendingInvites(invites);
+        setError('');
       })
-      .catch(e => setError(String(e)))
+      .catch(e => {
+        setError(String(e instanceof Error ? e.message : e));
+        setRows([]);
+      })
       .finally(() => setLoading(false));
   }
 
-  useEffect(load, []);
+  useEffect(() => {
+    load();
+    // Mostrar toast de "convite aceito" se vier do redirect
+    if (typeof window !== 'undefined' && window.location.search.includes('accepted=1')) {
+      setAccepted(true);
+      // Limpa querystring sem reload
+      const url = new URL(window.location.href);
+      url.searchParams.delete('accepted');
+      window.history.replaceState({}, '', url.toString());
+      setTimeout(() => setAccepted(false), 5000);
+    }
+  }, []);
 
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault();
@@ -58,16 +102,43 @@ export default function UsersPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, role }),
       });
+      const d = await res.json().catch(() => ({})) as { error?: string; inviteUrl?: string; email?: string; role?: string };
       if (!res.ok) {
-        const d = await res.json().catch(() => ({})) as { error?: string };
         alert(`Erro: ${d.error ?? res.status}`);
         return;
+      }
+      if (d.inviteUrl) {
+        setIssuedInvite({
+          email: d.email ?? email,
+          role: d.role ?? role,
+          url: buildAbsoluteUrl(d.inviteUrl),
+        });
       }
       setEmail('');
       load();
     } finally {
       setSaving(false);
     }
+  }
+
+  async function copyInviteUrl(url: string) {
+    try {
+      await navigator.clipboard.writeText(url);
+      alert('URL copiada!');
+    } catch {
+      alert(`Copie manualmente: ${url}`);
+    }
+  }
+
+  async function revokeInvite(id: string, inviteEmail: string) {
+    if (!confirm(`Revogar convite de ${inviteEmail}?`)) return;
+    const res = await fetch(`/api/users/invites?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({})) as { error?: string };
+      alert(`Erro: ${d.error ?? res.status}`);
+      return;
+    }
+    load();
   }
 
   async function changeRole(id: string, newRole: string) {
@@ -101,6 +172,46 @@ export default function UsersPage() {
         <h1 className="text-2xl font-semibold">Usuários e papéis</h1>
         <p className="text-sm text-gray-500 mt-1">Quem pode acessar este admin e o que cada um pode fazer.</p>
       </header>
+
+      {accepted && (
+        <div className="bg-green-50 border border-green-200 rounded p-3 text-sm text-green-900">
+          Convite aceito com sucesso. Bem-vindo(a)!
+        </div>
+      )}
+
+      {issuedInvite && (
+        <div className="bg-blue-50 border border-blue-200 rounded p-4 space-y-2">
+          <div className="text-sm font-semibold text-blue-900">
+            Convite criado para <span className="font-mono">{issuedInvite.email}</span> ({issuedInvite.role})
+          </div>
+          <p className="text-xs text-blue-800">
+            Copie e envie a URL abaixo para a pessoa convidada. O convite vale por 7 dias.
+          </p>
+          <div className="flex gap-2 items-center">
+            <input
+              type="text"
+              readOnly
+              value={issuedInvite.url}
+              className="flex-1 border border-blue-300 rounded px-2 py-1 text-xs font-mono bg-white"
+              onFocus={e => e.currentTarget.select()}
+            />
+            <button
+              type="button"
+              onClick={() => copyInviteUrl(issuedInvite.url)}
+              className="text-xs px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Copiar
+            </button>
+            <button
+              type="button"
+              onClick={() => setIssuedInvite(null)}
+              className="text-xs px-2 py-1 text-blue-700 hover:underline"
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Invite form */}
       <form onSubmit={handleInvite} className="lj-card p-5">
@@ -140,6 +251,53 @@ export default function UsersPage() {
         </div>
         <p className="text-xs text-gray-400 mt-3">{ROLES.find(r => r.v === role)?.desc}</p>
       </form>
+
+      {/* Pending invites */}
+      {pendingInvites.length > 0 && (
+        <section className="lj-card p-5">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3">
+            Convites pendentes
+            <InfoTooltip text="Convites criados ainda não aceitos. Cada convite vale 7 dias. Compartilhe a URL manualmente — o aceite ocorre automaticamente quando o convidado fizer login com o email convidado." />
+          </h2>
+          <table className="w-full text-sm">
+            <thead className="text-xs uppercase text-gray-500">
+              <tr>
+                <th className="text-left pb-2">Email</th>
+                <th className="text-left pb-2">Papel</th>
+                <th className="text-left pb-2">Expira em</th>
+                <th className="pb-2"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {pendingInvites.map(inv => (
+                <tr key={inv.id} className="border-t border-gray-100">
+                  <td className="py-2">{inv.email}</td>
+                  <td className="py-2 text-xs">{ROLE_LABEL[inv.role] ?? inv.role}</td>
+                  <td className="py-2 text-xs text-gray-500">
+                    {new Date(inv.expiresAt).toLocaleDateString('pt-BR')}
+                  </td>
+                  <td className="py-2 text-right space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => copyInviteUrl(buildAbsoluteUrl(inv.inviteUrl))}
+                      className="text-xs text-blue-600 hover:underline"
+                    >
+                      Copiar URL
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => revokeInvite(inv.id, inv.email)}
+                      className="text-xs text-red-500 hover:underline"
+                    >
+                      Revogar
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
 
       {/* List */}
       {loading ? (

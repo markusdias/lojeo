@@ -5,6 +5,7 @@ import Credentials from 'next-auth/providers/credentials';
 import { DrizzleAdapter } from '@auth/drizzle-adapter';
 import { db, users, accounts, sessions, verificationTokens, userTwoFactor } from '@lojeo/db';
 import { eq } from 'drizzle-orm';
+import { autoAcceptInvitesForUser } from './lib/invites';
 
 // Estender tipos de sessão/JWT para carregar requires2FA (Sprint 5: 2FA enforcement)
 declare module 'next-auth' {
@@ -76,8 +77,11 @@ const result: NextAuthResult = NextAuth({
   callbacks: {
     authorized({ auth, request }) {
       const isLogged = !!auth?.user;
-      const isLogin = request.nextUrl.pathname.startsWith('/login');
-      if (isLogin) return true;
+      const path = request.nextUrl.pathname;
+      const isLogin = path.startsWith('/login');
+      // Sprint 5 — convite por URL+token: rotas de convite acessíveis sem login
+      const isInvite = path.startsWith('/invite/') || path === '/api/users/invites/accept';
+      if (isLogin || isInvite) return true;
       return isLogged;
     },
     // JWT callback — roda em Node runtime no signIn e em refreshes.
@@ -111,6 +115,20 @@ const result: NextAuthResult = NextAuth({
         session.user.requires2FA = !!token.requires2FA;
       }
       return session;
+    },
+    // Sprint 5 — auto-aceite de convites pendentes no signIn.
+    // Não interfere com o callback `jwt` (2FA) acima. Falha aqui NUNCA bloqueia login.
+    async signIn({ user }) {
+      try {
+        const email = user?.email?.toLowerCase();
+        const userId = user?.id;
+        if (email && userId) {
+          await autoAcceptInvitesForUser({ userId, email });
+        }
+      } catch (err) {
+        console.warn('[invite] auto-accept failed:', err instanceof Error ? err.message : err);
+      }
+      return true;
     },
   },
 });

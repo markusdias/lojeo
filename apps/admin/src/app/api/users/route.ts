@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomBytes } from 'node:crypto';
 import { eq, and, desc } from 'drizzle-orm';
-import { db, userRoles } from '@lojeo/db';
+import { db, userRoles, userInviteTokens } from '@lojeo/db';
 import { auth } from '../../../auth';
 import { TENANT_ID, requirePermission, recordAuditLog } from '../../../lib/roles';
 
 export const dynamic = 'force-dynamic';
 
 const VALID_ROLES = ['owner', 'admin', 'operador', 'editor', 'atendimento', 'financeiro'];
+const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 dias
+
+function generateInviteToken(): string {
+  return randomBytes(32).toString('hex'); // 64 chars hex
+}
 
 export async function GET() {
   const session = await auth();
@@ -75,12 +81,25 @@ export async function POST(req: NextRequest) {
     invitedByUserId: session?.user?.id ?? null,
   }).returning();
 
+  // Gera token de convite (7d) — lojista compartilha URL manualmente (sem Resend)
+  const token = generateInviteToken();
+  const expiresAt = new Date(Date.now() + INVITE_TTL_MS);
+  await db.insert(userInviteTokens).values({
+    tenantId: TENANT_ID,
+    email,
+    role,
+    token,
+    invitedByUserId: session?.user?.id ?? null,
+    expiresAt,
+  });
+  const inviteUrl = `/invite/${token}`;
+
   await recordAuditLog({
     session,
     action: 'role.invite',
     entityType: 'user_role',
     entityId: created?.id ?? null,
-    after: { email, role },
+    after: { email, role, inviteTokenIssued: true, expiresAt: expiresAt.toISOString() },
   });
-  return NextResponse.json(created, { status: 201 });
+  return NextResponse.json({ ...created, inviteUrl }, { status: 201 });
 }

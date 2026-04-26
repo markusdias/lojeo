@@ -89,9 +89,35 @@ export const userTwoFactor = pgTable(
   },
 );
 
+// ── User invite tokens (Sprint 5 — convite usuário com URL+token, sem Resend) ─
+//
+// Token gerado no POST /api/users — lojista compartilha URL manualmente.
+// Validade: 7 dias. Aceite automático no signIn quando user.email == invite.email.
+
+export const userInviteTokens = pgTable(
+  'user_invite_tokens',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+    email: varchar('email', { length: 300 }).notNull(),
+    role: varchar('role', { length: 30 }).notNull(),
+    token: varchar('token', { length: 64 }).notNull().unique(),
+    invitedByUserId: uuid('invited_by_user_id'),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+    acceptedByUserId: uuid('accepted_by_user_id'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index('idx_invite_tokens_tenant_email').on(t.tenantId, t.email),
+    index('idx_invite_tokens_token').on(t.token),
+  ],
+);
+
 export type UserRole = typeof userRoles.$inferSelect;
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type UserTwoFactor = typeof userTwoFactor.$inferSelect;
+export type UserInviteToken = typeof userInviteTokens.$inferSelect;
 
 // ── Permissões por papel (escopo coarse-grained v1) ───────────────────────────
 
