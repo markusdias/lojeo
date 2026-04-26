@@ -1,39 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { eq, and } from 'drizzle-orm';
-import { db, coupons, COUPON_TYPES } from '@lojeo/db';
+import { db, coupons } from '@lojeo/db';
 import { auth } from '../../../../auth';
 import { TENANT_ID, requirePermission, recordAuditLog } from '../../../../lib/roles';
+import { parseOrError, couponPatchSchema } from '../../../../lib/validate';
 
 export const dynamic = 'force-dynamic';
 
-interface PatchBody {
-  name?: string;
-  type?: string;
-  value?: number;
-  minOrderCents?: number;
-  maxUses?: number | null;
-  startsAt?: string | null;
-  endsAt?: string | null;
-  active?: boolean;
-}
-
-function parseDate(v: string | null | undefined): Date | null | undefined {
+function parseDateField(v: string | null | undefined): Date | null | undefined {
   if (v === undefined) return undefined;
-  if (v === null || v === '') return null;
+  if (v === null) return null;
   const d = new Date(v);
   return Number.isNaN(d.getTime()) ? undefined : d;
-}
-
-function validateValueForType(type: string, value: number): string | null {
-  if (!Number.isFinite(value) || !Number.isInteger(value)) return 'value deve ser inteiro';
-  if (type === 'percent') {
-    if (value < 1 || value > 100) return 'percent: value deve estar entre 1 e 100';
-  } else if (type === 'fixed') {
-    if (value < 1) return 'fixed: value (cents) deve ser >= 1';
-  } else if (type === 'free_shipping') {
-    if (value !== 0) return 'free_shipping: value deve ser 0';
-  }
-  return null;
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -45,7 +23,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   const { id } = await params;
-  const body = (await req.json().catch(() => ({}))) as PatchBody;
+  const parsed = await parseOrError(req, couponPatchSchema);
+  if (parsed instanceof NextResponse) return parsed;
 
   const [existing] = await db.select()
     .from(coupons)
@@ -58,78 +37,39 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const updates: Record<string, unknown> = {};
 
-  if (body.name !== undefined) {
-    const name = body.name.trim();
-    if (!name) return NextResponse.json({ error: 'name não pode ser vazio' }, { status: 400 });
-    updates.name = name;
-  }
+  if (parsed.name !== undefined) updates.name = parsed.name;
+  if (parsed.type !== undefined) updates.type = parsed.type;
+  if (parsed.value !== undefined) updates.value = parsed.value;
+  if (parsed.minOrderCents !== undefined) updates.minOrderCents = parsed.minOrderCents;
 
-  let effectiveType = existing.type;
-  if (body.type !== undefined) {
-    if (!(COUPON_TYPES as readonly string[]).includes(body.type)) {
-      return NextResponse.json({ error: `type inválido (use ${COUPON_TYPES.join(' | ')})` }, { status: 400 });
+  if (parsed.maxUses !== undefined) {
+    if (parsed.maxUses !== null && parsed.maxUses < existing.usesCount) {
+      return NextResponse.json(
+        { error: `maxUses não pode ser menor que usesCount (${existing.usesCount})` },
+        { status: 400 },
+      );
     }
-    effectiveType = body.type;
-    updates.type = body.type;
+    updates.maxUses = parsed.maxUses;
   }
 
-  if (body.value !== undefined) {
-    const value = Number(body.value);
-    const err = validateValueForType(effectiveType, value);
-    if (err) return NextResponse.json({ error: err }, { status: 400 });
-    updates.value = Math.floor(value);
-  } else if (body.type !== undefined) {
-    const err = validateValueForType(effectiveType, existing.value);
-    if (err) return NextResponse.json({ error: `value atual incompatível com novo type: ${err}` }, { status: 400 });
-  }
-
-  if (body.minOrderCents !== undefined) {
-    const n = Number(body.minOrderCents);
-    if (!Number.isFinite(n) || n < 0) {
-      return NextResponse.json({ error: 'minOrderCents inválido' }, { status: 400 });
-    }
-    updates.minOrderCents = Math.floor(n);
-  }
-
-  if (body.maxUses !== undefined) {
-    if (body.maxUses === null) {
-      updates.maxUses = null;
-    } else {
-      const n = Number(body.maxUses);
-      if (!Number.isFinite(n) || n < 1) {
-        return NextResponse.json({ error: 'maxUses deve ser >= 1 ou null' }, { status: 400 });
-      }
-      if (n < existing.usesCount) {
-        return NextResponse.json({ error: `maxUses não pode ser menor que usesCount (${existing.usesCount})` }, { status: 400 });
-      }
-      updates.maxUses = Math.floor(n);
-    }
-  }
-
-  const startsAt = parseDate(body.startsAt);
+  const startsAt = parseDateField(parsed.startsAt);
   if (startsAt !== undefined) updates.startsAt = startsAt;
-  const endsAt = parseDate(body.endsAt);
+  const endsAt = parseDateField(parsed.endsAt);
   if (endsAt !== undefined) updates.endsAt = endsAt;
 
-  const finalStarts = (updates.startsAt as Date | null | undefined) !== undefined
-    ? (updates.startsAt as Date | null)
-    : existing.startsAt;
-  const finalEnds = (updates.endsAt as Date | null | undefined) !== undefined
-    ? (updates.endsAt as Date | null)
-    : existing.endsAt;
+  // valida sequência efetiva (combina updates com existente)
+  const finalStarts = updates.startsAt !== undefined ? (updates.startsAt as Date | null) : existing.startsAt;
+  const finalEnds = updates.endsAt !== undefined ? (updates.endsAt as Date | null) : existing.endsAt;
   if (finalStarts && finalEnds && finalEnds.getTime() <= finalStarts.getTime()) {
     return NextResponse.json({ error: 'endsAt deve ser posterior a startsAt' }, { status: 400 });
   }
 
-  if (body.active !== undefined) {
-    updates.active = !!body.active;
-  }
+  if (parsed.active !== undefined) updates.active = parsed.active;
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ coupon: existing });
   }
 
-  // usesCount é imutável via PATCH — sempre forçamos updatedAt
   updates.updatedAt = new Date();
 
   try {

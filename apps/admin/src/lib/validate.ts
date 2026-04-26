@@ -68,6 +68,125 @@ export const userInviteSchema = z.object({
   role: userRoleSchema,
 });
 
+// ── Coupons ──────────────────────────────────────────────────────────────────
+
+export const couponTypeSchema = z.enum(['percent', 'fixed', 'free_shipping']);
+
+const couponCodeSchema = z
+  .string()
+  .trim()
+  .transform((s) => s.toUpperCase())
+  .pipe(z.string().regex(/^[A-Z0-9_-]{2,60}$/, 'code: A-Z, 0-9, _-, 2..60 chars'));
+
+const couponDateSchema = z
+  .string()
+  .datetime({ offset: true, message: 'data inválida (use ISO 8601)' })
+  .nullable()
+  .optional();
+
+const couponValueRefinement = (data: { type: string; value?: number | undefined }, ctx: z.RefinementCtx) => {
+  if (data.value === undefined) return;
+  const v = data.value;
+  if (data.type === 'percent' && (v < 1 || v > 100)) {
+    ctx.addIssue({ code: 'custom', path: ['value'], message: 'percent: value deve estar entre 1 e 100' });
+  }
+  if (data.type === 'fixed' && v < 1) {
+    ctx.addIssue({ code: 'custom', path: ['value'], message: 'fixed: value (cents) deve ser >= 1' });
+  }
+  if (data.type === 'free_shipping' && v !== 0) {
+    ctx.addIssue({ code: 'custom', path: ['value'], message: 'free_shipping: value deve ser 0' });
+  }
+};
+
+export const couponCreateSchema = z
+  .object({
+    code: couponCodeSchema,
+    name: z.string().trim().min(1, 'name obrigatório').max(200, 'name muito longo'),
+    type: couponTypeSchema,
+    value: z.number().int('value deve ser inteiro').default(0),
+    minOrderCents: z.number().int().nonnegative('minOrderCents inválido').default(0),
+    maxUses: z.number().int().min(1, 'maxUses deve ser >= 1').nullable().optional(),
+    startsAt: couponDateSchema,
+    endsAt: couponDateSchema,
+  })
+  .superRefine((data, ctx) => {
+    couponValueRefinement(data, ctx);
+    if (data.startsAt && data.endsAt) {
+      const s = new Date(data.startsAt).getTime();
+      const e = new Date(data.endsAt).getTime();
+      if (e <= s) {
+        ctx.addIssue({ code: 'custom', path: ['endsAt'], message: 'endsAt deve ser posterior a startsAt' });
+      }
+    }
+  });
+
+export const couponPatchSchema = z
+  .object({
+    name: z.string().trim().min(1, 'name não pode ser vazio').max(200).optional(),
+    type: couponTypeSchema.optional(),
+    value: z.number().int('value deve ser inteiro').optional(),
+    minOrderCents: z.number().int().nonnegative('minOrderCents inválido').optional(),
+    maxUses: z.number().int().min(1, 'maxUses deve ser >= 1').nullable().optional(),
+    startsAt: couponDateSchema,
+    endsAt: couponDateSchema,
+    active: z.boolean().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.type !== undefined && data.value !== undefined) {
+      couponValueRefinement({ type: data.type, value: data.value }, ctx);
+    }
+    if (data.startsAt && data.endsAt) {
+      const s = new Date(data.startsAt).getTime();
+      const e = new Date(data.endsAt).getTime();
+      if (e <= s) {
+        ctx.addIssue({ code: 'custom', path: ['endsAt'], message: 'endsAt deve ser posterior a startsAt' });
+      }
+    }
+  });
+
+// ── Experiments ──────────────────────────────────────────────────────────────
+
+const experimentKeySchema = z
+  .string()
+  .trim()
+  .min(1, 'key obrigatória')
+  .regex(/^[a-z0-9-_]+$/, 'key: lowercase, números, dash ou underscore');
+
+const experimentVariantSchema = z.object({
+  key: experimentKeySchema,
+  name: z.string().trim().min(1, 'name obrigatório'),
+  weight: z.number().positive().max(100, 'weight inválido (0 < w <= 100)'),
+  payload: z.record(z.unknown()).optional(),
+});
+
+export const experimentCreateSchema = z
+  .object({
+    key: experimentKeySchema,
+    name: z.string().trim().min(1, 'name obrigatório').max(200),
+    description: z.string().max(2000).optional(),
+    targetMetric: z.string().trim().max(80).optional(),
+    audience: z.record(z.unknown()).optional(),
+    variants: z.array(experimentVariantSchema).min(2, 'mínimo 2 variantes'),
+  })
+  .superRefine((data, ctx) => {
+    const seen = new Set<string>();
+    let total = 0;
+    for (const v of data.variants) {
+      if (seen.has(v.key)) {
+        ctx.addIssue({ code: 'custom', path: ['variants'], message: `key duplicada: ${v.key}` });
+      }
+      seen.add(v.key);
+      total += v.weight;
+    }
+    if (Math.abs(total - 100) > 0.5) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['variants'],
+        message: `soma de weights deve ser 100 (atual: ${total})`,
+      });
+    }
+  });
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 export type ValidationError = {
