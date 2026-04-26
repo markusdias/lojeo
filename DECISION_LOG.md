@@ -2417,3 +2417,41 @@ Refactor completo em commit **208d488**:
 - Account.jsx storefront 5 telas refactor
 
 **108 commits totais sessão**, **95 testes globais verdes**, **22 migrações idempotentes em prod**, **zero regressão** funcional. 1 subagent rodando (af973e9e dashboard).
+
+---
+
+## 2026-04-26 — Iteração 24: Dashboard pixel-perfect entregue (subagent af973e9e)
+
+**Commit 9ed5532** — feat(admin): dashboard pixel-perfect
+
+**Arquivos:**
+- `apps/admin/src/components/ui/metric-card.tsx` — nova prop `labelStyle: 'eyebrow' | 'normal'` (default eyebrow back-compat)
+- `apps/admin/src/components/ui/revenue-week-chart.tsx` NOVO — SVG inline server-renderable: gradient verde + linha tracejada cinza + 4 grid lines viewBox 600x180
+- `apps/admin/src/lib/format.ts` NOVO — formatRelativeTime + fmtBrl
+- `apps/admin/src/lib/format.test.ts` NOVO — 9 testes
+- `apps/admin/src/app/dashboard/page.tsx` — re-layout completo
+
+**Layout final:**
+- 4 metric cards curtos (Receita hoje / Pedidos / Conversão / Margem média) com labelStyle normal + delta inline acima do valor
+- Card "Receita · últimos 7 dias" 2/3 + Card "Saúde integrações" 1/3 (lateral)
+- Card "Últimos pedidos" 2/3 + Card "Insights de hoje" 1/3 (lateral)
+- Aguardando pagamento vira faixa horizontal abaixo só quando >0
+
+**Decisões honestas do subagent:**
+
+1. **"Semana anterior" SEM dados fake** — query 14d separa natural 0-6d (semana atual) vs 7-13d (anterior). Quando ambas zero, chart oculta linhas e mostra só grid. Não inventou série mock pra preencher visual
+2. **MetricCard prop `labelStyle`** opt-in — preserva back-compat eyebrow uppercase em outras pages (insights, ctr) que já usavam padrão antigo
+3. **Insights dinâmicos** — 3 bullets reais via `forecastStockBatch` engine + `scoreCustomers` RFM + behaviorEvents aggregation. Fallback "sem sinais ainda" quando 3 fontes empty
+4. **Margem média placeholder 42,3%** comentado — schema sem `costCents` em variants ainda. TODO fase 2
+5. **Aguardando pagamento** virou faixa abaixo (só >0) liberando slot do 4º card pra "Margem média" como design oficial
+
+**Tests:** 18 admin passing (4 novos format + 14 existentes), 25 dogfood skip, zero falhas.
+
+**Próximo ciclo:**
+- UX validation Playwright dashboard novo + sidebar + pedidos[id]
+- /aparencia preview reativo postMessage broadcast
+- Account.jsx storefront 5 telas (Pedidos com timeline+NFe / Garantias visual / Endereços / Dados+LGPD)
+- Auth.jsx OAuth Google + LGPD link
+- Emails.jsx 4 templates table-based
+
+**110 commits totais sessão**, **104 testes globais verdes** (engine 44 + storefront 14 + admin 18 + db 7 + ai 7 + ui+logger+storage+email+tracking+template-jewelry-v1=14), **22 migrações idempotentes em prod**, **zero regressão** funcional.
