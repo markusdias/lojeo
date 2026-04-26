@@ -28,39 +28,60 @@ const NAV = [
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="pt-BR">
-      <body className="flex min-h-screen">
-        {/* Sidebar */}
-        <aside className="w-56 shrink-0 bg-neutral-900 text-white flex flex-col">
-          {/* Logo */}
-          <div className="px-5 py-4 border-b border-neutral-800">
-            <span className="text-lg font-semibold tracking-tight">Lojeo</span>
-            <span className="text-xs text-neutral-400 block">Admin</span>
+      <body style={{ display: 'flex', minHeight: '100vh', margin: 0 }}>
+        {/* Sidebar — Lojeo dark surface */}
+        <aside style={{
+          width: 'var(--sidebar-w)',
+          flexShrink: 0,
+          background: 'var(--neutral-900)',
+          color: 'var(--surface)',
+          display: 'flex',
+          flexDirection: 'column',
+        }}>
+          {/* Brand */}
+          <div style={{ padding: 'var(--space-5) var(--space-5) var(--space-4)', borderBottom: '1px solid var(--neutral-800)' }}>
+            <div style={{ fontSize: 'var(--text-h4)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', color: '#FFFFFF' }}>
+              Lojeo
+            </div>
+            <div style={{ fontSize: 'var(--text-caption)', color: 'var(--neutral-300)', textTransform: 'uppercase', letterSpacing: 'var(--track-wide)', marginTop: 2 }}>
+              Admin
+            </div>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 py-4">
+          <nav style={{ flex: 1, padding: 'var(--space-3) 0' }}>
             {NAV.map(item => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex items-center gap-3 px-5 py-2.5 text-sm text-neutral-300 hover:text-white hover:bg-neutral-800 transition-colors"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-3)',
+                  padding: 'var(--space-2) var(--space-5)',
+                  fontSize: 'var(--text-body-s)',
+                  color: 'var(--neutral-300)',
+                  textDecoration: 'none',
+                  transition: `color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out)`,
+                }}
+                className="lj-nav-item"
               >
-                <span className="text-neutral-500">{item.icon}</span>
+                <span style={{ fontSize: 14, color: 'var(--neutral-400)', width: 20, display: 'inline-block', textAlign: 'center' }}>{item.icon}</span>
                 {item.label}
               </Link>
             ))}
           </nav>
 
           {/* Footer */}
-          <div className="px-5 py-3 border-t border-neutral-800">
-            <Link href="/api/auth/signout" className="text-xs text-neutral-500 hover:text-neutral-300">
+          <div style={{ padding: 'var(--space-3) var(--space-5)', borderTop: '1px solid var(--neutral-800)' }}>
+            <Link href="/api/auth/signout" style={{ fontSize: 'var(--text-caption)', color: 'var(--neutral-300)', textDecoration: 'none' }}>
               Sair
             </Link>
           </div>
         </aside>
 
         {/* Main */}
-        <div className="flex-1 min-w-0 overflow-auto">
+        <div style={{ flex: 1, minWidth: 0, overflow: 'auto', background: 'var(--bg)' }}>
           {children}
         </div>
       </body>

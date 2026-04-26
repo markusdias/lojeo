@@ -1,15 +1,115 @@
 @import 'tailwindcss';
+@import '../styles/lojeo-tokens.css';
 
 @theme {
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
-  --color-brand-50: #f5f7fb;
-  --color-brand-500: #4f46e5;
-  --color-brand-900: #1e1b4b;
+  /* Brand admin Lojeo — verde profundo brasileiro */
+  --color-brand-50:  #E6EFEC;
+  --color-brand-100: #C2DBD2;
+  --color-brand-500: #00553D;
+  --color-brand-600: #00302A;
+  --color-brand-900: #00201C;
+  /* Override Tailwind indigo → accent Lojeo (verde) */
+  --color-indigo-50:  #E6EFEC;
+  --color-indigo-100: #C2DBD2;
+  --color-indigo-500: #00553D;
+  --color-indigo-600: #00553D;
+  --color-indigo-700: #00302A;
+  --color-indigo-800: #00302A;
+  --color-indigo-900: #00201C;
+  /* Override base body color para usar bg-Lojeo */
+  --color-paper:   #FAFAF7;
+  --color-surface: #FFFFFF;
 }
 
 body {
   font-family: var(--font-sans);
-  background-color: #fafafa;
-  color: #18181b;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+/* ─── Utilitários do design system Lojeo ─── */
+.lj-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xs);
+}
+
+.lj-btn-primary {
+  background: var(--accent);
+  color: var(--fg-on-accent);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 1rem;
+  font-size: var(--text-body-s);
+  font-weight: var(--w-medium);
+  transition: background var(--dur-fast) var(--ease-out);
+  border: none;
+  cursor: pointer;
+}
+.lj-btn-primary:hover { background: var(--accent-hover); }
+.lj-btn-primary:active { background: var(--accent-pressed); }
+.lj-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.lj-btn-secondary {
+  background: var(--bg-elevated);
+  color: var(--fg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 1rem;
+  font-size: var(--text-body-s);
+  font-weight: var(--w-medium);
+  cursor: pointer;
+}
+.lj-btn-secondary:hover { background: var(--neutral-50); }
+
+.lj-btn-danger {
+  background: var(--error);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 1rem;
+  font-size: var(--text-body-s);
+  font-weight: var(--w-medium);
+  border: none;
+  cursor: pointer;
+}
+.lj-btn-danger:hover { opacity: 0.9; }
+
+.lj-input {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem;
+  font-size: var(--text-body-s);
+  font-family: var(--font-sans);
+  color: var(--fg);
+  width: 100%;
+}
+.lj-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--shadow-focus);
+}
+
+.lj-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-full);
+  font-size: var(--text-caption);
+  font-weight: var(--w-semibold);
+}
+.lj-badge-accent  { background: var(--accent-soft);  color: var(--accent); }
+.lj-badge-success { background: var(--success-soft); color: var(--success); }
+.lj-badge-warning { background: var(--warning-soft); color: var(--warning); }
+.lj-badge-error   { background: var(--error-soft);   color: var(--error); }
+.lj-badge-info    { background: var(--info-soft);    color: var(--info); }
+.lj-badge-neutral { background: var(--neutral-50);   color: var(--neutral-500); }
+
+/* Sidebar nav hover */
+.lj-nav-item:hover {
+  background: var(--neutral-800);
+  color: #FFFFFF !important;
 }
