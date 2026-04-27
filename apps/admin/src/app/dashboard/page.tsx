@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import { db, products, tenants, orders, aiCalls, orderItems, productVariants, behaviorEvents } from '@lojeo/db';
-import { eq, and, gte, lt, sql, desc, count, inArray } from 'drizzle-orm';
+import { db, products, tenants, orders, aiCalls, orderItems, productVariants, behaviorEvents, sellerNotifications } from '@lojeo/db';
+import { eq, and, gte, lt, sql, desc, count, inArray, isNull, or } from 'drizzle-orm';
 import { auth } from '../../auth';
 import { MetricCard } from '../../components/ui/metric-card';
 import { RevenueWeekChart } from '../../components/ui/revenue-week-chart';
@@ -332,6 +332,8 @@ export default async function DashboardPage() {
         </div>
       </header>
 
+      <CriticalAlertsBanner tenantId={tid} userId={session?.user?.id ?? null} />
+
       {_productCount === 0 && orderCount === 0 && (
         <section
           style={{
@@ -573,6 +575,61 @@ export default async function DashboardPage() {
         </p>
       )}
     </div>
+  );
+}
+
+interface CriticalAlertsBannerProps {
+  tenantId: string;
+  userId: string | null;
+}
+
+async function CriticalAlertsBanner({ tenantId, userId }: CriticalAlertsBannerProps) {
+  if (!userId) return null;
+  let count = 0;
+  try {
+    const [row] = await db
+      .select({ c: sql<number>`count(*)::int` })
+      .from(sellerNotifications)
+      .where(
+        and(
+          eq(sellerNotifications.tenantId, tenantId),
+          or(eq(sellerNotifications.userId, userId), isNull(sellerNotifications.userId)),
+          eq(sellerNotifications.severity, 'critical'),
+          isNull(sellerNotifications.readAt),
+        ),
+      );
+    count = row?.c ?? 0;
+  } catch {
+    return null;
+  }
+  if (count === 0) return null;
+  return (
+    <Link
+      href="/notificacoes"
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 'var(--space-3)',
+        padding: 'var(--space-3) var(--space-4)',
+        background: 'var(--error-soft, #FEF2F2)',
+        border: '1px solid var(--error, #D14A3A)',
+        borderRadius: 8,
+        marginBottom: 'var(--space-4)',
+        textDecoration: 'none',
+        color: 'inherit',
+      }}
+    >
+      <span aria-hidden style={{ fontSize: 18 }}>⚠</span>
+      <div style={{ flex: 1 }}>
+        <strong style={{ fontSize: 14, color: 'var(--error)' }}>
+          {count} aviso{count === 1 ? '' : 's'} crítico{count === 1 ? '' : 's'} não lido{count === 1 ? '' : 's'}
+        </strong>
+        <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--fg-secondary)' }}>
+          Falha em NF-e, pedidos urgentes, ou esgotamento. Toque para ver.
+        </p>
+      </div>
+      <span style={{ fontSize: 13, color: 'var(--error)' }}>Ver →</span>
+    </Link>
   );
 }
 

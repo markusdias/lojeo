@@ -37,6 +37,7 @@ const ICONS = {
   palette: 'M12 3a9 9 0 1 0 0 18 3 3 0 0 0 3-3v-2a2 2 0 0 1 2-2h2a2 2 0 0 0 2-2 9 9 0 0 0-9-9Z',
   tag: 'M20 12V4h-8L4 12l8 8z M7 7h.01',
   globe: 'M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18ZM3 12h18M12 3a13 13 0 0 1 0 18M12 3a13 13 0 0 0 0 18',
+  bell: 'M9 2v.5M5.25 5.25v3.5l-1 2.25h9.5l-1-2.25v-3.5a3.75 3.75 0 1 0-7.5 0ZM7.5 13a1.5 1.5 0 0 0 3 0',
 };
 
 const TABS: TabItem[] = [
@@ -48,6 +49,7 @@ const TABS: TabItem[] = [
   { id: 'comercial', label: 'Políticas comerciais', iconPath: ICONS.tag, group: 'Vendas' },
   { id: 'email', label: 'E-mail', iconPath: ICONS.mail, group: 'Comunicação' },
   { id: 'pixels', label: 'Pixels & Analytics', iconPath: ICONS.target, group: 'Comunicação' },
+  { id: 'notificacoes' as SettingsTab, label: 'Notificações', iconPath: ICONS.bell, group: 'Comunicação', href: '/notificacoes/preferencias' },
   { id: 'ia', label: 'IA · cota', iconPath: ICONS.spark, group: 'Inteligência' },
   { id: 'robots', label: 'Robots.txt', iconPath: ICONS.globe, group: 'SEO' },
   { id: 'equipe', label: 'Equipe', iconPath: ICONS.users, group: 'Conta', href: '/settings/users' },
