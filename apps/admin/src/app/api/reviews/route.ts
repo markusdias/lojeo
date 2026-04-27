@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db, productReviews } from '@lojeo/db';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, sql } from 'drizzle-orm';
 import { auth } from '../../../auth';
 
 const tenantId = () => process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
@@ -13,14 +13,31 @@ export async function GET(req: Request) {
   const status = searchParams.get('status') ?? 'pending';
   const tid = tenantId();
 
-  const rows = await db
-    .select()
-    .from(productReviews)
-    .where(and(eq(productReviews.tenantId, tid), eq(productReviews.status, status)))
-    .orderBy(desc(productReviews.createdAt))
-    .limit(100);
+  const [rows, countRows] = await Promise.all([
+    db
+      .select()
+      .from(productReviews)
+      .where(and(eq(productReviews.tenantId, tid), eq(productReviews.status, status)))
+      .orderBy(desc(productReviews.createdAt))
+      .limit(100),
+    db
+      .select({
+        status: productReviews.status,
+        count: sql<number>`cast(count(*) as int)`,
+      })
+      .from(productReviews)
+      .where(eq(productReviews.tenantId, tid))
+      .groupBy(productReviews.status),
+  ]);
 
-  return NextResponse.json(rows);
+  const counts = { pending: 0, approved: 0, rejected: 0 };
+  for (const r of countRows) {
+    if (r.status === 'pending' || r.status === 'approved' || r.status === 'rejected') {
+      counts[r.status] = Number(r.count);
+    }
+  }
+
+  return NextResponse.json({ rows, counts });
 }
 
 export async function PATCH(req: Request) {

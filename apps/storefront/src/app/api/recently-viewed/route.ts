@@ -76,7 +76,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await auth();
   const userId = session?.user?.id;
-  if (!userId) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  // Silent skip pra anônimo: hook chama indiscriminadamente; localStorage cobre o caso
+  if (!userId) return NextResponse.json({ skipped: true });
 
   let body: { productId?: unknown; productIds?: unknown };
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'invalid_json' }, { status: 400 }); }

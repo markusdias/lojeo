@@ -13,9 +13,10 @@ export const dynamic = 'force-dynamic';
 const tenantId = () => process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
 
 const SECTIONS = [
-  { slug: 'aneis',    label: 'Anéis',     blurb: 'Solitários, eternidades e bandas.' },
-  { slug: 'brincos',  label: 'Brincos',   blurb: 'Argolas, ear cuffs, gotas.' },
-  { slug: 'colares',  label: 'Colares',   blurb: 'Pingentes e correntes finas.' },
+  { slug: 'aneis',     label: 'Anéis',     blurb: 'Solitários, eternidades e bandas.' },
+  { slug: 'brincos',   label: 'Brincos',   blurb: 'Argolas, ear cuffs, gotas.' },
+  { slug: 'colares',   label: 'Colares',   blurb: 'Pingentes e correntes finas.' },
+  { slug: 'pulseiras', label: 'Pulseiras', blurb: 'Riviera, elos e pingentes.' },
 ];
 
 // SVG icons match docs/design-system-jewelry-v1/project/preview/trust-signals.html
@@ -118,7 +119,7 @@ export default async function HomePage() {
           <p className="eyebrow" style={{ marginBottom: 8 }}>Coleções</p>
           <h2 style={{ margin: 0 }}>Por categoria</h2>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24 }}>
           {SECTIONS.map(c => (
             <Link key={c.slug} href={`/produtos?categoria=${c.slug}`} style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
               <div style={{

@@ -30,6 +30,7 @@ function Stars({ value }: { value: number }) {
 export default function AvaliacoesPage() {
   const [tab, setTab] = useState<Tab>('pending');
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [counts, setCounts] = useState<Record<Tab, number>>({ pending: 0, approved: 0, rejected: 0 });
   const [loading, setLoading] = useState(true);
   const [responseTexts, setResponseTexts] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
@@ -37,8 +38,14 @@ export default function AvaliacoesPage() {
   const load = useCallback(async () => {
     setLoading(true);
     const res = await fetch(`/api/reviews?status=${tab}`);
-    const data = await res.json() as Review[];
-    setReviews(data);
+    const data = await res.json() as { rows: Review[]; counts: Record<Tab, number> } | Review[];
+    // Back-compat: aceitar Review[] legado também
+    if (Array.isArray(data)) {
+      setReviews(data);
+    } else {
+      setReviews(data.rows);
+      setCounts(data.counts);
+    }
     setLoading(false);
   }, [tab]);
 
@@ -67,19 +74,32 @@ export default function AvaliacoesPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 mb-6 border-b border-neutral-200">
-        {(Object.keys(TAB_LABELS) as Tab[]).map(t => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              tab === t
-                ? 'border-neutral-900 text-neutral-900'
-                : 'border-transparent text-neutral-500 hover:text-neutral-700'
-            }`}
-          >
-            {TAB_LABELS[t]}
-          </button>
-        ))}
+        {(Object.keys(TAB_LABELS) as Tab[]).map(t => {
+          const active = tab === t;
+          return (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors inline-flex items-center gap-2 ${
+                active
+                  ? 'border-neutral-900 text-neutral-900'
+                  : 'border-transparent text-neutral-500 hover:text-neutral-700'
+              }`}
+            >
+              {TAB_LABELS[t]}
+              <span style={{
+                fontSize: 11,
+                color: active ? 'var(--accent)' : 'var(--fg-muted)',
+                background: active ? 'var(--accent-soft)' : 'var(--neutral-50)',
+                padding: '1px 8px',
+                borderRadius: 'var(--radius-full)',
+                fontWeight: 500,
+              }}>
+                {counts[t]}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {loading && <p className="text-sm text-neutral-500">Carregando…</p>}

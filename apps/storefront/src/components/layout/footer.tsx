@@ -36,6 +36,7 @@ export function Footer({ storeName }: { storeName: string }) {
             { label: 'Anéis', href: '/produtos?categoria=aneis' },
             { label: 'Brincos', href: '/produtos?categoria=brincos' },
             { label: 'Colares', href: '/produtos?categoria=colares' },
+            { label: 'Pulseiras', href: '/produtos?categoria=pulseiras' },
             { label: 'Coleções', href: '/colecoes' },
             { label: 'Novidades', href: '/produtos?ordenar=novidades' },
           ].map(l => (
