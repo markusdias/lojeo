@@ -3257,3 +3257,42 @@ UI checkout pagamento:
 **159 commits totais sessão**, **114 testes globais verdes**, **25 migrations prod**.
 
 **Próximo ciclo:** UX validation /devolucoes admin com store_credit approve flow + audit refs admin restantes (Empty.jsx que falta validar).
+
+---
+
+## 2026-04-26 — Empty.jsx admin paridade + /conta/gift-cards storefront
+
+**Commits:** c7d59bf (admin empty states) · [feat /conta/gift-cards]
+
+**Empty.jsx admin (worktree a88f93d1):**
+- EmptyState component: ícone 56×56 (era 32×32), remove bg circle soft, BEM classes
+- 4 ícones novos: IconTag/IconLayers/IconBoxes/IconShieldCheck
+- 4 pages migradas (cupons/collections/inventory/garantias) — texto cru → EmptyState
+- globals.css: `.lj-empty-state__*` BEM, `.lj-card-interactive` hover, `.lj-skeleton` shimmer
+
+**/conta/gift-cards storefront — cliente vê histórico:**
+- Lista gift cards: comprados pra ele OR recebidos via store_credit (devolução aprovada)
+- Cards com código mono + saldo display 28px + valor original + status badge
+- Saldo total ativo no topo
+- Empty state link /gift-cards (comprar)
+- Hint "Use código X no checkout" quando ativo
+- Reusa schema gift_cards. Query OR (recipientEmail OR buyerUserId)
+
+**Sprint 6 + Sprint 5 completos parciais:**
+- ✅ Crédito loja gift card automático (return approve)
+- ✅ Cliente vê seus gift cards
+- ✅ Cliente compra gift card storefront
+- ✅ Cliente aplica gift card no checkout
+
+**Fluxo end-to-end gift card:**
+1. Cliente compra gift card pra outro (storefront /gift-cards)
+2. Outra cliente recebe código via destinatário (email Resend BLOQUEADO — admin pode copiar manualmente)
+3. Outra cliente entra no checkout, aplica código, abate total
+4. OU cliente abre devolução, admin aprova type=store_credit, sistema gera gift card automatic
+5. Cliente vê cards em /conta/gift-cards
+
+**Tests admin 18/18 + storefront 14/14 + engine 44/44 verde. 11/11 packages.**
+
+**160 commits totais sessão**, **114 testes globais verdes**, **25 migrations prod**.
+
+**Próximo ciclo:** UX validation gift card flow live + audit features Sprint 7 IA backoffice gaps + Sprint 8 IA Analyst gaps.
