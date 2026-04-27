@@ -4143,3 +4143,50 @@ curl -X POST -H "x-cron-secret: $CRON_SECRET" \
 - Email transactional plug (sendEmail já existe + templates) — emit em order.created e order.paid hooks chama sendEmail. Modo mock sem RESEND_API_KEY.
 - UX testing prod completo via Playwright.
 - Documentar AcroForm fields nos templates Email (next/react-email render).
+
+
+---
+
+## 2026-04-27 (continuacao) — Batch 18: Email transacional plug — OrderConfirmation
+
+**Commits:** 43b21cf.
+
+**Plug @lojeo/email no storefront:**
+- `packages/email/src/index.ts` re-exporta `render` de `@react-email/components` — apps consumidoras evitam dep direta de @react-email.
+- `apps/storefront/package.json` ganha `@lojeo/email: workspace:*`.
+- Helper `apps/storefront/src/lib/email/transactional.ts`:
+  - `sendOrderConfirmationEmail(input)` mapeia order params para `OrderConfirmation` template (jewelry-v1 existing).
+  - render() → HTML string via @react-email/render.
+  - sendEmail() — modo dual (mock sem RESEND_API_KEY, real com key) — já existia em packages/email/src/client.
+  - Try/catch envolve tudo — falha email NUNCA derruba criação de pedido.
+  - Vars opcionais: STOREFRONT_STORE_NAME, STOREFRONT_FROM_EMAIL.
+
+**Hook em POST /api/orders:**
+- Fire-and-forget (`void`) após order created + items inserted.
+- Skip se sem customerEmail (guest sem email opcional).
+- Mapeia items para format do template (name, detail variantName/qty, price BRL).
+- shippingLabel = "Frete (carrier ou label)".
+
+**Trade-offs:**
+- React render é síncrono em runtime mas template é simples (~50ms). Não impacta latência POST /api/orders perceptível.
+- HTML inline (sem CSS externo) — deliverability melhor, render diferente em clientes (preview clean, Outlook ~ok).
+- Não usa job queue (Trigger.dev) — V2: enviar via background job pra evitar travar request com fetch lento Resend (~500ms).
+- Sem retry: 1 falha = 1 email perdido. Trade-off aceito v1 — log warn + emit notification mostra ao lojista.
+
+**Validações:**
+- Tests storefront 41/41, admin 77/77 verde. db 20, engine 87, template-jewelry-v1 3, tracking 7. Total 235+. Typecheck/lint zero.
+- 0 regressão.
+- Deploy storefront disparado.
+
+**Templates jewelry-v1 disponíveis (ainda não plugados):**
+- Welcome (signup) — pode plugar em /api/conta create.
+- PixGenerated — pode plugar quando MP retorna QR code.
+- ShippingNotification — pode plugar em status transition pending → shipped.
+- TradeApproved — pode plugar em return.approved transition.
+
+**Próximo ciclo:**
+- Plug ShippingNotification quando order.status pending→shipped (action updateStatus em /pedidos/[id]).
+- Welcome email em signup (/api/conta).
+- TradeApproved email em /api/returns/[id] PATCH approve.
+- Tests apps/storefront/src/lib/email/transactional.test.ts (mock sendEmail+render).
+- Audit dependência @react-email transitivamente: padronizar versão (atualmente 1.0.4 e 1.1.2 coexistem).
