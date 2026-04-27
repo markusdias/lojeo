@@ -4754,3 +4754,50 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - createStripePaymentIntent helper (mesmo padrão dual MP/Bling).
 - Testes render storefront com coffee-v1 ativo (parametric).
 - Email subject EN-US fallback quando locale=en-US.
+
+
+---
+
+## 2026-04-27 (continuacao) — Batch 31: Stripe helper (Fase 1.2 internacional)
+
+**Commits:** da93a9f.
+
+**apps/storefront/src/lib/payments/stripe.ts:**
+- `isStripeConfigured()` — STRIPE_SECRET_KEY env check.
+- `createStripePaymentIntent(input)`:
+  - Sem token: mock {paymentIntentId, clientSecret pseudo, status: 'requires_payment_method'}.
+  - Com token: POST `/v1/payment_intents` Stripe REST API (form-urlencoded, sem SDK pra reduzir bundle):
+    - Headers: Bearer + `idempotency-key: pi-{orderId}` (Stripe nativo idempotency).
+    - Body: amount cents, currency lowercase, receipt_email, metadata bracket notation, automatic_payment_methods enabled (pague com cartão/Apple/Google Pay etc auto).
+    - Retorna {paymentIntentId, clientSecret, status, source: 'stripe'}.
+  - Fail-safe mock fallback em 5xx ou throw.
+- `stripeStatusToOrderStatus()`: succeeded → paid · canceled → cancelled · resto → pending. Tabela espelha mpStatusToOrderStatus.
+
+**Decisão sem SDK:**
+- @stripe/stripe-node tem ~2MB. Para 1 endpoint POST, fetch direto suficiente. Trade-off: types manuais (response `{id, client_secret, status}`). V2: trocar por SDK quando expandir feature set (refunds, customers, subscriptions, balance transactions).
+
+**10 tests:**
+- Mock sem token retorna paymentIntentId 'mock-pi-X' + clientSecret pseudo.
+- API real chamada com idempotency-key formato `pi-{orderId}`, content-type form-urlencoded, body inclui amount cents + currency lowercase + metadata bracket-notation + automatic_payment_methods[enabled]=true.
+- Fallback mock em 500.
+- Status mapping (5 cases: succeeded, canceled, requires_payment_method, processing, unknown).
+
+**Validações:**
+- Storefront 63/63 (+10 stripe). Admin 77/77, engine 98/98, db 20, jewelry-v1 3, coffee-v1 5, email 6, ai 7, tracking 7. **Total ~280** ✅. Typecheck/lint zero.
+- 0 regressão.
+
+**Fase 1.2 — coverage atualizada:**
+- ✓ Template scaffolded (batch 30)
+- ✓ **Stripe helper**
+- ⏳ Storefront layout.tsx detect coffee-v1 → lang=en + currency formatter USD
+- ⏳ Plug stripe payment intent em POST /api/orders quando template.currency != BRL
+- ⏳ Stripe webhook handler (events: payment_intent.succeeded, payment_intent.payment_failed)
+- ⏳ DHL/FedEx shipping helper (mesmo padrão dual)
+- ⏳ Email templates EN-US fallback quando locale=en-US
+- ⏳ Coffee-v1 instance prod deploy
+
+**Próximo ciclo:**
+- Plug createStripePaymentIntent em POST /api/orders quando paymentMethod=credit_card AND template.currency=USD/EUR.
+- Stripe webhook handler real-mode: lookup payment_intent + update order status + emit notification.
+- Storefront `<html lang>` dinâmico baseado em template config.
+- DHL/FedEx shipping helper scaffold.
