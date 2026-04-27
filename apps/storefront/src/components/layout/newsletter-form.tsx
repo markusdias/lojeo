@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
 
 type Status = 'idle' | 'loading' | 'success' | 'error';
 
@@ -51,36 +53,32 @@ export function NewsletterForm() {
 
   return (
     <form onSubmit={onSubmit} style={{ display: 'flex', gap: 8 }} noValidate>
-      <input
+      <Input
         type="email"
+        variant="onDark"
         value={email}
         onChange={e => setEmail(e.target.value)}
         placeholder="seu@email.com"
         aria-label="Email para newsletter"
-        aria-invalid={status === 'error'}
+        invalid={status === 'error'}
         required
         disabled={disabled}
-        style={{
-          flex: 1, padding: '10px 12px', fontSize: 13,
-          background: 'rgba(255,255,255,0.08)',
-          border: `1px solid ${status === 'error' ? 'var(--accent)' : 'rgba(255,255,255,0.16)'}`,
-          borderRadius: 6, color: 'var(--footer-text)',
-          outline: 'none',
-        }}
+        style={{ flex: 1, padding: '10px 12px', fontSize: 13 }}
       />
-      <button
+      <Button
         type="submit"
+        variant="accent"
         disabled={disabled}
         style={{
-          padding: '10px 16px', fontSize: 13, fontWeight: 500,
-          background: 'var(--accent)', color: '#fff',
-          border: 'none', borderRadius: 6, cursor: disabled ? 'wait' : 'pointer',
-          whiteSpace: 'nowrap', opacity: disabled ? 0.7 : 1,
-          transition: 'opacity 120ms',
+          padding: '10px 16px',
+          fontSize: 13,
+          borderRadius: 6,
+          whiteSpace: 'nowrap',
+          cursor: disabled ? 'wait' : 'pointer',
         }}
       >
         {disabled ? '...' : 'OK'}
-      </button>
+      </Button>
       {status === 'error' && (
         <span
           role="alert"

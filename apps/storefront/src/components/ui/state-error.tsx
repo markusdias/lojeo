@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { Icon } from './icon';
+import { Button } from './button';
 
 interface StateErrorProps {
   title?: string;
@@ -71,24 +72,9 @@ export function StateError({
       </p>
       {onRetry && (
         <div style={{ marginTop: 24 }}>
-          <button
-            type="button"
-            onClick={onRetry}
-            style={{
-              display: 'inline-block',
-              padding: '14px 32px',
-              background: 'var(--text-primary)',
-              color: 'var(--text-on-dark)',
-              border: 'none',
-              fontSize: 14,
-              fontWeight: 500,
-              borderRadius: 4,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}
-          >
+          <Button variant="primary" onClick={onRetry}>
             {retryLabel}
-          </button>
+          </Button>
         </div>
       )}
       {children && <div style={{ marginTop: 24 }}>{children}</div>}

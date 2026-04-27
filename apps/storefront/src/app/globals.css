@@ -45,6 +45,18 @@ html {
   padding-inline: var(--container-pad);
 }
 
+/* Section helper — espacamento vertical canonico das landing sections jewelry-v1.
+   Usar em <section className="section"> dentro do storefront para garantir
+   ritmo de pagina consistente (120px topo, herda padding-inline do .container). */
+.section {
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: var(--container-pad);
+  margin-block-start: 120px;
+}
+.section--tight { margin-block-start: 24px; }
+.section:first-of-type { margin-block-start: 24px; }
+
 /* Image defaults */
 img {
   max-width: 100%;
