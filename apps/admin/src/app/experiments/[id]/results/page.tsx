@@ -59,7 +59,7 @@ export default function ExperimentResultsPage({ params }: { params: Promise<{ id
   if (loading) return <div className="p-8 text-sm" style={{ color: 'var(--fg-secondary)' }}>Carregando...</div>;
   if (error || !data) return <div className="p-8 text-sm" style={{ color: 'var(--error)' }}>Erro: {error}</div>;
 
-  const { experiment: exp, variants, summary } = data;
+  const { experiment: exp, variants, daily, summary } = data;
   const winner = variants.length > 1
     ? variants.reduce((best, v) => v.conversionRate > best.conversionRate ? v : best)
     : null;
@@ -127,6 +127,9 @@ export default function ExperimentResultsPage({ params }: { params: Promise<{ id
         lift={winner?.liftVsControl ?? 0}
         sampleSize={summary.totalExposures}
       />
+
+      {/* Daily sparkline A vs B — paridade ABEditor.jsx ABDailyChart */}
+      <DailyChartCard daily={daily} variants={variants} />
 
       {/* Cuidados antes de declarar vencedor — match ABEditor.jsx */}
       <CautionsCard
@@ -243,6 +246,85 @@ function ConfidenceCard({ confidence, lift, sampleSize }: { confidence: number; 
         {confidence >= 95 && <span className="body-s" style={{ color: 'var(--success)', fontWeight: 'var(--w-medium)' }}>✓ Limiar de 95% atingido — pode declarar vencedor</span>}
         {confidence >= 85 && confidence < 95 && <span className="body-s" style={{ color: 'var(--warning)', fontWeight: 'var(--w-medium)' }}>↗ Quase lá — estimativa: +3 dias pra ≥ 95%</span>}
         {confidence < 85 && <span className="body-s" style={{ color: 'var(--error)', fontWeight: 'var(--w-medium)' }}>⚠ Abaixo do limiar — precisa mais tempo ou amostra maior</span>}
+      </div>
+    </section>
+  );
+}
+
+// ─── DailyChartCard: linha A vs B por dia (sparkline SVG) ───────────────────
+function DailyChartCard({ daily, variants }: { daily: DailyPoint[]; variants: VariantStats[] }) {
+  // Agrupa por dia (YYYY-MM-DD) e calcula taxa de conversão por variante
+  const byDay = new Map<string, Map<string, { exposures: number; conversions: number }>>();
+  for (const p of daily) {
+    const dayKey = String(p.day).slice(0, 10);
+    if (!byDay.has(dayKey)) byDay.set(dayKey, new Map());
+    const inner = byDay.get(dayKey)!;
+    const cur = inner.get(p.variantKey) ?? { exposures: 0, conversions: 0 };
+    cur.exposures += Number(p.exposures) || 0;
+    cur.conversions += Number(p.conversions) || 0;
+    inner.set(p.variantKey, cur);
+  }
+  const sortedDays = Array.from(byDay.keys()).sort();
+  const series = variants.slice(0, 2).map((v, i) => ({
+    key: v.variantKey,
+    name: v.variantName,
+    color: i === 0 ? 'var(--fg-muted)' : 'var(--accent)',
+    points: sortedDays.map(d => {
+      const s = byDay.get(d)!.get(v.variantKey) ?? { exposures: 0, conversions: 0 };
+      return s.exposures > 0 ? (s.conversions / s.exposures) * 100 : 0;
+    }),
+  }));
+
+  const w = 600, h = 180, pad = 28;
+  const allPts = series.flatMap(s => s.points);
+  const max = Math.max(...allPts, 1) * 1.1;
+  const x = (i: number) => pad + (i / Math.max(sortedDays.length - 1, 1)) * (w - pad * 2);
+  const y = (v: number) => h - pad - (v / max) * (h - pad * 2);
+
+  if (sortedDays.length === 0) {
+    return (
+      <section className="lj-card" style={{ padding: 'var(--space-5)' }}>
+        <h3 style={{ fontSize: 'var(--text-h4)', fontWeight: 'var(--w-semibold)', marginBottom: 'var(--space-2)' }}>Conversão dia a dia</h3>
+        <p className="body-s" style={{ color: 'var(--fg-secondary)' }}>Sem dados temporais ainda — execute o experimento por pelo menos 1 dia.</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="lj-card" style={{ padding: 'var(--space-5)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'var(--space-4)' }}>
+        <h3 style={{ fontSize: 'var(--text-h4)', fontWeight: 'var(--w-semibold)' }}>Conversão dia a dia</h3>
+        <span className="caption">A vs B · {sortedDays.length}d</span>
+      </div>
+      <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ display: 'block' }}>
+        {[0, 0.25, 0.5, 0.75, 1].map(g => (
+          <line key={g} x1={pad} x2={w - pad} y1={pad + g * (h - pad * 2)} y2={pad + g * (h - pad * 2)} stroke="var(--border)" strokeWidth="1" strokeDasharray="2 4" />
+        ))}
+        {series.map(s => (
+          <path
+            key={s.key}
+            d={s.points.map((v, i) => `${i === 0 ? 'M' : 'L'} ${x(i)} ${y(v)}`).join(' ')}
+            fill="none"
+            stroke={s.color}
+            strokeWidth="2"
+          />
+        ))}
+        {series.map(s => s.points.map((v, i) => (
+          <circle key={`${s.key}-${i}`} cx={x(i)} cy={y(v)} r="3" fill={s.color} />
+        )))}
+        {sortedDays.map((d, i) => (
+          i % Math.ceil(sortedDays.length / 6) === 0
+            ? <text key={d} x={x(i)} y={h - 8} textAnchor="middle" fontSize="10" fill="var(--fg-secondary)" fontFamily="var(--font-mono)">{d.slice(5)}</text>
+            : null
+        ))}
+      </svg>
+      <div style={{ display: 'flex', gap: 'var(--space-4)', marginTop: 'var(--space-3)', flexWrap: 'wrap' }}>
+        {series.map(s => (
+          <span key={s.key} className="caption" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 10, height: 10, borderRadius: '50%', background: s.color, display: 'inline-block' }} />
+            {s.name}
+          </span>
+        ))}
       </div>
     </section>
   );
