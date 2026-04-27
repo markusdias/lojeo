@@ -3,6 +3,11 @@ import { z } from 'zod';
 export const TemplateConfigSchema = z.object({
   id: z.string(),
   name: z.string(),
+  // SEO description default — usado em metadata.description do storefront layout
+  // quando tenant não sobrescreve. Cada template define o seu (~150 chars).
+  description: z.string().optional(),
+  // Tagline short (subtitle hero) — opcional, usado em UI cards/share previews
+  tagline: z.string().optional(),
   locale: z.string(),
   currency: z.string().length(3),
   fields: z.record(

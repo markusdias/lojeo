@@ -5133,3 +5133,51 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 **Próximo ciclo:**
 - P1.D — tokens.css condicional baseado em tpl.id em layout.tsx.
 - P1.E — email subjects + copy fallback EN-US baseado em tpl.locale.
+
+---
+
+## 2026-04-27 (continuacao) — Batch 38: tokens.css condicional + metadata por template (P1.D)
+
+**Commits:** (a registrar nesta sessao).
+
+**Webpack alias resolve `@lojeo/active-template-tokens.css`:**
+- `apps/storefront/next.config.mjs` ganha `webpack(config)` resolver:
+  - Lê `process.env.TEMPLATE_ID` (default `jewelry-v1`).
+  - Whitelist `['jewelry-v1', 'coffee-v1']` evita path traversal.
+  - Aliasa pra `templates/{id}/src/tokens.css`.
+- Layout.tsx import único: `@lojeo/active-template-tokens.css`.
+- Build-time resolution — Next CSS é static; alias permite single import com swap.
+- `transpilePackages` ganha `@lojeo/template-coffee-v1`.
+
+**`<html data-template={tpl.id}>` adicionado:**
+- Permite scoping CSS adicional por template via selector `[data-template="coffee-v1"]` (futuro).
+- Não conflita com tokens — alias resolve um arquivo por build.
+
+**`TemplateConfig` ganha `description?` + `tagline?`:**
+- `packages/engine/src/template.ts` schema opcional.
+- jewelry-v1: "Joalheria contemporânea em ouro 18k e prata 925, com garantia de um ano." / "Atelier de joias autorais."
+- coffee-v1: "Specialty coffee roasted to order — single origins, traceable lots, shipped worldwide." / "Specialty roastery, shipped worldwide."
+
+**`generateMetadata` no layout.tsx:**
+- Substitui `export const metadata` estático por função async.
+- Title vem de `tpl.name`; description vem de `tpl.description`.
+- appleWebApp.title também usa tpl.name.
+- coffee-v1 instance gera `<title>Coffee — International Specialty</title>` automaticamente.
+
+**Skip-link i18n + SiteJsonLd description:**
+- "Pular para o conteúdo principal" / "Skip to main content" baseado em tpl.locale.
+- SiteJsonLd usa tpl.description em vez de string hardcoded.
+
+**Trade-offs arquiteturais:**
+- Webpack alias build-time vs runtime: sem alias seria preciso CSS-in-JS ou link tag dinâmico no <head>. Alias mais limpo, mas exige rebuild quando TEMPLATE_ID muda. Coffee-v1 instance terá deploy próprio com TEMPLATE_ID=coffee-v1 → rebuild único.
+- description em config vs i18n file: aceito hardcode em template config porque template é a fonte de verdade do mood/branding. V2 quando lojistas customizarem: persistir em `tenant.config.seo.description` que sobrescreve template default.
+- Hreflang permanece via getHreflangAlternates externo — Fase 1.2 vai adicionar coffee-v1 quando staging mostrar páginas duplicadas pt-BR/en-US (depende de DNS multi-domain).
+
+**Validações:**
+- pnpm -r typecheck zero erro.
+- Storefront build (default jewelry) verde + build TEMPLATE_ID=coffee-v1 verde.
+- Tests todos passing 356+. Zero regressao.
+- pnpm -r lint admin/storefront limpo. 2 pre-existentes db.
+
+**Próximo ciclo:**
+- P1.E — email subjects + copy fallback EN-US baseado em tpl.locale.

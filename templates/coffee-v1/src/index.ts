@@ -10,6 +10,8 @@ import type { TemplateConfig } from '@lojeo/engine';
 export const coffeeV1: TemplateConfig = {
   id: 'coffee-v1',
   name: 'Coffee — International Specialty',
+  description: 'Specialty coffee roasted to order — single origins, traceable lots, shipped worldwide.',
+  tagline: 'Specialty roastery, shipped worldwide.',
   locale: 'en-US',
   currency: 'USD',
   fields: {

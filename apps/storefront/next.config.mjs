@@ -15,9 +15,23 @@ const nextConfig = {
     '@lojeo/engine',
     '@lojeo/logger',
     '@lojeo/template-jewelry-v1',
+    '@lojeo/template-coffee-v1',
     '@lojeo/tracking',
     '@lojeo/ui',
   ],
+  // Webpack alias resolve `@lojeo/active-template-tokens.css` para o template ativo
+  // baseado em TEMPLATE_ID env (build-time). Permite import unico em layout.tsx
+  // sem code-splitting dinamico (Next CSS e static).
+  webpack(config) {
+    const tplId = process.env.TEMPLATE_ID || 'jewelry-v1';
+    const safeTpl = ['jewelry-v1', 'coffee-v1'].includes(tplId) ? tplId : 'jewelry-v1';
+    const aliasPath = resolve(__dirname, `../../templates/${safeTpl}/src/tokens.css`);
+    config.resolve.alias = {
+      ...(config.resolve.alias ?? {}),
+      '@lojeo/active-template-tokens.css': aliasPath,
+    };
+    return config;
+  },
   async redirects() {
     return [
       { source: '/login', destination: '/entrar', permanent: true },

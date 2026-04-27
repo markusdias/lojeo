@@ -17,21 +17,29 @@ import { getHreflangAlternates } from '../lib/hreflang';
 
 const STOREFRONT_URL = process.env.STOREFRONT_URL ?? 'https://joias.lojeo.com.br';
 import './globals.css';
-import '@lojeo/template-jewelry-v1/tokens.css';
+// Tokens.css condicional por TEMPLATE_ID (build-time, via webpack alias).
+// Ver next.config.mjs `webpack(config)` resolve.alias '@lojeo/active-template-tokens.css'.
+// jewelry-v1 (default) ou coffee-v1.
+import '@lojeo/active-template-tokens.css';
 
 // Hreflang base no <head> do root layout — cobre TODAS as páginas (Next.js
 // Metadata API herda alternates.languages quando rotas filhas não sobrescrevem).
 // Hoje só temos pt-BR + x-default; Fase 1.2 com coffee-v1 expande automaticamente
 // via getHreflangAlternates (ver apps/storefront/src/lib/hreflang.ts).
-export const metadata = {
-  title: 'Joias — Atelier',
-  description: 'Joalheria contemporânea em ouro 18k e prata 925, com garantia de um ano.',
-  manifest: '/manifest.webmanifest',
-  appleWebApp: { capable: true, statusBarStyle: 'default' as const, title: 'Atelier' },
-  alternates: {
-    languages: getHreflangAlternates('/'),
-  },
-};
+//
+// generateMetadata permite tpl-conditional (description vem do template config).
+export async function generateMetadata() {
+  const tpl = await getActiveTemplate();
+  return {
+    title: tpl.name,
+    description: tpl.description ?? '',
+    manifest: '/manifest.webmanifest',
+    appleWebApp: { capable: true, statusBarStyle: 'default' as const, title: tpl.name },
+    alternates: {
+      languages: getHreflangAlternates('/'),
+    },
+  };
+}
 
 export const viewport = {
   themeColor: '#1A1A1A',
@@ -85,6 +93,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html
       lang={tpl.locale}
+      data-template={tpl.id}
       data-typo={typo}
       data-accent={accent}
       data-bg-tone={bgTone}
@@ -93,12 +102,12 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     >
       <body>
         <a href="#main-content" className="skip-link">
-          Pular para o conteúdo principal
+          {tpl.locale.startsWith('pt') ? 'Pular para o conteúdo principal' : 'Skip to main content'}
         </a>
         <SiteJsonLd
           baseUrl={STOREFRONT_URL}
           storeName={tpl.name}
-          description="Joalheria contemporânea em ouro 18k e prata 925, com garantia de um ano."
+          description={tpl.description ?? ''}
         />
         <Pixels config={pixelConfig} />
         <ServiceWorkerRegister />

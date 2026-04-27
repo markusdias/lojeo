@@ -3,6 +3,8 @@ import type { TemplateConfig } from '@lojeo/engine';
 export const jewelryV1: TemplateConfig = {
   id: 'jewelry-v1',
   name: 'Joias — Premium BR',
+  description: 'Joalheria contemporânea em ouro 18k e prata 925, com garantia de um ano.',
+  tagline: 'Atelier de joias autorais.',
   locale: 'pt-BR',
   currency: 'BRL',
   fields: {
