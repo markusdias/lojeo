@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { eq, and } from 'drizzle-orm';
 import { db, blogPosts } from '@lojeo/db';
-import { renderMarkdown } from '../../../lib/markdown';
+import { renderMarkdown } from '@lojeo/engine';
 import { ArticleBody } from './article-body';
 
 export const dynamic = 'force-dynamic';

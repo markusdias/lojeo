@@ -2,6 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { MarkdownEditor } from '../../../components/blog/markdown-editor';
+import { CoverUpload } from '../../../components/blog/cover-upload';
 
 interface PostInput {
   id: string;
@@ -87,10 +89,7 @@ export function EditPostForm({ post }: { post: PostInput }) {
           <span style={{ fontSize: 'var(--text-caption)', color: 'var(--fg-secondary)' }}>Resumo</span>
           <input value={excerpt} onChange={(e) => setExcerpt(e.target.value)} className="lj-input" maxLength={500} />
         </label>
-        <label style={{ display: 'grid', gap: 4 }}>
-          <span style={{ fontSize: 'var(--text-caption)', color: 'var(--fg-secondary)' }}>Capa (URL)</span>
-          <input value={coverUrl} onChange={(e) => setCoverUrl(e.target.value)} className="lj-input" />
-        </label>
+        <CoverUpload value={coverUrl} onChange={setCoverUrl} />
         <label style={{ display: 'grid', gap: 4 }}>
           <span style={{ fontSize: 'var(--text-caption)', color: 'var(--fg-secondary)' }}>Status</span>
           <select value={status} onChange={(e) => setStatus(e.target.value as 'draft' | 'published')} className="lj-input">
@@ -98,16 +97,7 @@ export function EditPostForm({ post }: { post: PostInput }) {
             <option value="published">Publicado</option>
           </select>
         </label>
-        <label style={{ display: 'grid', gap: 4 }}>
-          <span style={{ fontSize: 'var(--text-caption)', color: 'var(--fg-secondary)' }}>Corpo (markdown)</span>
-          <textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            className="lj-input"
-            rows={18}
-            style={{ fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 'var(--text-body-s)', lineHeight: 1.55 }}
-          />
-        </label>
+        <MarkdownEditor value={body} onChange={setBody} label="Corpo (markdown)" rows={18} />
       </div>
       {error && (
         <p role="alert" style={{ color: 'var(--danger, #B91C1C)', fontSize: 'var(--text-body-s)', marginTop: 'var(--space-3)' }}>

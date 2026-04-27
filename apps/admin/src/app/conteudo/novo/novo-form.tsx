@@ -2,6 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { MarkdownEditor } from '../../../components/blog/markdown-editor';
+import { CoverUpload } from '../../../components/blog/cover-upload';
 
 interface DraftResponse {
   ok: boolean;
@@ -180,25 +182,8 @@ export function NovoPostForm() {
             <span style={{ fontSize: 'var(--text-caption)', color: 'var(--fg-secondary)' }}>Resumo</span>
             <input value={excerpt} onChange={(e) => setExcerpt(e.target.value)} className="lj-input" maxLength={500} />
           </label>
-          <label style={{ display: 'grid', gap: 4 }}>
-            <span style={{ fontSize: 'var(--text-caption)', color: 'var(--fg-secondary)' }}>Capa (URL)</span>
-            <input
-              value={coverUrl}
-              onChange={(e) => setCoverUrl(e.target.value)}
-              placeholder="https://…"
-              className="lj-input"
-            />
-          </label>
-          <label style={{ display: 'grid', gap: 4 }}>
-            <span style={{ fontSize: 'var(--text-caption)', color: 'var(--fg-secondary)' }}>Corpo (markdown)</span>
-            <textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              className="lj-input"
-              rows={18}
-              style={{ fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 'var(--text-body-s)', lineHeight: 1.55 }}
-            />
-          </label>
+          <CoverUpload value={coverUrl} onChange={setCoverUrl} />
+          <MarkdownEditor value={body} onChange={setBody} label="Corpo (markdown)" rows={18} />
         </div>
         {saveError && (
           <p role="alert" style={{ color: 'var(--danger, #B91C1C)', fontSize: 'var(--text-body-s)', marginTop: 'var(--space-3)' }}>

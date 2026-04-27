@@ -13,3 +13,4 @@ export * from './customer-ltv';
 export * from './competitive-pricing';
 export * from './embeddings';
 export * from './attribution';
+export * from './markdown';
