@@ -610,10 +610,13 @@ function ChipChip({
     >
       {label}
       <span
-        className="numeric"
         style={{
-          color: active ? 'var(--surface)' : 'var(--fg-secondary)',
+          fontFamily: 'var(--font-mono)',
+          fontSize: 10,
           fontWeight: 'var(--w-regular)',
+          opacity: active ? 0.85 : 0.65,
+          color: active ? 'var(--surface)' : 'var(--fg-secondary)',
+          fontVariantNumeric: 'tabular-nums',
         }}
       >
         {count}
