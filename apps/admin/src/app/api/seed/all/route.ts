@@ -50,6 +50,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
+  try {
+    return await runSeed();
+  } catch (e) {
+    console.error('seed/all global failure', e);
+    return NextResponse.json({ error: 'seed_failed', detail: String(e) }, { status: 500 });
+  }
+}
+
+async function runSeed() {
   // Pega top 6 produtos ativos (precisa pra wishlist/restock/ugc/reviews)
   const topProducts = await db
     .select({
@@ -97,7 +106,15 @@ export async function POST(req: NextRequest) {
       createdAt: new Date(now.getTime() - Math.floor(Math.random() * 30) * DAY),
     }));
   });
-  await db.insert(wishlistItems).values(wishlistData).onConflictDoNothing();
+  let wishlistInserted = 0;
+  try {
+    if (wishlistData.length > 0) {
+      const r = await db.insert(wishlistItems).values(wishlistData).returning({ id: wishlistItems.id });
+      wishlistInserted = r.length;
+    }
+  } catch (e) {
+    console.error('seed wishlist failed', e);
+  }
 
   // ── 2. GIFT CARDS ── 5 cards match Wishlist.jsx demo
   const giftCardsData = [
@@ -107,18 +124,24 @@ export async function POST(req: NextRequest) {
     { code: `${SEED_PREFIX}GFT-K3R8-1H4M`, initial: 30000, balance: 30000, recipient: 'beatriz.mendes@email.com', status: 'active', createdDays: 21, expiresDays: 25 }, // expirando 30d
     { code: `${SEED_PREFIX}GFT-N6Z2-8F4D`, initial: 15000, balance: 0, recipient: 'patricia.souza@email.com', status: 'active', createdDays: 55, expiresDays: -2 }, // expired
   ];
+  let giftCardsInserted = 0;
   for (const g of giftCardsData) {
-    const expiresAt = new Date(now.getTime() + g.expiresDays * DAY);
-    await db.insert(giftCards).values({
-      tenantId: TENANT_ID,
-      code: g.code,
-      initialValueCents: g.initial,
-      currentBalanceCents: g.balance,
-      recipientEmail: g.recipient,
-      status: g.status,
-      expiresAt,
-      createdAt: new Date(now.getTime() - g.createdDays * DAY),
-    }).onConflictDoNothing();
+    try {
+      const expiresAt = new Date(now.getTime() + g.expiresDays * DAY);
+      await db.insert(giftCards).values({
+        tenantId: TENANT_ID,
+        code: g.code,
+        initialValueCents: g.initial,
+        currentBalanceCents: g.balance,
+        recipientEmail: g.recipient,
+        status: g.status,
+        expiresAt,
+        createdAt: new Date(now.getTime() - g.createdDays * DAY),
+      });
+      giftCardsInserted++;
+    } catch (e) {
+      console.error('seed gift_card failed', g.code, e);
+    }
   }
 
   // ── 3. RESTOCK NOTIFICATIONS ── 6 produtos com waiting count
@@ -138,8 +161,14 @@ export async function POST(req: NextRequest) {
       });
     }
   });
-  if (restockData.length > 0) {
-    await db.insert(restockNotifications).values(restockData);
+  let restockInserted = 0;
+  try {
+    if (restockData.length > 0) {
+      const r = await db.insert(restockNotifications).values(restockData).returning({ id: restockNotifications.id });
+      restockInserted = r.length;
+    }
+  } catch (e) {
+    console.error('seed restock failed', e);
   }
 
   // ── 4. UGC POSTS ── 6 approved posts com placeholder
@@ -157,7 +186,13 @@ export async function POST(req: NextRequest) {
     moderatedAt: new Date(now.getTime() - i * 2 * DAY),
     createdAt: new Date(now.getTime() - (i + 1) * 2 * DAY),
   }));
-  await db.insert(ugcPosts).values(ugcData).onConflictDoNothing();
+  let ugcInserted = 0;
+  try {
+    const r = await db.insert(ugcPosts).values(ugcData).returning({ id: ugcPosts.id });
+    ugcInserted = r.length;
+  } catch (e) {
+    console.error('seed ugc failed', e);
+  }
 
   // ── 5. PRODUCT REVIEWS ── 8 reviews approved
   const reviewsData: Array<typeof productReviews.$inferInsert> = [];
@@ -192,7 +227,13 @@ export async function POST(req: NextRequest) {
       });
     }
   });
-  await db.insert(productReviews).values(reviewsData).onConflictDoNothing();
+  let reviewsInserted = 0;
+  try {
+    const r = await db.insert(productReviews).values(reviewsData).returning({ id: productReviews.id });
+    reviewsInserted = r.length;
+  } catch (e) {
+    console.error('seed reviews failed', e);
+  }
 
   // ── 6. SUPPORT TICKETS ── 3 tickets em estados diferentes
   const ticketsData = [
@@ -200,44 +241,50 @@ export async function POST(req: NextRequest) {
     { subject: 'Como faço pra trocar tamanho do anel?', status: 'in_progress', priority: 'medium', email: `${SEED_PREFIX}tk_carolina@email.com`, name: 'Carolina P.', createdHoursAgo: 24 },
     { subject: 'Embalagem chegou amassada mas peça inteira', status: 'resolved', priority: 'low', email: `${SEED_PREFIX}tk_julia@email.com`, name: 'Júlia T.', createdHoursAgo: 96, resolvedHoursAgo: 70 },
   ];
+  let ticketsInserted = 0;
   for (const t of ticketsData) {
-    const createdAt = new Date(now.getTime() - t.createdHoursAgo * 60 * 60 * 1000);
-    const slaDeadline = new Date(createdAt.getTime() + 24 * 60 * 60 * 1000);
-    const resolvedAt = 'resolvedHoursAgo' in t && t.resolvedHoursAgo ? new Date(now.getTime() - t.resolvedHoursAgo * 60 * 60 * 1000) : null;
-    const [created] = await db.insert(supportTickets).values({
-      tenantId: TENANT_ID,
-      customerEmail: t.email,
-      customerName: t.name,
-      subject: t.subject,
-      status: t.status,
-      priority: t.priority,
-      source: 'web',
-      slaHours: 24,
-      slaDeadlineAt: slaDeadline,
-      resolvedAt,
-      createdAt,
-      updatedAt: resolvedAt ?? createdAt,
-    }).returning();
-    if (created) {
-      await db.insert(ticketMessages).values({
-        ticketId: created.id,
-        senderType: 'customer',
-        body: t.subject + ' · ' + 'Detalhes adicionais: peça delicada, comprei pra presentear minha mãe e fiquei chateada com o problema.',
-        isInternal: false,
+    try {
+      const createdAt = new Date(now.getTime() - t.createdHoursAgo * 60 * 60 * 1000);
+      const slaDeadline = new Date(createdAt.getTime() + 24 * 60 * 60 * 1000);
+      const resolvedAt = 'resolvedHoursAgo' in t && t.resolvedHoursAgo ? new Date(now.getTime() - t.resolvedHoursAgo * 60 * 60 * 1000) : null;
+      const [created] = await db.insert(supportTickets).values({
+        tenantId: TENANT_ID,
+        customerEmail: t.email,
+        customerName: t.name,
+        subject: t.subject,
+        status: t.status,
+        priority: t.priority,
+        source: 'web',
+        slaHours: 24,
+        slaDeadlineAt: slaDeadline,
+        resolvedAt,
         createdAt,
-      });
+        updatedAt: resolvedAt ?? createdAt,
+      }).returning();
+      if (created) {
+        ticketsInserted++;
+        await db.insert(ticketMessages).values({
+          ticketId: created.id,
+          senderType: 'customer',
+          body: t.subject + ' · Detalhes adicionais: peça delicada, comprei pra presentear minha mãe e fiquei chateada com o problema.',
+          isInternal: false,
+          createdAt,
+        });
+      }
+    } catch (e) {
+      console.error('seed ticket failed', t.subject, e);
     }
   }
 
   return NextResponse.json({
     ok: true,
     counts: {
-      wishlistItems: wishlistData.length,
-      giftCards: giftCardsData.length,
-      restockNotifications: restockData.length,
-      ugcPosts: ugcData.length,
-      reviews: reviewsData.length,
-      tickets: ticketsData.length,
+      wishlistItems: wishlistInserted,
+      giftCards: giftCardsInserted,
+      restockNotifications: restockInserted,
+      ugcPosts: ugcInserted,
+      reviews: reviewsInserted,
+      tickets: ticketsInserted,
     },
   });
 }
