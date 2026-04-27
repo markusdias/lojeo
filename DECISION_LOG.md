@@ -2950,3 +2950,37 @@ Tabela renderiza condicional `{visible.length === 0 ? <EmptyState /> : <table />
 **Próximo ciclo:** UX validation /settings live + storefront PDP UX validation full.
 
 **135 commits totais sessão**, **108 testes globais verdes**, **24 migrations prod**, **zero regressão**.
+
+---
+
+## 2026-04-26 — Subagentes worktree paralelos: Static + Chrome + Tickets
+
+**Commits:** 2b93c42 (Static.jsx) · ac79694 (Chrome.jsx) · 80d760b (Home tones) · be07a99 (Tickets.jsx)
+
+**Lição race condition aplicada:** despachei subagentes com `isolation: "worktree"` (Agent tool param) — cada um trabalha em git worktree isolado em `.claude/worktrees/agent-*`. Trabalho em paralelo seguro: subagente A não vê arquivos untracked do subagente B. Merge sequencial via fast-forward em main. Validei `git status` pré-commit em cada agente.
+
+**Static.jsx (worktree a1dd5ea5):**
+- 3 pages legais reescritas (privacidade/termos/politica) com container 1100px + PageHeader (eyebrow + h1 56px font-display) + ContentSection grid 200px+1fr + h3 font-display 28px
+- Microcopy LGPD/DPO/retenção 5y, Pix/6× parcelado, prazos sob medida, foro SP
+
+**Chrome.jsx (worktree a840fbb3):**
+- header.tsx: heart icon wishlist count, search overlay
+- newsletter-form.tsx: feedback success/loading state (não só botão estático)
+
+**Home.jsx (mods absorvidos page.tsx commit 80d760b):**
+- 4 SECTIONS com tone gradient distinto (champagne/areia variações)
+- Hero aspectRatio 16/9 puro (remove minHeight 420 forçado)
+- Cleanup TrustIcon dead helper
+
+**Tickets.jsx (worktree a71016998 commit be07a99):**
+- Filter chips com contagem mono inline (todos/open/in_progress/resolved)
+- Priority bar vertical 4px lateral por urgência (urgente ganha halo)
+- SLA pill colorida (late=#B91C1C, urgent=#B45309, done=#047857) com pulse animation no urgente
+- Avatar cliente iniciais + nome + tempo relativo mono
+- IDs/orderId font-mono truncados
+
+**Tests admin 18/18 + storefront 14/14 verde. Typecheck + lint OK.**
+
+**Branches worktree preservados** (não removidos via `git worktree remove` por lock runtime — não impacta funcionalmente).
+
+**Próximo ciclo:** Wishlist.jsx audit (storefront wishlist page atual) + admin /wishlist 3 tabs já entregues, validar paridade visual.
