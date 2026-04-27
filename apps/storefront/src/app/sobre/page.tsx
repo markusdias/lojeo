@@ -61,6 +61,7 @@ export default function SobrePage() {
                 aspectRatio: i === 1 ? '3/4' : '4/5',
                 background: '#F4F1E9',
                 borderRadius: 4,
+                overflow: 'hidden',
                 display: 'grid',
                 placeItems: 'center',
                 color: '#A89B8C',

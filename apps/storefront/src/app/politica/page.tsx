@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-const SECTIONS = [
+const SECTIONS: { title: string; body: string }[] = [
   {
     title: 'Prazo de envio',
     body: 'Pedidos confirmados até às 14h em dias úteis são despachados no mesmo dia. Peças personalizadas (gravação, ajuste de aro) têm prazo adicional de 3 a 5 dias úteis, informado no checkout.',
@@ -16,32 +16,63 @@ const SECTIONS = [
   },
   {
     title: 'Transportadoras',
-    body: 'Trabalhamos com Correios (PAC e SEDEX), Jadlog e transportadoras expressas para capitais. O prazo de entrega varia conforme a região e modalidade escolhida.',
+    body: 'Trabalhamos com Correios (PAC e SEDEX), Jadlog e transportadoras expressas para capitais. O prazo de entrega varia conforme a região e a modalidade escolhida.',
   },
   {
     title: 'Embalagem',
-    body: 'Todas as peças são enviadas em caixa rígida com enchimento de seda, selo de lacre e nota fiscal eletrônica. A embalagem é adequada para presente.',
+    body: 'Todas as peças seguem em caixa rígida com enchimento de seda, selo de lacre e nota fiscal eletrônica. A embalagem é adequada para presente.',
   },
   {
     title: 'Rastreamento',
-    body: 'Você receberá um e-mail com código de rastreamento assim que o pedido for despachado. Rastreie diretamente no site da transportadora ou pela página de pedidos da sua conta.',
+    body: 'Você recebe um email com código de rastreamento assim que o pedido é despachado. Acompanhe direto no site da transportadora ou pela página de pedidos da sua conta.',
   },
 ];
 
 export default function PoliticaPage() {
   return (
-    <div style={{ maxWidth: 680, margin: '0 auto', padding: '80px var(--container-pad)' }}>
-      <p className="eyebrow" style={{ marginBottom: 16 }}>Informações</p>
-      <h1 style={{ marginBottom: 48 }}>Política de envio</h1>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
-        {SECTIONS.map(s => (
-          <div key={s.title}>
-            <h2 style={{ fontSize: 18, marginBottom: 12 }}>{s.title}</h2>
-            <p style={{ fontSize: 16, color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0 }}>{s.body}</p>
-          </div>
-        ))}
+    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 var(--container-pad)' }}>
+      {/* PageHeader match Static.jsx */}
+      <div style={{ padding: '60px 0 30px' }}>
+        <p className="eyebrow" style={{ marginBottom: 12 }}>Política</p>
+        <h1 style={{ fontSize: 56, margin: 0, fontFamily: 'var(--font-display)', lineHeight: 1.05 }}>
+          Política de envio
+        </h1>
       </div>
+
+      {/* Long-form intro */}
+      <div style={{ maxWidth: 720, fontSize: 18, lineHeight: 1.7, color: 'var(--text-secondary)', padding: '60px 0 30px' }}>
+        <p>
+          Enviamos para todo o Brasil. Aqui você encontra prazos, transportadoras e como
+          rastrear seu pedido — tudo que precisa saber antes de fechar a compra.
+        </p>
+      </div>
+
+      {/* Seções no padrão Static ContentSection */}
+      {SECTIONS.map(s => (
+        <div
+          key={s.title}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '200px 1fr',
+            gap: 60,
+            padding: '32px 0',
+            borderTop: '1px solid var(--divider)',
+          }}
+        >
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 28, margin: 0 }}>{s.title}</h3>
+          <p style={{
+            margin: 0,
+            color: 'var(--text-secondary)',
+            fontSize: 16,
+            lineHeight: 1.7,
+            maxWidth: 580,
+          }}>
+            {s.body}
+          </p>
+        </div>
+      ))}
+
+      <div style={{ height: 80 }} />
     </div>
   );
 }
