@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, afterEach } from 'vitest';
 import { render } from '@react-email/components';
 import { sendEmail } from './client';
 import { Welcome } from './templates/welcome';
@@ -6,6 +6,8 @@ import { OrderConfirmation } from './templates/order-confirmation';
 import { PixGenerated } from './templates/pix';
 import { ShippingNotification } from './templates/shipped';
 import { TradeApproved } from './templates/trade-approved';
+import { RecoverCart } from './templates/recover-cart';
+import { emailSubjects, getStoreEmailConfig } from './store-config';
 
 const baseFooter = {
   storeDocument: 'CNPJ 00.000.000/0001-00',
@@ -111,6 +113,39 @@ describe('templates jewelry-v1', () => {
     expect(html).toContain('Acompanhar entrega');
   });
 
+  it('RecoverCart renderiza items + subtotal + CTA bilingual', async () => {
+    const htmlPt = await render(
+      RecoverCart({
+        storeName: 'Casa Solar',
+        customerName: 'Maria',
+        items: [
+          { name: 'Anel Aço 4mm', qty: 1, priceCents: 12000 },
+          { name: 'Brinco Pérola', qty: 2, priceCents: 25000 },
+        ],
+        subtotalCents: 12000 + 2 * 25000,
+        currency: 'BRL',
+        cartUrl: 'https://casasolar.com.br/carrinho',
+      }),
+    );
+    expect(htmlPt).toContain('Casa Solar');
+    expect(htmlPt).toContain('Anel Aço 4mm');
+    expect(htmlPt).toContain('Olá, Maria');
+    expect(htmlPt).toContain('Continuar minha compra');
+
+    const htmlEn = await render(
+      RecoverCart({
+        storeName: 'Roastery',
+        items: [{ name: 'Ethiopia 250g', qty: 1, priceCents: 1800 }],
+        subtotalCents: 1800,
+        currency: 'USD',
+        cartUrl: 'https://roastery.com/cart',
+      }),
+    );
+    expect(htmlEn).toContain('Continue checkout');
+    expect(htmlEn).toContain('Ethiopia 250g');
+    expect(htmlEn).toContain('You left something behind');
+  });
+
   it('TradeApproved renderiza etiqueta reversa + steps', async () => {
     const html = await render(
       TradeApproved({
@@ -125,5 +160,54 @@ describe('templates jewelry-v1', () => {
     // defaults aplicados (texto pode ter <!-- --> entre números/strings)
     expect(html).toContain('7 dias para postar');
     expect(html).toMatch(/em até\s*(<!-- -->)?\s*3(<!-- -->)?\s*dias úteis/);
+  });
+});
+
+describe('emailSubjects i18n', () => {
+  it('pt-BR retorna subjects em português', () => {
+    const subj = emailSubjects('pt-BR');
+    expect(subj.orderConfirmed).toBe('Pedido confirmado');
+    expect(subj.welcome).toBe('Bem-vinda à');
+    expect(subj.pixGenerated).toBe('Seu Pix');
+    expect(subj.boletoGenerated).toBe('Seu boleto');
+    expect(subj.shippingNotification).toBe('Seu pedido foi enviado');
+    expect(subj.recoverCart).toBe('Seu carrinho está esperando');
+  });
+
+  it('en-US retorna subjects em inglês', () => {
+    const subj = emailSubjects('en-US');
+    expect(subj.orderConfirmed).toBe('Order confirmed');
+    expect(subj.welcome).toBe('Welcome to');
+    expect(subj.pixGenerated).toBe('Your Pix');
+    expect(subj.boletoGenerated).toBe('Your boleto');
+    expect(subj.shippingNotification).toBe('Your order has shipped');
+    expect(subj.recoverCart).toBe('Your cart is waiting');
+  });
+});
+
+describe('getStoreEmailConfig locale + currency', () => {
+  const ORIG = { ...process.env };
+  afterEach(() => { process.env = { ...ORIG }; });
+
+  it('default locale=pt-BR + currency=BRL', () => {
+    delete process.env.STOREFRONT_LOCALE;
+    delete process.env.STOREFRONT_CURRENCY;
+    const c = getStoreEmailConfig();
+    expect(c.locale).toBe('pt-BR');
+    expect(c.currency).toBe('BRL');
+  });
+
+  it('STOREFRONT_LOCALE=en-US persiste em config', () => {
+    process.env.STOREFRONT_LOCALE = 'en-US';
+    process.env.STOREFRONT_CURRENCY = 'USD';
+    const c = getStoreEmailConfig();
+    expect(c.locale).toBe('en-US');
+    expect(c.currency).toBe('USD');
+  });
+
+  it('locale invalido cai em fallback pt-BR', () => {
+    process.env.STOREFRONT_LOCALE = 'fr-FR';
+    const c = getStoreEmailConfig();
+    expect(c.locale).toBe('pt-BR');
   });
 });

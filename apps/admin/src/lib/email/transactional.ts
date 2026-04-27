@@ -1,6 +1,6 @@
 // Transactional emails admin-side — render React Email + sendEmail dual mode.
 
-import { sendEmail, render, ShippingNotification, TradeApproved, RecoverCart, type RecoverCartItem, getStoreEmailConfig } from '@lojeo/email';
+import { sendEmail, render, ShippingNotification, TradeApproved, RecoverCart, type RecoverCartItem, getStoreEmailConfig, emailSubjects } from '@lojeo/email';
 import { logger } from '@lojeo/logger';
 
 function cfg() { return getStoreEmailConfig(); }
@@ -16,26 +16,37 @@ interface ShippingEmailInput {
 export async function sendShippingNotificationEmail(input: ShippingEmailInput): Promise<{ ok: boolean }> {
   if (!input.customerEmail) return { ok: false };
   try {
-    const today = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+    const conf = cfg();
+    const isPt = conf.locale === 'pt-BR';
+    const today = new Date().toLocaleDateString(conf.locale, { day: '2-digit', month: 'short' });
+    const stops = isPt
+      ? [
+          { status: 'done' as const, label: 'Pedido enviado', date: today },
+          { status: 'current' as const, label: 'Em trânsito', date: '—' },
+          { status: 'future' as const, label: 'Saiu para entrega', date: '—' },
+          { status: 'future' as const, label: 'Entregue', date: '—' },
+        ]
+      : [
+          { status: 'done' as const, label: 'Order shipped', date: today },
+          { status: 'current' as const, label: 'In transit', date: '—' },
+          { status: 'future' as const, label: 'Out for delivery', date: '—' },
+          { status: 'future' as const, label: 'Delivered', date: '—' },
+        ];
     const html = await render(
       ShippingNotification({
-        storeName: cfg().storeName,
+        storeName: conf.storeName,
         estimatedDelivery: input.estimatedDelivery,
         trackingCode: input.trackingCode,
-        trackingUrl: `${cfg().storefrontBase}/rastreio?order=${input.orderId}`,
-        stops: [
-          { status: 'done', label: 'Pedido enviado', date: today },
-          { status: 'current', label: 'Em trânsito', date: '—' },
-          { status: 'future', label: 'Saiu para entrega', date: '—' },
-          { status: 'future', label: 'Entregue', date: '—' },
-        ],
-        supportEmail: cfg().fromEmail,
+        trackingUrl: `${conf.storefrontBase}/rastreio?order=${input.orderId}`,
+        stops,
+        supportEmail: conf.fromEmail,
       }),
     );
+    const subj = emailSubjects(conf.locale);
     const result = await sendEmail({
       to: input.customerEmail,
-      from: cfg().fromEmail,
-      subject: `Seu pedido foi enviado · ${input.orderCode}`,
+      from: conf.fromEmail,
+      subject: `${subj.shippingNotification} · ${input.orderCode}`,
       html,
     });
     return { ok: result.delivered };
@@ -55,18 +66,23 @@ interface TradeApprovedEmailInput {
 export async function sendTradeApprovedEmail(input: TradeApprovedEmailInput): Promise<{ ok: boolean }> {
   if (!input.customerEmail) return { ok: false };
   try {
-    const typeLabel = input.type === 'exchange' ? 'Troca' : input.type === 'warranty' ? 'Garantia' : 'Devolução';
+    const conf = cfg();
+    const isPt = conf.locale === 'pt-BR';
+    const typeLabel = isPt
+      ? (input.type === 'exchange' ? 'Troca' : input.type === 'warranty' ? 'Garantia' : 'Devolução')
+      : (input.type === 'exchange' ? 'Exchange' : input.type === 'warranty' ? 'Warranty' : 'Refund');
     const html = await render(
       TradeApproved({
-        storeName: cfg().storeName,
-        labelPdfUrl: input.labelPdfUrl ?? `${cfg().storefrontBase}/conta`,
-        supportEmail: cfg().fromEmail,
+        storeName: conf.storeName,
+        labelPdfUrl: input.labelPdfUrl ?? `${conf.storefrontBase}/conta`,
+        supportEmail: conf.fromEmail,
       }),
     );
+    const subj = emailSubjects(conf.locale);
     const result = await sendEmail({
       to: input.customerEmail,
-      from: cfg().fromEmail,
-      subject: `${typeLabel} aprovada · ${input.orderCode}`,
+      from: conf.fromEmail,
+      subject: `${typeLabel} ${subj.tradeApproved} · ${input.orderCode}`,
       html,
     });
     return { ok: result.delivered };
@@ -89,26 +105,25 @@ export async function sendRecoverCartEmail(input: RecoverCartEmailInput): Promis
   if (!input.customerEmail) return { ok: false };
   if (!input.items.length) return { ok: false };
   try {
-    const currency = input.currency ?? 'BRL';
-    const isPt = currency === 'BRL';
-    const subject = isPt
-      ? `Seu carrinho está esperando · ${cfg().storeName}`
-      : `Your cart is waiting · ${cfg().storeName}`;
+    const conf = cfg();
+    const cartCurrency: 'BRL' | 'USD' | 'EUR' = input.currency
+      ?? (conf.currency === 'BRL' || conf.currency === 'USD' || conf.currency === 'EUR' ? conf.currency : 'USD');
+    const subj = emailSubjects(conf.locale);
     const html = await render(
       RecoverCart({
-        storeName: cfg().storeName,
+        storeName: conf.storeName,
         customerName: input.customerName,
         items: input.items,
         subtotalCents: input.subtotalCents,
-        currency,
-        cartUrl: input.cartUrl ?? `${cfg().storefrontBase}/carrinho`,
-        supportEmail: cfg().fromEmail,
+        currency: cartCurrency,
+        cartUrl: input.cartUrl ?? `${conf.storefrontBase}/carrinho`,
+        supportEmail: conf.fromEmail,
       }),
     );
     const result = await sendEmail({
       to: input.customerEmail,
-      from: cfg().fromEmail,
-      subject,
+      from: conf.fromEmail,
+      subject: `${subj.recoverCart} · ${conf.storeName}`,
       html,
     });
     return { ok: result.delivered };

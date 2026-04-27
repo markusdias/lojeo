@@ -5181,3 +5181,51 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 
 **Próximo ciclo:**
 - P1.E — email subjects + copy fallback EN-US baseado em tpl.locale.
+
+---
+
+## 2026-04-27 (continuacao) — Batch 39: Email i18n EN-US fallback (P1.E)
+
+**Commits:** (a registrar nesta sessao).
+
+**`StoreEmailConfig` ganha `locale` + `currency`:**
+- `packages/email/src/store-config.ts`:
+  - `STOREFRONT_LOCALE` env (`pt-BR` | `en-US`, fallback `pt-BR`).
+  - `STOREFRONT_CURRENCY` env (`BRL`/`USD`/`EUR`/`GBP`/`CAD`, fallback `BRL`).
+  - Whitelist locale evita injection.
+- Helper `emailSubjects(locale)` retorna mapa pt-BR vs en-US para todos os subjects (orderConfirmed, welcome, pixGenerated, boletoGenerated, shippingNotification, tradeApproved, recoverCart).
+- Exportado em `@lojeo/email` barrel.
+
+**Storefront `apps/storefront/src/lib/email/transactional.ts`:**
+- Subject `Pix · ${order}` → `${subj.pixGenerated} · ${order}` (pt-BR: `Seu Pix`, en-US: `Your Pix`).
+- Boleto idem.
+- `Bem-vinda à ${store}` → `${subj.welcome} ${store}` (pt-BR: `Bem-vinda à`, en-US: `Welcome to`).
+- `OrderConfirmation`: subject + `formatMoney(cents, asSupportedCurrency(currency))` em vez de hardcode `fmtBrl`.
+  Pedidos USD (coffee-v1) renderizam `$ 29.99` em vez de `R$ 29,99`.
+
+**Admin `apps/admin/src/lib/email/transactional.ts`:**
+- `sendShippingNotificationEmail`: stops bilingues (`Pedido enviado` / `Order shipped` etc.). `today` formatado via `toLocaleDateString(locale)`.
+- `sendTradeApprovedEmail`: typeLabel pt-BR (`Troca`/`Garantia`/`Devolução`) ou en-US (`Exchange`/`Warranty`/`Refund`). Subject usa `subj.tradeApproved` (`Aprovada` / `Approved`).
+- `sendRecoverCartEmail`: subject usa `subj.recoverCart`. cartCurrency narrow type-safe (BRL|USD|EUR fallback USD pra GBP/CAD).
+
+**6 novos tests `packages/email/src/email.test.ts`:**
+- `RecoverCart` renderizando bilingue (PT `Continuar minha compra` / EN `Continue checkout`, `Olá, Maria` / `You left something behind`).
+- `emailSubjects('pt-BR')` retorna 6 subjects PT.
+- `emailSubjects('en-US')` retorna 6 subjects EN.
+- `getStoreEmailConfig` default pt-BR/BRL.
+- `getStoreEmailConfig` STOREFRONT_LOCALE=en-US/USD.
+- `getStoreEmailConfig` locale invalido → fallback pt-BR.
+
+**Trade-offs arquiteturais:**
+- Subject mapping em vez de Intl messages format (mais leve). Não temos i18n framework instalado; subjects são poucos (~7) e curtos.
+- Body templates ainda majoritariamente em pt-BR (jewelry-v1 mood). RecoverCart é único bilingual completo. V2: traduzir Welcome/Order/Pix/Boleto/Shipping/Trade bodies — exige design Claude Design en-US.
+- `STOREFRONT_LOCALE` env diferente de `tpl.locale` — engineering: locale do template (build) vs locale do runtime (env). Coffee-v1 instance setará `STOREFRONT_LOCALE=en-US` + `STOREFRONT_CURRENCY=USD`.
+- formatMoney via @lojeo/engine evita re-implementar Intl.NumberFormat — currency-agnostic.
+
+**Validações:**
+- pnpm -r typecheck zero erro.
+- pnpm -r test: 362 passing. email 12/12 (+6). Zero regressao.
+- pnpm -r lint admin/storefront limpo. 2 pre-existentes db.
+
+**Próximo ciclo:**
+- P2.F — canais notificação além in-app (email severity=critical, push PWA, Slack/Discord webhook).

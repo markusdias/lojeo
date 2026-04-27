@@ -3,8 +3,9 @@
 // Sem RESEND_API_KEY: sendEmail loga e retorna {delivered: false} (mock).
 // Com key: send real via Resend API.
 
-import { sendEmail, render, OrderConfirmation, Welcome, PixGenerated, BoletoGenerated, getStoreEmailConfig, type OrderItem } from '@lojeo/email';
+import { sendEmail, render, OrderConfirmation, Welcome, PixGenerated, BoletoGenerated, getStoreEmailConfig, emailSubjects, type OrderItem } from '@lojeo/email';
 import { logger } from '@lojeo/logger';
+import { formatMoney, asSupportedCurrency } from '@lojeo/engine';
 
 function cfg() { return getStoreEmailConfig(); }
 
@@ -47,10 +48,11 @@ export async function sendBoletoGeneratedEmail(input: BoletoEmailInput): Promise
         supportEmail: cfg().fromEmail,
       }),
     );
+    const subj = emailSubjects(cfg().locale);
     const result = await sendEmail({
       to: input.customerEmail,
       from: cfg().fromEmail,
-      subject: `Seu boleto · ${input.orderCode}`,
+      subject: `${subj.boletoGenerated} · ${input.orderCode}`,
       html,
     });
     return { ok: result.delivered };
@@ -75,10 +77,11 @@ export async function sendPixGeneratedEmail(input: PixEmailInput): Promise<{ ok:
         supportEmail: cfg().fromEmail,
       }),
     );
+    const subj = emailSubjects(cfg().locale);
     const result = await sendEmail({
       to: input.customerEmail,
       from: cfg().fromEmail,
-      subject: `Seu Pix · ${input.orderCode}`,
+      subject: `${subj.pixGenerated} · ${input.orderCode}`,
       html,
     });
     return { ok: result.delivered };
@@ -103,12 +106,8 @@ interface OrderEmailInput {
   orderId: string;
 }
 
-function fmtBrl(cents: number): string {
-  return (cents / 100).toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-    maximumFractionDigits: 2,
-  });
+function fmtCurrency(cents: number, currency: string): string {
+  return formatMoney(cents, asSupportedCurrency(currency));
 }
 
 interface WelcomeEmailInput {
@@ -127,10 +126,11 @@ export async function sendWelcomeEmail(input: WelcomeEmailInput): Promise<{ ok: 
         supportEmail: cfg().fromEmail,
       }),
     );
+    const subj = emailSubjects(cfg().locale);
     const result = await sendEmail({
       to: input.customerEmail,
       from: cfg().fromEmail,
-      subject: `Bem-vinda à ${cfg().storeName}`,
+      subject: `${subj.welcome} ${cfg().storeName}`,
       html,
     });
     return { ok: result.delivered };
@@ -145,24 +145,27 @@ export async function sendOrderConfirmationEmail(input: OrderEmailInput): Promis
     return { ok: false, mocked: false };
   }
   try {
+    const conf = cfg();
+    const fmt = (cents: number) => fmtCurrency(cents, conf.currency);
     const html = await render(
       OrderConfirmation({
         storeName: input.storeName,
         customerName: input.customerName,
         orderCode: input.orderCode,
         items: input.items,
-        subtotal: fmtBrl(input.subtotalCents),
+        subtotal: fmt(input.subtotalCents),
         shippingLabel: input.shippingLabel,
-        shippingValue: fmtBrl(input.shippingCents),
-        total: fmtBrl(input.totalCents),
+        shippingValue: fmt(input.shippingCents),
+        total: fmt(input.totalCents),
         trackUrl: `${input.storeBaseUrl}/rastreio?order=${input.orderId}`,
         supportEmail: input.storeFromEmail,
       }),
     );
+    const subj = emailSubjects(conf.locale);
     const result = await sendEmail({
       to: input.customerEmail,
       from: input.storeFromEmail ?? `no-reply@lojeo.app`,
-      subject: `Pedido confirmado · ${input.orderCode}`,
+      subject: `${subj.orderConfirmed} · ${input.orderCode}`,
       html,
     });
     return { ok: result.delivered, mocked: !process.env.RESEND_API_KEY };
