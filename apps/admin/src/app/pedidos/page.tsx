@@ -3,6 +3,7 @@ import { auth } from '../../auth';
 import { redirect } from 'next/navigation';
 import { db, orders } from '@lojeo/db';
 import { eq, and, desc, gte, sql } from 'drizzle-orm';
+import { EmptyState, IconShoppingBag } from '../../components/ui/empty-state';
 
 const STATUS_LABEL: Record<string, string> = {
   pending:   'Aguardando pagamento',
@@ -162,7 +163,25 @@ export default async function PedidosPage({ searchParams }: PageProps) {
         })}
       </div>
 
-      {/* Table */}
+      {/* Table or Empty State */}
+      {rows.length === 0 ? (
+        <EmptyState
+          icon={<IconShoppingBag />}
+          title={statusFilter ? `Nenhum pedido com status "${STATUS_LABEL[statusFilter] ?? statusFilter}"` : 'Nenhum pedido nesse período'}
+          description={statusFilter
+            ? 'Limpe o filtro de status ou expanda a janela de tempo (90d cobre histórico recente).'
+            : 'Pedidos aparecem aqui assim que cliente concluir checkout. É normal nas primeiras semanas.'
+          }
+          action={statusFilter
+            ? { label: 'Ver todos os pedidos', href: `/pedidos?days=${days}` }
+            : { label: 'Compartilhar storefront', href: '/aparencia' }
+          }
+          secondaryAction={statusFilter
+            ? undefined
+            : { label: 'Ver dicas de tráfego', href: '/insights' }
+          }
+        />
+      ) : (
       <div className="lj-card" style={{ overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-body-s)' }}>
           <thead>
@@ -177,13 +196,6 @@ export default async function PedidosPage({ searchParams }: PageProps) {
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={7} style={{ textAlign: 'center', padding: 'var(--space-12)', color: 'var(--fg-secondary)' }}>
-                  Nenhum pedido encontrado.
-                </td>
-              </tr>
-            )}
             {rows.map(o => {
               const addr = o.shippingAddress as Record<string, string> | null;
               const recipient = addr?.recipientName ?? '—';
@@ -223,6 +235,7 @@ export default async function PedidosPage({ searchParams }: PageProps) {
           </tbody>
         </table>
       </div>
+      )}
 
       {/* Pagination */}
       {pages > 1 && (

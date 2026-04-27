@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from 'react';
 import { InfoTooltip } from '@/components/ui/info-tooltip';
+import { SettingsAnchorNav } from './anchor-nav';
 
 interface BrandGuide {
   brandName?: string;
@@ -171,43 +172,8 @@ export default function SettingsPage() {
         </nav>
       </header>
 
-      {/* Anchor nav sticky — match Settings.jsx hierarquia 4 grupos */}
-      <div style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 10,
-        background: 'var(--bg)',
-        borderBottom: '1px solid var(--border)',
-        padding: 'var(--space-3) 0',
-        marginBottom: 'var(--space-2)',
-        display: 'flex',
-        gap: 'var(--space-4)',
-        flexWrap: 'wrap',
-      }}>
-        {[
-          { id: 'identidade', label: 'Identidade', group: 'Loja' },
-          { id: 'aparencia', label: 'Aparência', group: 'Loja' },
-          { id: 'comercial', label: 'Políticas comerciais', group: 'Vendas' },
-          { id: 'brand-guide', label: 'Brand Guide IA', group: 'Inteligência' },
-          { id: 'pixels', label: 'Pixels & Analytics', group: 'Marketing' },
-          { id: 'robots', label: 'Robots.txt', group: 'SEO' },
-          { id: 'integracoes-link', label: 'Integrações ↗', group: '' },
-        ].map(t => (
-          <a
-            key={t.id}
-            href={t.id === 'integracoes-link' ? '/integracoes' : `#${t.id}`}
-            style={{
-              fontSize: 'var(--text-body-s)',
-              color: 'var(--fg-secondary)',
-              textDecoration: 'none',
-              fontWeight: 'var(--w-medium)',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {t.label}
-          </a>
-        ))}
-      </div>
+      {/* Anchor nav sticky com active highlighting via IntersectionObserver */}
+      <SettingsAnchorNav />
 
       <form onSubmit={handleSave} className="space-y-8">
         {/* Identidade */}
