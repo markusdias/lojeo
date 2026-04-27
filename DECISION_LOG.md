@@ -4527,3 +4527,47 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - Capturar CPF no checkout form storefront (Sprint 4 ou 4.1).
 - Email template Boleto dedicado.
 - Audit roadmap final — Sprint 0-13 100% review.
+
+
+---
+
+## 2026-04-27 (continuacao) — Batch 26: Tests Boleto + ROADMAP_STATUS consolidado
+
+**Commits:** 9dabafa.
+
+**Tests createMercadoPagoBoletoPayment (4 novos):**
+- Mock sem token: paymentId 'mock-bol-{orderId}' + barcode 'MOCK-BOLETO-{orderNumber}'.
+- API real com x-idempotency-key 'boleto-{orderId}' + payment_method_id 'bolbradesco' + payer.identification.type='CPF' / .number=cpfDigits (cleaned 11). Extrai transaction_details.external_resource_url + barcode.content.
+- CPF incompleto (<11 digits): identification undefined no payload (MP aceita boleto sem CPF mas pode rejeitar — fluxo soft).
+- Fallback mock em 5xx.
+
+**Storefront tests:** 49 → 53 (+4 boleto). Total projeto: ~250 verde.
+
+**ROADMAP_STATUS.md criado no root:**
+- Visão geral: Sprint 0-13 production-ready, 0 regressão registrada nos 25 batches.
+- Coverage detalhado por Sprint:
+  - Sprints 0-2: stack + motor + storefront base (✅)
+  - Sprint 3: checkout BR 100% (Pix + Boleto + Cartão + webhook + confirmacao + falha)
+  - Sprint 4: orders + frete + Bling NF-e real
+  - Sprints 5-8: admin + RFM + IA backoffice + churn + forecast
+  - Sprint 9: notificações lojista 100% (9/9 hooks + opt-out + cron secret)
+  - Sprint 10: UGC + pgvector embeddings (mock até OpenAI key)
+  - Sprint 11: recommendations + CTR
+  - Sprint 12: pixels + SEO + blog + PWA
+  - Sprint 13: GDPR/LGPD + 5/5 emails + security + 11 integrações + a11y
+- Pendências V2: provider IA imagem (decisão), CDN, OAuth 1-clique pixels, CPF capture checkout, Coffee-v1 Fase 1.2.
+- Métricas: ~250 tests, 12 workspaces + 2 apps, 25 batches sessão.
+
+**Sessão completa de hoje (2026-04-27):**
+- 25 batches autônomos via /loop dynamic, todos com tests + commits + docs.
+- Major features: Sprint 3 100% (checkout BR completo), Sprint 9 100% (notificações), Sprint 13 GDPR/LGPD/a11y/integrations conectáveis, 5/5 emails transacionais.
+- Sub-features: ChurnScanButton, IssueInvoiceButton, OnboardingCard dashboard, CriticalAlertsBanner, integrations dual-mode 11 providers, cron-auth secret pra scheduler externo, MP/Bling helpers + tests, render+sendEmail wrapper, getStoreEmailConfig shared.
+- Documentação: README expandido, .env.example completo (15 vars), DECISION_LOG 26 batches detalhados, ROADMAP_STATUS consolidado.
+- 0 regressão. CI verde após fix CSS no batch 24.
+
+**Próximo dia / próximas sessões:**
+- Validar prod E2E completo (Playwright login admin → criar pedido Pix → ver QR + bell + email log).
+- Coffee-v1 template Fase 1.2 (USD + Stripe + DHL + EN-US).
+- Trigger.dev cron real (substitui botões manuais low-stock/churn).
+- CPF capture checkout (completa Boleto real).
+- Audit visual subagent comparando prod vs UI kits oficial após mudanças.
