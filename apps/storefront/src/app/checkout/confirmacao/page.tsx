@@ -1,26 +1,70 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useEffect, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useCheckout } from '../../../components/checkout/checkout-provider';
 import { useTracker } from '../../../components/tracker-provider';
 import { Icon } from '../../../components/ui/icon';
 
-export default function ConfirmacaoPage() {
+interface FetchedOrder {
+  id: string;
+  orderNumber: string;
+  paymentMethod: string | null;
+  status: string;
+}
+
+function ConfirmacaoInner() {
   const { state, reset } = useCheckout();
   const tracker = useTracker();
+  const params = useSearchParams();
+  const queryOrderId = params.get('order');
+  const [fetched, setFetched] = useState<FetchedOrder | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // MP-redirect-flow: chega aqui sem provider state (sessão diferente). Fetch order.
+  useEffect(() => {
+    if (state.orderId || !queryOrderId) return;
+    setLoading(true);
+    fetch(`/api/orders?id=${encodeURIComponent(queryOrderId)}`, { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { id?: string; orderNumber?: string; paymentMethod?: string | null; status?: string } | null) => {
+        if (d?.id) {
+          setFetched({
+            id: d.id,
+            orderNumber: d.orderNumber ?? '—',
+            paymentMethod: d.paymentMethod ?? null,
+            status: d.status ?? 'pending',
+          });
+        }
+      })
+      .catch(() => null)
+      .finally(() => setLoading(false));
+  }, [state.orderId, queryOrderId]);
+
+  const orderId = state.orderId ?? fetched?.id ?? null;
+  const orderNumber = state.orderNumber ?? fetched?.orderNumber ?? null;
+  const paymentMethod = state.paymentMethod ?? fetched?.paymentMethod ?? null;
 
   useEffect(() => {
-    if (!state.orderId) return;
+    if (!orderId) return;
     tracker?.track({
       type: 'checkout_step_complete',
       entityType: 'order',
-      entityId: state.orderId,
-      metadata: { step: 4, orderNumber: state.orderNumber, method: state.paymentMethod },
+      entityId: orderId,
+      metadata: { step: 4, orderNumber, method: paymentMethod },
     });
-  }, [state.orderId, state.orderNumber, state.paymentMethod, tracker]);
+  }, [orderId, orderNumber, paymentMethod, tracker]);
 
-  if (!state.orderId || !state.orderNumber) {
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: '80px 0' }}>
+        <p style={{ color: 'var(--text-muted)' }}>Carregando pedido…</p>
+      </div>
+    );
+  }
+
+  if (!orderId || !orderNumber) {
     return (
       <div style={{ textAlign: 'center', padding: '80px 0' }}>
         <p style={{ color: 'var(--text-muted)' }}>Nenhum pedido encontrado.</p>
@@ -29,8 +73,8 @@ export default function ConfirmacaoPage() {
     );
   }
 
-  const isPix = state.paymentMethod === 'pix';
-  const isBoleto = state.paymentMethod === 'boleto';
+  const isPix = paymentMethod === 'pix';
+  const isBoleto = paymentMethod === 'boleto';
 
   return (
     <div style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center', padding: '40px 0 80px' }}>
@@ -46,7 +90,7 @@ export default function ConfirmacaoPage() {
         Pedido confirmado.
       </h1>
       <p style={{ fontSize: 17, color: 'var(--text-secondary)', marginTop: 12, marginBottom: 40 }}>
-        Recebemos seu pedido <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{state.orderNumber}</strong>. Enviamos um email com os detalhes.
+        Recebemos seu pedido <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{orderNumber}</strong>. Enviamos um email com os detalhes.
       </p>
 
       {isPix && (
@@ -140,5 +184,13 @@ export default function ConfirmacaoPage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function ConfirmacaoPage() {
+  return (
+    <Suspense fallback={<div style={{ textAlign: 'center', padding: '80px 0' }}>Carregando…</div>}>
+      <ConfirmacaoInner />
+    </Suspense>
   );
 }
