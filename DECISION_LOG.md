@@ -5891,3 +5891,46 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - Migrar restante hooks emit (order.created/paid, review.pending, return.requested, restock.demand, fiscal.failed, ticket.assigned).
 - P5.V — dogfood DB-real CI (GitHub Actions service postgres).
 - Endpoint POST /api/nps + cron survey D+7.
+
+---
+
+## 2026-04-27 (continuacao) — Batch 55: NPS endpoint + cron survey D+7
+
+**Commits:** (a registrar nesta sessao).
+
+**Endpoint `POST /api/nps` (storefront):**
+- Zod schema: score 0-10, comment max 2000, customerEmail email opcional, surveyTrigger enum (delivery_d7|ticket_close|manual|web_widget), relatedOrderId/TicketId UUID opcional.
+- Rate limit 5 NPS/IP/hora — anti-spam botnet.
+- Persiste em `nps_responses`. Retorna `{ ok, id }` 201.
+
+**Email template `NpsSurvey`:**
+- React Email seguindo `_shell.tsx` jewelry-v1 mood.
+- Bilingue PT-BR / EN-US baseado em prop locale.
+- 11 botões score 0-10 colorizados (vermelho 0-6 detractor, amarelo 7-8 passive, verde 9-10 promoter).
+- Cada link: `${surveyBaseUrl}&score=${s}` — pre-fill score no clicar.
+- Fallback CTA "Abrir pesquisa completa" / "Open full survey" pra cliente decidir lá.
+
+**Cron `/api/cron/nps-survey`:**
+- Detect orders deliveredAt entre 7d-12h e 7d+12h atrás (janela ±12h).
+- Dedup: skip se já tem `nps_responses` com `surveyTrigger='delivery_d7' AND relatedOrderId=X`.
+- Render NpsSurvey email + envia via sendEmail (com retry 4× já implementado).
+- Subject bilingue: `${storeName} · Como foi seu pedido ${orderNumber}?` / `How was your order...?`.
+- Survey URL: `${storefrontBase}/nps?orderId=...&trigger=delivery_d7` — landing page client futura coleta resposta.
+
+**Trade-offs arquiteturais:**
+- Janela ±12h evita reenvio em runs sucessivos do cron. Tenant scheduler externo deve disparar 1x/dia.
+- Dedup via existing nps_response — não usa marca em order.metadata (mais clean, fonte de verdade no NPS table).
+- Storefront `/nps` page que captura score + comment NÃO criada neste batch — endpoint POST recebe payload diretamente. UI page V2.
+- customerName fallback `email.split('@')[0]` — pragmatic; V2 buscar User/CustomerProfile.
+- Score links email-side: cada um aponta pra `?score=N` — landing page lê + chama POST /api/nps. Cliente scroll page → comment box opcional → submit final.
+- Survey trigger ticket_close NÃO automatizado neste batch — V2 hook em ticket close action.
+
+**Validações:**
+- pnpm -r typecheck zero erro.
+- 514 passing total. Zero regressao.
+- pnpm -r lint admin/storefront limpo.
+
+**Próximo ciclo:**
+- Storefront `/nps` page client (read query params, captura score + comment, POST).
+- P5.V — dogfood DB-real CI (GitHub Actions service postgres).
+- Migrar restante emit hooks pra multichannel.

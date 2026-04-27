@@ -36,3 +36,4 @@ export {
   type RecoverCartItem,
 } from './templates/recover-cart';
 export { DailyDigest, type DailyDigestProps } from './templates/daily-digest';
+export { NpsSurvey, type NpsSurveyProps } from './templates/nps-survey';
