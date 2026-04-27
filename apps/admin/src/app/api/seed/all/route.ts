@@ -11,6 +11,8 @@ import {
   productReviews,
   supportTickets,
   ticketMessages,
+  returnRequests,
+  orders,
 } from '@lojeo/db';
 import { auth } from '../../../../auth';
 
@@ -216,6 +218,9 @@ async function runSeed() {
     const numReviews = pi < 2 ? 2 : 1;
     for (let j = 0; j < numReviews && reviewsData.length < 8; j++) {
       const r = reviewBodies[reviewsData.length % reviewBodies.length]!;
+      // Primeiros 4 pending (pra /filas tab Avaliações), últimos 4 approved (pra PDP/avaliacoes)
+      const status = reviewsData.length < 4 ? 'pending' : 'approved';
+      const ageDays = reviewsData.length < 4 ? Math.floor(reviewsData.length / 2) : reviewsData.length * 3;
       reviewsData.push({
         tenantId: TENANT_ID,
         productId: p.id,
@@ -224,11 +229,11 @@ async function runSeed() {
         rating: r.rating,
         title: r.title,
         body: r.body,
-        status: 'approved',
+        status,
         verifiedPurchase: true,
-        helpfulCount: Math.floor(Math.random() * 8),
-        createdAt: new Date(now.getTime() - reviewsData.length * 3 * DAY),
-        updatedAt: new Date(now.getTime() - reviewsData.length * 3 * DAY),
+        helpfulCount: status === 'approved' ? Math.floor(Math.random() * 8) : 0,
+        createdAt: new Date(now.getTime() - ageDays * DAY),
+        updatedAt: new Date(now.getTime() - ageDays * DAY),
       });
     }
   });
@@ -283,6 +288,45 @@ async function runSeed() {
     }
   }
 
+  // ── 7. RETURN REQUESTS ── 2 returns vinculados a pedidos seed (Beatriz Champion)
+  let returnsInserted = 0;
+  try {
+    // Pega 2 pedidos delivered pra atrelar returns
+    const seedOrders = await db
+      .select({ id: orders.id, customerEmail: orders.customerEmail })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.tenantId, TENANT_ID),
+          eq(orders.status, 'delivered'),
+        ),
+      )
+      .limit(2);
+
+    const returnsData = seedOrders.map((o, i) => ({
+      tenantId: TENANT_ID,
+      orderId: o.id,
+      customerEmail: o.customerEmail,
+      type: i === 0 ? 'exchange' : 'refund',
+      reason: i === 0 ? 'defect' : 'wrong_size',
+      reasonDetails: i === 0
+        ? 'Fecho da pulseira veio quebrado.'
+        : 'Tamanho do anel veio menor que o esperado.',
+      status: i === 0 ? 'analyzing' : 'requested',
+      refundCents: i === 1 ? 29000 : null,
+      createdAt: new Date(now.getTime() - (i + 1) * 2 * DAY),
+      updatedAt: new Date(now.getTime() - (i + 1) * 2 * DAY),
+    }));
+
+    if (returnsData.length > 0) {
+      const r = await db.insert(returnRequests).values(returnsData).returning({ id: returnRequests.id });
+      returnsInserted = r.length;
+    }
+  } catch (e) {
+    errors.returns = String(e);
+    console.error('seed returns failed', e);
+  }
+
   return NextResponse.json({
     ok: true,
     counts: {
@@ -292,6 +336,7 @@ async function runSeed() {
       ugcPosts: ugcInserted,
       reviews: reviewsInserted,
       tickets: ticketsInserted,
+      returns: returnsInserted,
     },
     errors,
   });
@@ -339,6 +384,15 @@ export async function DELETE(req: NextRequest) {
   ).returning({ id: supportTickets.id });
   deleted.tickets = tkDel.length;
   // ticket_messages cascade via FK
+
+  // Returns: cleanup atrelados a orders seedados (metadata.seed=true)
+  // → vai ser cleanup junto pelo /api/seed/order DELETE quando rodado.
+  // Aqui, limpa returns vinculados a customerEmail das personas seedadas.
+  const personaEmails = ['beatriz.lima@email.com', 'carolina.p@email.com', 'di.vilela@email.com', 'ju.tavares@email.com'];
+  const rtDel = await db.delete(returnRequests).where(
+    and(eq(returnRequests.tenantId, TENANT_ID), inArray(returnRequests.customerEmail, personaEmails))
+  ).returning({ id: returnRequests.id });
+  deleted.returns = rtDel.length;
 
   // Suppress unused sql warning (helper fn for future filters)
   void sql;
