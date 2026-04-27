@@ -171,9 +171,47 @@ export default function SettingsPage() {
         </nav>
       </header>
 
+      {/* Anchor nav sticky — match Settings.jsx hierarquia 4 grupos */}
+      <div style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 10,
+        background: 'var(--bg)',
+        borderBottom: '1px solid var(--border)',
+        padding: 'var(--space-3) 0',
+        marginBottom: 'var(--space-2)',
+        display: 'flex',
+        gap: 'var(--space-4)',
+        flexWrap: 'wrap',
+      }}>
+        {[
+          { id: 'identidade', label: 'Identidade', group: 'Loja' },
+          { id: 'aparencia', label: 'Aparência', group: 'Loja' },
+          { id: 'comercial', label: 'Políticas comerciais', group: 'Vendas' },
+          { id: 'brand-guide', label: 'Brand Guide IA', group: 'Inteligência' },
+          { id: 'pixels', label: 'Pixels & Analytics', group: 'Marketing' },
+          { id: 'robots', label: 'Robots.txt', group: 'SEO' },
+          { id: 'integracoes-link', label: 'Integrações ↗', group: '' },
+        ].map(t => (
+          <a
+            key={t.id}
+            href={t.id === 'integracoes-link' ? '/integracoes' : `#${t.id}`}
+            style={{
+              fontSize: 'var(--text-body-s)',
+              color: 'var(--fg-secondary)',
+              textDecoration: 'none',
+              fontWeight: 'var(--w-medium)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {t.label}
+          </a>
+        ))}
+      </div>
+
       <form onSubmit={handleSave} className="space-y-8">
         {/* Identidade */}
-        <section className="lj-card" style={{ padding: 'var(--space-6)' }}>
+        <section id="identidade" className="lj-card" style={{ padding: 'var(--space-6)', scrollMarginTop: 80 }}>
           <h2 style={{ fontSize: 'var(--text-h4)', fontWeight: 'var(--w-semibold)', marginBottom: 'var(--space-4)' }}>Identidade</h2>
           <div className="space-y-4">
             <div>
@@ -202,7 +240,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Aparência */}
-        <section className="lj-card" style={{ padding: 'var(--space-6)' }}>
+        <section id="aparencia" className="lj-card" style={{ padding: 'var(--space-6)', scrollMarginTop: 80 }}>
           <div style={{ marginBottom: 'var(--space-5)' }}>
             <h2 style={{ fontSize: 'var(--text-h4)', fontWeight: 'var(--w-semibold)', marginBottom: 'var(--space-1)' }}>Aparência do storefront</h2>
             <p className="body-s">
@@ -416,7 +454,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Políticas comerciais */}
-        <section className="bg-white rounded-lg shadow p-6 space-y-4">
+        <section id="comercial" className="bg-white rounded-lg shadow p-6 space-y-4" style={{ scrollMarginTop: 80 }}>
           <h2 className="font-semibold text-lg">Políticas comerciais</h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -482,7 +520,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Brand Guide IA */}
-        <section className="bg-white rounded-lg shadow p-6 space-y-4">
+        <section id="brand-guide" className="bg-white rounded-lg shadow p-6 space-y-4" style={{ scrollMarginTop: 80 }}>
           <div>
             <h2 className="font-semibold text-lg">Brand Guide para IA</h2>
             <p className="text-xs text-neutral-500 mt-1">
@@ -561,9 +599,8 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* Robots.txt */}
         {/* Pixels & Analytics */}
-        <section className="bg-white rounded-lg shadow p-6 space-y-3">
+        <section id="pixels" className="bg-white rounded-lg shadow p-6 space-y-3" style={{ scrollMarginTop: 80 }}>
           <h2 className="font-semibold text-lg">Pixels e Analytics</h2>
           <p className="text-xs text-neutral-500">
             IDs dos pixels de marketing. Deixe em branco para desativar. Os scripts respeitam o consentimento LGPD do cliente.
@@ -632,7 +669,7 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        <section className="bg-white rounded-lg shadow p-6 space-y-3">
+        <section id="robots" className="bg-white rounded-lg shadow p-6 space-y-3" style={{ scrollMarginTop: 80 }}>
           <h2 className="font-semibold text-lg">
             Robots.txt
             <InfoTooltip text="Em branco usa default. Edite só se precisar bloquear bots específicos ou liberar áreas restritas." />
