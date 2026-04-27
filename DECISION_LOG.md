@@ -4618,3 +4618,48 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - Validation CPF dígito verificador client-side (algoritmo módulo 11) — UX feedback antes server.
 - Email template Boleto dedicado (PDF link destacado, expira em 3d badge).
 - Coffee-v1 Fase 1.2 começa.
+
+
+---
+
+## 2026-04-27 (continuacao) — Batch 28: CPF validator módulo 11 + UX feedback inline
+
+**Commits:** 4e68c96.
+
+**@lojeo/engine ganha cpf.ts puro:**
+- `isValidCpf(input)`: valida 11 dígitos, rejeita all-same-digit (000…000, 111…111, …, 999…999 — convenção Receita Federal), aplica algoritmo módulo 11 dos dígitos verificadores:
+  - DV1: soma dos 9 primeiros dígitos × pesos 10..2, mod 11. Resultado <2=0, senão 11-resto.
+  - DV2: soma dos 10 primeiros dígitos × pesos 11..2, mesmo cálculo.
+- `stripCpf(input)`: remove tudo que não é dígito.
+- `formatCpf(input)`: formata 11 dígitos em 000.000.000-00. Retorna entrada se != 11 dígitos.
+- Testes: 11 cases cobrindo válidos, all-same, tamanho errado, DV errado, vazio, formatação parcial.
+
+**/checkout/endereco UX feedback:**
+- `validate()` agora chama `isValidCpf(cpf)` quando CPF preenchido. Se inválido, error 'CPF inválido — verifique os dígitos' inline.
+- CPF vazio continua aceito (opcional para Pix/cartão; Boleto MP server-side rejeita ausência).
+- Field component renderiza error abaixo do input (já existing).
+
+**Trade-offs:**
+- formatCpf duplicado: storefront tem `formatCpf` inline (string mask incremental enquanto digita) + engine `formatCpf` (após 11 dígitos). Mantive ambos — storefront precisa transformação parcial enquanto user digita; engine precisa transformação completa pós-validação. V2: unificar exportando `progressiveFormat` separadamente.
+- UX feedback aparece só após submit attempt (validate roda em handleSubmit). V2: validar onBlur pra feedback antes do submit.
+
+**Sprint 3 BR checkout — coverage final final:**
+- ✓ MP Preference (cartão)
+- ✓ MP Payment direto Pix (QR + nome real)
+- ✓ MP Payment direto Boleto (CPF capturado + validado client-side módulo 11 + PDF + barcode)
+- ✓ Webhook real-mode + emit notification
+- ✓ /checkout/confirmacao QR/PDF + polling 5s
+- ✓ /checkout/falha
+- ✓ MP-redirect-flow cross-session
+- ✓ CPF validator engine puro reusável
+
+**Validações:**
+- Engine 98/98 (+11), storefront 53/53, admin 77/77, db 20, etc. Total ~260 tests. Typecheck/lint zero.
+- 0 regressão.
+- Deploy storefront disparado.
+
+**Próximo ciclo:**
+- Email Boleto template dedicado (PDF link destacado, expira em 3d badge).
+- Coffee-v1 template Fase 1.2 internacional (USD + Stripe + DHL/FedEx + EN-US).
+- E2E Playwright fluxo checkout completo Pix + Boleto.
+- Validation onBlur (não só onSubmit).
