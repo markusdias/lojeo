@@ -2864,3 +2864,20 @@ Não migrei pra page-by-tab nem refactorei o form. Usei anchor nav sticky no top
 - /pedidos breadcrumb sub-nav match Image #9
 
 **133 commits totais sessão**, **108 testes globais verdes**, **24 migrations prod**, **zero regressão**.
+
+---
+
+## 2026-04-26 — Empty state /clientes branded
+
+**Commit:** [feat clientes empty]
+
+Match Empty.jsx ref `EmptyCustomers`. ClientesTable agora renderiza `<EmptyState IconUsers />` quando `visible.length === 0`. Microcopy contextual:
+
+- `filter === 'all'`: ativação primeira venda — "Vão chegar com os primeiros pedidos — com histórico, segmentação RFM e tags prontas pra campanhas" + CTA Compartilhar storefront
+- segmento específico: educação sobre fluxo RFM — "Conforme cliente avança no ciclo (pedidos novos / inatividade), entra automaticamente nesse segmento" + CTA Ver todos
+
+Tabela renderiza condicional `{visible.length === 0 ? <EmptyState /> : <table />}` em vez de row colspan dentro tbody.
+
+**Tests admin 18/18.** Deploy admin disparado.
+
+**134 commits totais sessão**, **108 testes globais verdes**, **24 migrations prod**, **zero regressão**.
