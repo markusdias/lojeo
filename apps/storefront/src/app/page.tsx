@@ -12,19 +12,18 @@ export const dynamic = 'force-dynamic';
 
 const tenantId = () => process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
 
+// Paridade: docs/design-system-jewelry-v1/project/ui_kits/storefront/Home.jsx#Collections
+// Cada categoria tem um tom de placeholder distinto na paleta champagne/areia
+// para diferenciação visual enquanto não há foto real (ref usa product-placeholder.svg
+// uniforme; aqui variamos o gradient para dar profundidade ao grid 4 colunas).
 const SECTIONS = [
-  { slug: 'aneis',     label: 'Anéis',     blurb: 'Solitários, eternidades e bandas.' },
-  { slug: 'brincos',   label: 'Brincos',   blurb: 'Argolas, ear cuffs, gotas.' },
-  { slug: 'colares',   label: 'Colares',   blurb: 'Pingentes e correntes finas.' },
-  { slug: 'pulseiras', label: 'Pulseiras', blurb: 'Riviera, elos e pingentes.' },
+  { slug: 'aneis',     label: 'Anéis',     blurb: 'Solitários, eternidades e bandas.', tone: 'linear-gradient(140deg, #EDE3CE 0%, #D4C5A8 100%)' },
+  { slug: 'brincos',   label: 'Brincos',   blurb: 'Argolas, ear cuffs, gotas.',         tone: 'linear-gradient(140deg, #F2EAD8 0%, #D8C9AC 100%)' },
+  { slug: 'colares',   label: 'Colares',   blurb: 'Pingentes e correntes finas.',       tone: 'linear-gradient(140deg, #E8DCC2 0%, #C9B894 100%)' },
+  { slug: 'pulseiras', label: 'Pulseiras', blurb: 'Riviera, elos e pingentes.',         tone: 'linear-gradient(140deg, #EFE6D2 0%, #D0C0A0 100%)' },
 ];
 
 // SVG icons match docs/design-system-jewelry-v1/project/preview/trust-signals.html
-const TrustIcon = ({ d }: { d: string }) => (
-  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-    <path d={d} />
-  </svg>
-);
 const TRUST_ITEMS: { icon: React.ReactNode; label: string; desc: string }[] = [
   {
     icon: (
@@ -71,8 +70,6 @@ const TRUST_ITEMS: { icon: React.ReactNode; label: string; desc: string }[] = [
     desc: 'sem perguntas',
   },
 ];
-void TrustIcon;
-
 export default async function HomePage() {
   const tid = tenantId();
   const tpl = await getActiveTemplate();
@@ -87,12 +84,14 @@ export default async function HomePage() {
   return (
     <>
       {/* ── HERO ── */}
+      {/* Paridade: docs/design-system-jewelry-v1/project/ui_kits/storefront/Home.jsx#Hero
+         aspectRatio 16/9 puro (sem minHeight forçado), gradient diagonal champagne,
+         overlay horizontal 92→0% para legibilidade do texto à esquerda. */}
       <section style={{ maxWidth: 'var(--container-max)', margin: '24px auto 0', padding: '0 var(--container-pad)' }}>
         <div style={{
           position: 'relative', borderRadius: 8, overflow: 'hidden',
           aspectRatio: '16/9',
           background: 'linear-gradient(135deg, #E8DDC9 0%, #D4C5A8 100%)',
-          minHeight: 420,
         }}>
           {/* Overlay gradient */}
           <div style={{
@@ -124,15 +123,15 @@ export default async function HomePage() {
             <Link key={c.slug} href={`/produtos?categoria=${c.slug}`} style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
               <div style={{
                 aspectRatio: '3/4',
-                background: 'var(--surface-sunken)',
+                background: c.tone,
                 borderRadius: 'var(--r-image)',
                 overflow: 'hidden', marginBottom: 18,
-                display: 'grid', placeItems: 'center',
+                position: 'relative',
               }}>
+                {/* Sutileza: spotlight diagonal ressalta a peça (placeholder) */}
                 <div style={{
-                  width: '60%', height: '60%',
-                  background: 'linear-gradient(135deg, #D4C5A8 0%, #B8956A22 100%)',
-                  borderRadius: '50%',
+                  position: 'absolute', inset: 0,
+                  background: 'radial-gradient(ellipse at 30% 35%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 55%)',
                 }} />
               </div>
               <h3 style={{ margin: '0 0 6px', fontSize: 24 }}>{c.label}</h3>
@@ -177,13 +176,23 @@ export default async function HomePage() {
       )}
 
       {/* ── SOBRE BREVE ── */}
+      {/* Paridade: ref AboutBrief — aspectRatio 4/5 com imagem do ateliê (placeholder
+         gradient enquanto não há foto real). Spotlight sutil no canto superior reforça
+         "luz natural na bancada" do mood jewelry. */}
       <section style={{ maxWidth: 'var(--container-max)', margin: '120px auto 0', padding: '0 var(--container-pad)' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center' }}>
           <div style={{
             aspectRatio: '4/5',
-            background: 'linear-gradient(135deg, #F4F1E9 0%, #E8DFC9 100%)',
+            background: 'linear-gradient(140deg, #EFE6D2 0%, #D8C9AC 60%, #C9B894 100%)',
             borderRadius: 8,
-          }} />
+            position: 'relative',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              position: 'absolute', inset: 0,
+              background: 'radial-gradient(ellipse at 25% 20%, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 55%)',
+            }} />
+          </div>
           <div>
             <p className="eyebrow" style={{ marginBottom: 16 }}>Nossa história</p>
             <h2 style={{ margin: '0 0 24px', lineHeight: 1.1 }}>
@@ -208,18 +217,19 @@ export default async function HomePage() {
       </section>
 
       {/* ── TRUST SIGNALS ── */}
+      {/* Paridade: ref TrustRow usa padding 60px 0 + gap interno 10 + label 14px */}
       <section style={{ maxWidth: 'var(--container-max)', margin: '120px auto 0', padding: '0 var(--container-pad)' }}>
         <div style={{
           display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 32,
           borderTop: '1px solid var(--divider)', borderBottom: '1px solid var(--divider)',
-          padding: '40px 0',
+          padding: '60px 0',
         }}>
           {TRUST_ITEMS.map(t => (
-            <div key={t.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 6 }}>
-              <span style={{ width: 32, height: 32, color: 'var(--accent)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 6 }}>
+            <div key={t.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10 }}>
+              <span style={{ width: 32, height: 32, color: 'var(--accent)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                 {t.icon}
               </span>
-              <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', margin: 0 }}>{t.label}</p>
+              <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', margin: 0 }}>{t.label}</p>
               <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.3, margin: 0 }}>{t.desc}</p>
             </div>
           ))}
