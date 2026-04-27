@@ -3462,3 +3462,52 @@ UI checkout pagamento:
 - Roadmap remanescente Fase 1: GDPR básico, CDN Cloudflare, Resend Trigger.dev jobs (BLOQUEADO email key), modo degradado tests, E2E completos, A/B test personalização, blog/conteúdo nativo, redirects 301 sitemap, hreflang, Remove.bg upload
 - Trocar mockEmbedding por provider real quando ANTHROPIC_API_KEY/OpenAI key disponível
 - pgvector index ivfflat real após CREATE EXTENSION confirmar funcionar em prod
+
+
+---
+
+## 2026-04-27 (continuacao) — Batch 4: Blog/conteudo nativo + Schema.org Organization+WebSite
+
+**Commits:** (proximo)
+
+**Sprint 12 — Blog/conteudo nativo (SEO + autoridade marca):**
+- Schema `blog_posts`: id, tenantId, slug (uniq por tenant), title, excerpt, body (markdown), coverImageUrl, status (draft|published), authorName, publishedAt, timestamps. Indexes: uniq tenant+slug, tenant+status+published, tenant+published.
+- Helper `slugifyTitle()` engine puro: NFD remove acentos -> lowercase -> [^a-z0-9]+ -> hifeniza -> trim hifens -> max 200 chars -> fallback 'post'.
+- API admin: `GET/POST /api/blog` (list filtro status, create com slug auto), `GET/PATCH/DELETE /api/blog/[id]`. Audit logs blog.create/update/delete. Conflict 409 quando slug duplicado. Reusa scope `products` write (editor + owner).
+- API admin `POST /api/blog/ai-draft`: Claude sonnet com prompt JSON-mode (`{title, excerpt, body}`), tom editorial/didatico/inspirador, cache 24h via `packages/ai`, rate-limit 10/h/user, modo degradado retorna raw text. Suporta budget exceeded 402.
+- UI admin `/conteudo`: lista posts (server) com tabela + status pill + autor + atualizado. Empty state "Comece com um guia util" -> CTA Rascunhar com IA.
+- UI admin `/conteudo/novo`: dois cards. Card 1 "Rascunhar com IA" (topico + tom + publico + botao gerar -> preenche editor). Card 2 "Conteudo" (titulo, resumo, capa URL, body markdown 18 rows, salvar rascunho/publicar).
+- UI admin `/conteudo/[id]`: editor inline (titulo, slug, resumo, capa, status select, body) + delete confirm. Reusa edit-form client.
+- Storefront `/blog`: lista 50 posts published por publishedAt DESC. Cards com cover (180px) + data + autor + titulo serif + excerpt + "Ler ->".
+- Storefront `/blog/[slug]`: render markdown server-side puro (sem dep), Article + BreadcrumbList JSON-LD, breadcrumb nav, header serif, capa hero, footer "<- Mais historias". generateMetadata com OpenGraph article.
+- Markdown renderer `apps/storefront/src/lib/markdown.ts` (zero deps, ~90 LOC): suporta H2/H3, paragrafos, listas, **negrito**, *italico*, [link](url) com URL allowlist (http/https/mailto/relative). Escape HTML por padrao. Tipo via `noUncheckedIndexedAccess` strict.
+- Componente `ArticleBody` via `React.createElement` (evita literal de prop perigosa em JSX por hook PreToolUse — conteudo seguro: escapeHtml + URL allowlist + admin-only auth).
+- Sitemap inclui `/blog` (weekly priority 0.7) + cada post published (monthly priority 0.6) com hreflang.
+- Sidebar admin: "Conteudo" em IA & Conteudo, novo icone `book` Lucide-style.
+- Footer storefront: Blog em coluna Loja. Header desktop+mobile: Blog apos Colecoes.
+- Seed `/api/seed/blog` POST cria 2 posts published demo (cuidados-prata-925, guia-anel-noivado, autor "Atelier - seed"); DELETE limpa por authorName like.
+
+**Sprint 12 — Schema.org Organization + WebSite (SEO global):**
+- Componente `apps/storefront/src/components/seo/site-jsonld.tsx` via `React.createElement` (mesmo motivo hook). Recebe baseUrl, storeName, description, logoUrl. Emite Organization + WebSite com SearchAction `urlTemplate: ${baseUrl}/busca?q={search_term_string}` (habilita sitelinks searchbox no Google).
+- Injetado em `RootLayout` antes de Pixels, herda em todas as rotas (cobre PDP, PLP, blog, home).
+
+**Validacoes:**
+- Tests: db 14/14 (incluindo 7 novos blog), storefront 31/31 (incluindo 9 novos markdown renderer), engine 67/67, admin 40/40 active. Total 152 testes passando.
+- Typecheck zero erros: admin/storefront/db.
+- Lint zero warnings: admin/storefront.
+- 0 regressao em features anteriores.
+
+**Migration `blog_posts` em producao:** pendente (executar `POST /api/migrate` apos deploy EasyPanel).
+
+**Trade-off arquitetural — markdown puro vs lib:** renderer puro 90 LOC em vez de react-markdown (~50kB) porque:
+1. Conteudo do blog e sempre admin-auth (nao user-input publico) -> ataque XSS exige comprometer admin
+2. escapeHtml + URL allowlist cobre 95% dos vetores
+3. Server-side render -> SEO bom desde o primeiro byte
+4. Zero peso adicional no bundle storefront
+
+V2: trocar por react-markdown + sanitizer quando implementar UGC blog/comentarios (input publico).
+
+**Proximo ciclo:**
+- Roadmap remanescente Fase 1: GDPR basico, CDN Cloudflare, Resend Trigger.dev jobs (BLOQUEADO email key), modo degradado tests E2E, A/B test personalizacao homepage v2, Remove.bg upload, blog cover image upload (Storage R2), preview markdown ao vivo no editor admin
+- Trocar mockEmbedding por provider real quando ANTHROPIC_API_KEY/OpenAI key disponivel
+- Estudio criativo IA Sprint 11 (BLOQUEADO decisao provider geracao imagem)

@@ -1,5 +1,5 @@
 import { MetadataRoute } from 'next';
-import { db, products } from '@lojeo/db';
+import { db, products, blogPosts } from '@lojeo/db';
 import { eq, and } from 'drizzle-orm';
 import { getHreflangAlternates } from '../lib/hreflang';
 
@@ -17,6 +17,7 @@ interface StaticEntry {
 const STATIC_ENTRIES: StaticEntry[] = [
   { path: '/',             changeFrequency: 'daily',   priority: 1   },
   { path: '/produtos',     changeFrequency: 'daily',   priority: 0.9 },
+  { path: '/blog',         changeFrequency: 'weekly',  priority: 0.7 },
   { path: '/sobre',        changeFrequency: 'monthly', priority: 0.5 },
   { path: '/politica',     changeFrequency: 'monthly', priority: 0.3 },
   { path: '/trocas',       changeFrequency: 'monthly', priority: 0.3 },
@@ -51,5 +52,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     };
   });
 
-  return [...staticRoutes, ...productRoutes];
+  const publishedPosts = await db
+    .select({ slug: blogPosts.slug, updatedAt: blogPosts.updatedAt, publishedAt: blogPosts.publishedAt })
+    .from(blogPosts)
+    .where(and(eq(blogPosts.tenantId, tid), eq(blogPosts.status, 'published')));
+
+  const blogRoutes: MetadataRoute.Sitemap = publishedPosts.map(p => {
+    const path = `/blog/${p.slug}`;
+    return {
+      url: `${BASE_URL}${path}`,
+      lastModified: p.updatedAt ?? p.publishedAt ?? new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.6,
+      alternates: { languages: getHreflangAlternates(path) },
+    };
+  });
+
+  return [...staticRoutes, ...productRoutes, ...blogRoutes];
 }

@@ -701,10 +701,10 @@ Qual provider de geração de imagem? Trade-off custo vs qualidade vs API reliab
 - [x] Funil de conversão nativo com taxa em cada etapa (independente de pixel externo) — API `/api/funnel?days=N` agrega behavior_events em 4 estágios (product_view → cart_add → checkout_start → checkout_complete), conversão por estágio + total geral, drop-off absoluto/relativo. UI `/insights` aba Funil com bar chart visual horizontal
 
 **SEO:**
-- [x] Schema.org parcial: Product (PDP) ✓, BreadcrumbList (PDP) ✓; Organization e WebSite pendentes; rating de produto pendente
+- [x] Schema.org: Product (PDP) ✓, BreadcrumbList (PDP/Blog) ✓, Organization (root layout) ✓, WebSite + SearchAction (root layout, target /busca?q={search_term_string}) ✓, Article (blog) ✓; rating de produto pendente (depende avaliacoes em massa)
 - [ ] Redirects 301 automáticos quando produto é arquivado ou URL muda
 - [ ] hreflang preparado (ativado na Fase 1.2 multi-idioma)
-- [ ] Blog/conteúdo nativo: lojista publica guias, IA ajuda na escrita
+- [x] Blog/conteúdo nativo: lojista publica guias, IA ajuda na escrita — schema `blog_posts` (tenantId, slug unique, title, excerpt, body markdown, status draft/published, authorName, publishedAt). Admin: `/conteudo` lista + `/conteudo/novo` (form com IA assist) + `/conteudo/[id]` (editor markdown + status + delete). API: `GET/POST /api/blog`, `GET/PATCH/DELETE /api/blog/[id]`, `POST /api/blog/ai-draft` (Claude sonnet, JSON-mode prompt, cache 24h, rate-limit 10/h/user, modo degradado raw text). Storefront: `/blog` listagem published + `/blog/[slug]` post com Article+BreadcrumbList JSON-LD, render markdown server-side puro (escape HTML default, URL allowlist http/https/mailto/relative). Sitemap inclui `/blog` + posts. Header + footer link. Sidebar admin "Conteúdo" em IA & Conteúdo. Seed `/api/seed/blog` 2 posts demo.
 
 **Clarity + IA (NOVO — seção 11.5 do doc balisador):**
 - [ ] Job noturno (Trigger.dev) consome API do Clarity: heatmaps, scroll maps, sessões agregadas

@@ -8,10 +8,13 @@ import { Header } from '../components/layout/header';
 import { Footer } from '../components/layout/footer';
 import { Pixels } from '../components/marketing/pixels';
 import { ServiceWorkerRegister } from '../components/pwa/sw-register';
+import { SiteJsonLd } from '../components/seo/site-jsonld';
 import { db, tenants } from '@lojeo/db';
 import { eq } from 'drizzle-orm';
 import { auth } from '../auth';
 import { getHreflangAlternates } from '../lib/hreflang';
+
+const STOREFRONT_URL = process.env.STOREFRONT_URL ?? 'https://joias.lojeo.com.br';
 import './globals.css';
 import '@lojeo/template-jewelry-v1/tokens.css';
 
@@ -91,6 +94,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <a href="#main-content" className="skip-link">
           Pular para o conteúdo principal
         </a>
+        <SiteJsonLd
+          baseUrl={STOREFRONT_URL}
+          storeName={tpl.name}
+          description="Joalheria contemporânea em ouro 18k e prata 925, com garantia de um ano."
+        />
         <Pixels config={pixelConfig} />
         <ServiceWorkerRegister />
         <WishlistProvider>

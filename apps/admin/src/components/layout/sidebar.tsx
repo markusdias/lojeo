@@ -47,6 +47,7 @@ const I = {
   link: 'M9 17H7a5 5 0 0 1 0-10h2M15 7h2a5 5 0 0 1 0 10h-2M8 12h8',
   globe: 'M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18ZM3 12h18M12 3a13 13 0 0 1 0 18M12 3a13 13 0 0 0 0 18',
   inbox: 'M3 13h6l1 3h4l1-3h6M3 13V7l3-4h12l3 4v6M3 13v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7',
+  book: 'M4 4v15a2 2 0 0 0 2 2h14V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2Zm0 0a2 2 0 0 1 2-2h12M8 8h8M8 12h8M8 16h6',
 };
 
 // Sidebar completo: cobre TODA feature acessível do admin (sem páginas órfãs).
@@ -100,6 +101,7 @@ const SECTIONS: NavSection[] = [
       { href: '/ia-analyst', label: 'IA Analyst', icon: <Icon d={I.sparkles} /> },
       { href: '/ia-uso', label: 'Uso IA', icon: <Icon d={I.flask} /> },
       { href: '/competitors', label: 'Concorrentes', icon: <Icon d={I.chart} /> },
+      { href: '/conteudo', label: 'Conteúdo', icon: <Icon d={I.book} /> },
       { href: '/experiments', label: 'Experimentos A/B', icon: <Icon d={I.flask} /> },
     ],
   },

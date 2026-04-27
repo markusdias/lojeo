@@ -695,6 +695,28 @@ export async function POST(req: NextRequest) {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_scheduled_reports_next_run ON scheduled_reports(next_run_at)`);
     results.push('scheduled_reports: ok');
 
+    // Sprint 12 — blog_posts (conteúdo nativo SEO, lojista publica guias, IA assist)
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS blog_posts (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL,
+        slug varchar(200) NOT NULL,
+        title varchar(300) NOT NULL,
+        excerpt text,
+        body text NOT NULL,
+        cover_image_url text,
+        status varchar(20) DEFAULT 'draft' NOT NULL,
+        author_name varchar(150),
+        published_at timestamptz,
+        created_at timestamptz DEFAULT now() NOT NULL,
+        updated_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS uniq_blog_posts_tenant_slug ON blog_posts(tenant_id, slug)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_blog_posts_tenant_status_published ON blog_posts(tenant_id, status, published_at)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_blog_posts_tenant_published ON blog_posts(tenant_id, published_at)`);
+    results.push('blog_posts: ok');
+
     // Sprint 13 — push_subscriptions (PWA Web Push stub — armazena endpoints sem provider real)
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS push_subscriptions (
