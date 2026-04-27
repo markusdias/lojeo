@@ -3789,3 +3789,58 @@ V2: trocar por react-markdown + sanitizer quando implementar UGC blog/comentario
 - Aplicar mesmo padrão lazy-auth nos demais ~28 endpoints sensíveis (orders, customers, ugc, etc) progressivamente.
 - Audit security mais profundo: GET endpoints que retornam dados sensíveis (LTV cliente, audit logs) precisam auth também — middleware atual deixa GET passar.
 - UX testing prod /products/import com CSV real.
+
+
+---
+
+## 2026-04-27 (continuacao) — Batch 10: Mercado Pago integration real + order.paid emit
+
+**Commits:** 4f2ca04.
+
+**Sprint 3 closure — Mercado Pago checkout real:**
+- Helper `apps/storefront/src/lib/payments/mercado-pago.ts`:
+  - `isMercadoPagoConfigured()` — single source of truth pra detectar ACCESS_TOKEN.
+  - `createMercadoPagoPreference(input)` — modo dual:
+    - Sem token: retorna mock `{id: 'mock-{orderId}', initPoint: '/checkout/sucesso?order={id}', source: 'mock'}`. Storefront continua funcionando, lojista marca paid manualmente em /pedidos.
+    - Com token: POST `https://api.mercadopago.com/checkout/preferences` com `external_reference: orderId`, items mapeados pra cents/100, auto_return approved, back_urls success/failure/pending, notification_url. Retorna `{id, initPoint, source: 'mp'}`.
+    - Fail-safe: se API real retornar erro 5xx ou throw, cai em mock-fallback (modo degradado — checkout não bloqueia).
+  - `fetchMercadoPagoPayment(paymentId)` — GET `/v1/payments/{id}` com Bearer auth, retorna `MpPayment` ou null.
+  - `mpStatusToOrderStatus()` — mapeamento explícito: approved/authorized → paid · rejected/cancelled → cancelled · resto → pending. Coberto por 6 testes específicos.
+- POST /api/orders integra: cria order DB → cria preference → persiste preferenceId em `orders.gateway_payment_id` → retorna `{payment: {provider, preferenceId, initPoint}}`. Frontend pode redirect.
+- POST /api/webhooks/mercado-pago real-mode (antes era stub):
+  - Detecta payment events (`type === 'payment'` ou `action.startsWith('payment.')`).
+  - Lookup payment via MP API. Skip silencioso se sem token (modo mock — webhook só loga).
+  - Match order via `external_reference`. Update status + gatewayPaymentId + gatewayStatus + updatedAt.
+  - Idempotente: skip se newStatus === order.status.
+  - Insert orderEvents (`payment.{mpStatus}` transition).
+  - Emit `order.paid` notification quando newStatus === 'paid' — completa Sprint 9 line 504 que estava pendente.
+
+**Trade-offs arquiteturais:**
+- Helper em `apps/storefront/src/lib/` (não engine puro) porque tem fetch externo. Engine continua deterministic.
+- Mock fallback em vez de erro: lojista MEI sem MP configurado precisa testar checkout em modo simulado. Trade-off vs forçar config: aceitamos falsa "venda" durante setup (status pendente, lojista vê em /pedidos e marca manual). Quando configura, real-mode.
+- external_reference = orderId: idempotência completa. Webhook duplicado idempotente por status check.
+- Preference items vs total: enviamos items mas total real é calculado pelo backend (já validado). MP confere — se diverge, payment falha. Lojista vê falha em webhook + emit.
+
+**Validações:**
+- 14 novos tests `mercado-pago.test.ts`: configurado, mock retornado sem token, API real chamada com token, fallback mock se 500, status mapping (6 cases), payment fetch null/data/fail.
+- Storefront 41/41 verde. Admin 63/63 verde. Typecheck/lint zero.
+- 0 regressão em tests behavioral existentes.
+
+**Sprint 9 line 504 — coverage updated:**
+- ✓ novo pedido (order.created)
+- ✓ pagamento confirmado (order.paid via webhook MP real-mode)
+- ✓ estoque baixo (inventory.low_stock)
+- ✓ avaliação pendente (review.pending)
+- ✓ solicitação de troca (return.requested)
+- ✗ falha fiscal (precisa Bling integration real)
+- ✗ churn iminente (precisa cron + IA Analyst trigger)
+- ✓ repor produto (restock.demand)
+- ✓ ticket atribuído (ticket.assigned)
+
+7/9 hooks live. 2 bloqueados em providers/cron real.
+
+**Próximo ciclo:**
+- Cron real (Trigger.dev ou EasyPanel cron) pra low-stock + churn detection.
+- Bling integration (mesmo padrão dual mock/real do MP).
+- /checkout/sucesso página confirmação com dados do preference + status polling.
+- Webhook idempotency: dedup por paymentId em events table (evitar event spam se MP reentregar).
