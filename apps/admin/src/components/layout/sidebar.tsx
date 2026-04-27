@@ -58,6 +58,7 @@ const SECTIONS: NavSection[] = [
     items: [
       { href: '/dashboard', label: 'Dashboard', icon: <Icon d={I.home} /> },
       { href: '/pedidos', label: 'Pedidos', icon: <Icon d={I.cart} />, badgeKey: 'pedidos' },
+      { href: '/filas', label: 'Filas', icon: <Icon d={I.inbox} /> },
       { href: '/products', label: 'Produtos', icon: <Icon d={I.box} /> },
       { href: '/clientes', label: 'Clientes', icon: <Icon d={I.users} /> },
       { href: '/insights', label: 'Análises', icon: <Icon d={I.chart} /> },
