@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Coffee v1 — Per-Product Config",
+  "type": "object",
+  "properties": {
+    "origin": { "type": "string" },
+    "process": { "enum": ["Washed", "Natural", "Honey", "Anaerobic", "Wet hulled"] },
+    "roast": { "enum": ["Light", "Medium-light", "Medium", "Medium-dark", "Dark"] },
+    "altitude": { "type": "number", "minimum": 0, "maximum": 3000 },
+    "variety": { "type": "string" },
+    "notes": { "type": "string" },
+    "acidity": { "enum": ["Low", "Medium", "High", "Bright"] },
+    "body": { "enum": ["Light", "Medium", "Full", "Syrupy"] },
+    "sweetness": { "enum": ["Subtle", "Balanced", "Pronounced"] }
+  },
+  "required": ["origin", "process", "roast"]
+}

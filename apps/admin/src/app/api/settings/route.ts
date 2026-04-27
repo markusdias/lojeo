@@ -36,7 +36,7 @@ export async function GET() {
 }
 
 // Templates registrados — SOT para validação ao trocar template ativo
-const REGISTERED_TEMPLATES = new Set<string>(['jewelry-v1']);
+const REGISTERED_TEMPLATES = new Set<string>(['jewelry-v1', 'coffee-v1']);
 
 export async function PATCH(req: Request) {
   const session = await auth();

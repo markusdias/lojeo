@@ -1,0 +1,82 @@
+/* ============================================================
+ * coffee-v1 — tokens.css (Fase 1.2 internacional)
+ * Mood: artisan specialty café · EN-US · USD
+ * ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* Base colors — roasted bean palette */
+  --color-paper:           #F8F4ED;  /* warm cream */
+  --color-paper-pure:      #FFFFFF;
+  --color-paper-cool:      #F4F1EC;
+  --color-paper-cream:     #EDE5D5;
+
+  --color-bean-900:        #1F1410;  /* darkest espresso */
+  --color-bean-700:        #3D2A20;
+  --color-bean-500:        #6B4F40;
+  --color-bean-300:        #A8907D;
+  --color-bean-100:        #E5DCD0;  /* divider */
+
+  --color-caramel:         #8B5A3C;  /* accent primary */
+  --color-caramel-hover:   #6F4530;
+  --color-cinnamon:        #B47148;
+  --color-honey:           #C8954A;
+  --color-cream:           #F5E6D3;
+
+  /* Semantic — match jewelry-v1 contracts pra storefront genérico */
+  --bg:              var(--color-paper);
+  --bg-pure:         var(--color-paper-pure);
+  --surface:         var(--color-paper-pure);
+  --surface-sunken:  var(--color-paper-cream);
+  --text-primary:    var(--color-bean-900);
+  --text-secondary:  var(--color-bean-500);
+  --text-muted:      var(--color-bean-300);
+  --text-on-dark:    var(--color-paper);
+  --divider:         var(--color-bean-100);
+  --accent:          var(--color-caramel);
+  --accent-hover:    var(--color-caramel-hover);
+  --footer-bg:       var(--color-bean-900);
+
+  /* Typography */
+  --font-display:    'Fraunces', Georgia, serif;
+  --font-body:       'Inter', system-ui, sans-serif;
+  --font-mono:       'JetBrains Mono', monospace;
+  --fs-display:      clamp(40px, 5.4vw, 68px);
+  --fs-h1:           clamp(32px, 4vw, 48px);
+  --fs-h2:           clamp(24px, 3vw, 36px);
+  --fs-body:         16px;
+  --fs-small:        14px;
+  --fs-caption:      12px;
+
+  /* Spacing — alinhado com jewelry-v1 pra reuso de componentes */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px;  --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-7: 32px;  --sp-8: 40px;
+
+  /* Radius */
+  --r-sm: 4px; --r-md: 8px; --r-lg: 16px;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 2px rgba(31, 20, 16, 0.05);
+  --shadow-md: 0 4px 12px rgba(31, 20, 16, 0.08);
+  --shadow-lg: 0 12px 32px rgba(31, 20, 16, 0.12);
+}
+
+/* Combo presets */
+[data-typo='editorial-warm'] {
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+}
+[data-typo='craft-modern'] {
+  --font-display: 'DM Serif Display', Georgia, serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+}
+[data-typo='roastery-clean'] {
+  --font-display: 'Manrope', system-ui, sans-serif;
+  --font-body: 'Manrope', system-ui, sans-serif;
+}
+
+/* Element defaults */
+h1, h2, h3 { font-family: var(--font-display); color: var(--text-primary); }
+p { color: var(--text-secondary); line-height: 1.6; }
+code { font-family: var(--font-mono); }
