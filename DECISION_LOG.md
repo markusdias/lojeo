@@ -3716,3 +3716,42 @@ V2: trocar por react-markdown + sanitizer quando implementar UGC blog/comentario
 - Emit notifications fiscal failed quando NF-e falhar 3x.
 - OAuth real bling/mercadopago em V2 (criar app provider → callback URL → consent screen).
 - Encrypt-at-rest tokens em config (Sprint Fase 2 multi-tenant).
+
+
+---
+
+## 2026-04-27 (continuacao) — Batch 8: Empty states + restock demand emit
+
+**Commits:** d768d50 (empty states), 2fafd25 (restock demand emit).
+
+**Polimento UX — empty states padronizados:**
+- `/atribuicao` (sem pedidos UTM): EmptyState com IconChart + descrição contextual + 2 CTAs (Ver pedidos / Configurar pixels). Antes era parágrafo cinza inline.
+- `/wishlist` (3 tabs): EmptyState em wishlists (IconHeart + Ver produtos), gift-cards (IconGiftCard novo + Vender vale-presente storefront), back-in-stock (IconHeart + Ver estoque). Cada um com tom "como vai aparecer aqui" educativo.
+- Novos icons no componente: IconChart, IconHeart, IconGiftCard. Mantém Lucide outline 56x56 stroke 1.5.
+
+**Sprint 9 fechamento — restock demand notification:**
+- Hook em `POST /api/restock-notify` (storefront): após inserir signup, conta pendentes (notifiedAt NULL) do mesmo produto. Se transitou exatamente para 5 (threshold), emit `restock.demand` warning ao lojista com nome do produto + link direto para `/wishlist?tab=back-in-stock`.
+- Idempotência: dispara apenas na transição (`pending === THRESHOLD`), não em cada signup acima do limite. Evita spam quando produto vira viral.
+- Threshold = 5 hardcoded v1. V2: configurável por tenant via `tenants.config.restockDemandThreshold`.
+
+**Validações:**
+- Tests admin 63/63 (cached). Storefront verde. Typecheck zero. Lint zero novos.
+- Deploy admin+storefront disparado.
+- 0 regressão.
+
+**Sprint 9 line 504 — coverage notifications ao lojista:**
+- ✓ novo pedido (order.created)
+- ✗ pagamento confirmado (precisa webhook MP integration — Sprint MP real)
+- ✓ estoque baixo (inventory.low_stock via cron-like manual)
+- ✓ avaliação pendente (review.pending)
+- ✓ solicitação de troca (return.requested)
+- ✗ falha fiscal (precisa Bling integration real)
+- ✗ churn iminente (precisa cron + IA Analyst trigger)
+- ✓ repor produto (restock.demand)
+- ✓ ticket atribuído (ticket.assigned dirigida)
+
+**Próximo ciclo:**
+- Conectar webhook MP-pago real (precisa Mercado Pago app registrado) → emit order.paid
+- Cron real (Trigger.dev ou EasyPanel cron) para low-stock-check + churn-detection
+- Filtros notification preferences por tenant (opt-out de tipos)
+- Audit visual prod via Playwright após deploy estabilizar
