@@ -3146,3 +3146,37 @@ Critério "Opção de presente no checkout (toggle, campo mensagem, embalagem co
 - Sprint 6 trocas/devoluções v2 melhorias (logística reversa via Melhor Envio BLOQUEADO)
 - Sprint 4 Mercado Pago real (BLOQUEADO OAuth)
 - Voltar paridade visual: refs ainda parciais ou faltantes
+
+---
+
+## 2026-04-26 — Sprint 5: Gift cards storefront + UI primitives jewelry-v1
+
+**Commits:** 11da29d (gift cards) · a2142c7 (UI primitives)
+
+**Gift cards storefront (worktree a568340c) — 3 arquivos novos:**
+- `apps/storefront/src/app/gift-cards/page.tsx` — landing client component, 4 presets (R$ 100/200/500/1.000) + custom (R$ 50–5.000), form email/nome/mensagem 280ch/data, success state mostra código, breadcrumbs, tokens jewelry-v1
+- `apps/storefront/src/app/api/gift-cards/route.ts` POST — gera GFT-XXXX-XXXX-XXXX (alfabeto sem ambíguos), insert giftCards row (status active, validade 12 meses), rate-limit 10/10min, retry colisão, retorna { code, balanceCents, expiresAt }. Resend bloqueado → log warning, code devolvido na tela
+- footer.tsx: link "Gift cards" coluna Loja
+
+Schema gift_cards preservado (existia). API contracts batem com /wishlist admin que lista gift cards.
+
+**UI primitives jewelry-v1 (worktree ab3c19ab) — 3 components novos:**
+- `apps/storefront/src/components/ui/button.tsx` — variantes primary/accent/ghost/link + prop full (paridade Primitives.jsx ref)
+- `input.tsx` — variantes default/onDark + prop invalid
+- `badge.tsx` — tons neutral/accent/warn/out/dark
+- `globals.css` — `.section` helper (120px topo) + `.section--tight`
+- Adopt em state-error.tsx + newsletter-form.tsx como prova viva
+
+**packages/ui Button genérico preservado** (admin neutro). Storefront primitives separados pra preservar identidade jewelry-v1.
+
+**Tests storefront 14/14 verde. Typecheck + lint OK.**
+
+**Sprint 5 critérios fechados nesta iteração:**
+- ✅ Compra de gift card como produto especial no storefront
+
+**157 commits totais sessão**, **114 testes globais verdes**, **24 migrations prod**, **zero regressão**.
+
+**Próximo ciclo:**
+- UX validation /gift-cards live (post-deploy)
+- Aplicação gift card no checkout como meio de pagamento (Sprint 5 critério aberto)
+- Crédito em loja como alternativa ao reembolso (Sprint 6 — usar gift_cards como motor)
