@@ -75,35 +75,42 @@ export default async function ClienteProfilePage({
   const { email: encodedEmail } = await params;
   const email = decodeURIComponent(encodedEmail).toLowerCase();
 
-  const [agg] = await db
+  // Busca TODOS customers do tenant (não só este) pra ter distribuição válida pros quintis RFM.
+  // scoreCustomers com 1 input retorna fallback (3/3/3) — sem distribuição não dá pra ranquear.
+  const allCustomers = await db
     .select({
+      email: orders.customerEmail,
+      userId: orders.userId,
       orderCount: sql<number>`cast(count(*) as int)`,
       totalCents: sql<number>`cast(sum(${orders.totalCents}) as int)`,
       lastOrderAt: sql<string>`max(${orders.createdAt})`,
       firstOrderAt: sql<string>`min(${orders.createdAt})`,
-      userId: orders.userId,
     })
     .from(orders)
     .where(
       and(
         eq(orders.tenantId, TENANT_ID),
-        eq(orders.customerEmail, email),
         not(eq(orders.status, 'cancelled')),
       )
     )
-    .groupBy(orders.userId);
+    .groupBy(orders.customerEmail, orders.userId);
 
+  const agg = allCustomers.find(c => c.email === email);
   if (!agg) notFound();
 
-  const profiles = scoreCustomers([{
-    email,
-    userId: agg.userId,
-    orderCount: agg.orderCount,
-    totalCents: agg.totalCents,
-    lastOrderAt: new Date(agg.lastOrderAt),
-    firstOrderAt: new Date(agg.firstOrderAt),
-  }]);
-  const profile = profiles[0];
+  const inputs = allCustomers
+    .filter(c => c.email)
+    .map(c => ({
+      email: c.email as string,
+      userId: c.userId,
+      orderCount: c.orderCount,
+      totalCents: c.totalCents,
+      lastOrderAt: new Date(c.lastOrderAt),
+      firstOrderAt: new Date(c.firstOrderAt),
+    }));
+
+  const profiles = scoreCustomers(inputs);
+  const profile = profiles.find(p => p.email === email);
   if (!profile) notFound();
 
   const segmentLabel = SEGMENT_LABELS[profile.segment];

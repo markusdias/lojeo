@@ -29,18 +29,24 @@ export type CustomerProfile = RfmInput & {
 };
 
 function quintile(values: number[], value: number): number {
+  // Fallback singular: scoreCustomers chamado com 1 input só não tem distribuição.
+  // Retorna 3 (mediana) em vez de 1 (sempre min) — evita falso "Lost/New" quando
+  // page de detalhe consulta apenas 1 customer.
+  if (values.length <= 1) return 3;
   const sorted = [...values].sort((a, b) => a - b);
   const rank = sorted.findIndex(v => v >= value);
-  const pct = rank / (sorted.length - 1 || 1);
-  return Math.max(1, Math.ceil(pct * 5));
+  const pct = rank / (sorted.length - 1);
+  return Math.min(5, Math.max(1, Math.ceil(pct * 5)));
 }
 
-// Recency: lower days = better score (invert quintile)
+// Recency: lower days = better score (invert quintile).
+// Cap superior 5 (sem cap, pct=0 retornava 6 — overflow visível em /clientes/[email]).
 function recencyScore(allDays: number[], days: number): number {
+  if (allDays.length <= 1) return 3;
   const sorted = [...allDays].sort((a, b) => a - b);
   const rank = sorted.findIndex(v => v >= days);
-  const pct = rank / (sorted.length - 1 || 1);
-  return Math.max(1, 6 - Math.ceil(pct * 5));
+  const pct = rank / (sorted.length - 1);
+  return Math.min(5, Math.max(1, 6 - Math.ceil(pct * 5)));
 }
 
 export function segment(rfm: RfmScore): RfmSegment {
