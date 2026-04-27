@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { EmptyState, IconStar, IconReturn, IconShoppingBag } from '../../components/ui/empty-state';
 
 export type Tab = 'reviews' | 'returns' | 'shipping';
 
@@ -55,6 +56,23 @@ const RETURN_STEPS = [
   { key: 'received', label: 'Recebida' },
   { key: 'finalized', label: 'Finalizada' },
 ];
+
+const REASON_LABELS: Record<string, string> = {
+  defect: 'Defeito',
+  wrong_size: 'Tamanho incorreto',
+  wrong_item: 'Item errado',
+  not_as_described: 'Diferente do anunciado',
+  damaged_in_transit: 'Avariado no transporte',
+  changed_mind: 'Arrependimento (CDC 7 dias)',
+  late_delivery: 'Entrega atrasada',
+  other: 'Outro motivo',
+};
+
+const TYPE_LABELS: Record<string, string> = {
+  exchange: 'Troca',
+  refund: 'Reembolso',
+  store_credit: 'Crédito em loja',
+};
 
 function fmtBrl(cents: number): string {
   return `R$ ${(cents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
@@ -147,11 +165,12 @@ export function QueuesTabs({ initialTab, counts, reviews, returns, shipping }: P
 function ReviewsList({ reviews }: { reviews: ReviewRow[] }) {
   if (reviews.length === 0) {
     return (
-      <div className="lj-card" style={{ padding: 'var(--space-8)', textAlign: 'center' }}>
-        <p className="body-s" style={{ color: 'var(--fg-secondary)' }}>
-          Nenhuma avaliação pendente. Se aparecer, você revisa por aqui antes de publicar no produto.
-        </p>
-      </div>
+      <EmptyState
+        icon={<IconStar />}
+        title="Nenhuma avaliação pendente"
+        description="Você revisa avaliações aqui antes de publicar no produto. Convites pós-entrega rendem 3× mais resposta nos primeiros 7 dias."
+        action={{ label: 'Configurar automação', href: '/settings' }}
+      />
     );
   }
   return (
@@ -194,11 +213,13 @@ function ReviewsList({ reviews }: { reviews: ReviewRow[] }) {
 function ReturnsList({ returns }: { returns: ReturnRow[] }) {
   if (returns.length === 0) {
     return (
-      <div className="lj-card" style={{ padding: 'var(--space-8)', textAlign: 'center' }}>
-        <p className="body-s" style={{ color: 'var(--fg-secondary)' }}>
-          Nenhuma devolução em curso. Aparece aqui assim que cliente abrir solicitação.
-        </p>
-      </div>
+      <EmptyState
+        icon={<IconReturn />}
+        title="Nenhuma devolução em curso"
+        description="Cliente abre solicitação pelo /conta · você analisa e aprova/rejeita por aqui ou em /devolucoes pra fluxo completo."
+        action={{ label: 'Configurar política de troca', href: '/settings' }}
+        secondaryAction={{ label: 'Ver histórico', href: '/devolucoes' }}
+      />
     );
   }
   return (
@@ -211,7 +232,7 @@ function ReturnsList({ returns }: { returns: ReturnRow[] }) {
               <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
                 <span className="mono" style={{ fontWeight: 'var(--w-semibold)' }}>#{r.orderNumber}</span>
                 <span className="body-s" style={{ color: 'var(--fg-secondary)' }}>{r.customerEmail ?? '—'}</span>
-                <span className="body-s">· {r.reason}</span>
+                <span className="body-s">· {TYPE_LABELS[r.type] ?? r.type} · {REASON_LABELS[r.reason] ?? r.reason}</span>
               </div>
               <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
                 <span className="caption" style={{ color: 'var(--fg-muted)' }}>aberta {relativeTime(r.createdAt)}</span>
@@ -273,11 +294,12 @@ function ReturnsList({ returns }: { returns: ReturnRow[] }) {
 function ShippingList({ shipping }: { shipping: ShippingRow[] }) {
   if (shipping.length === 0) {
     return (
-      <div className="lj-card" style={{ padding: 'var(--space-8)', textAlign: 'center' }}>
-        <p className="body-s" style={{ color: 'var(--fg-secondary)' }}>
-          Nenhum pedido aguardando envio. Pedidos pagos ficam aqui até serem despachados.
-        </p>
-      </div>
+      <EmptyState
+        icon={<IconShoppingBag />}
+        title="Nenhum pedido aguardando envio"
+        description="Pedidos pagos ficam aqui até despacho. Sinal positivo: ou você está em dia, ou não há vendas novas em janela."
+        action={{ label: 'Ver pedidos enviados', href: '/pedidos?status=shipped' }}
+      />
     );
   }
   const overdueCnt = shipping.filter(s => s.overdue).length;
