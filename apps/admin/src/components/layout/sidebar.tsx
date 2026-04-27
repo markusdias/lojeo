@@ -93,6 +93,7 @@ const SECTIONS: NavSection[] = [
     items: [
       { href: '/clientes', label: 'CRM', icon: <Icon d={I.users} /> },
       { href: '/wishlist', label: 'Demanda', icon: <Icon d={I.star} /> },
+      { href: '/afiliados', label: 'Afiliados', icon: <Icon d={I.link} /> },
     ],
   },
   {

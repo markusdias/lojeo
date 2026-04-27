@@ -5777,3 +5777,47 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - P5.T — engine split server vs pure (refactor risco médio).
 - UI admin /afiliados list + form.
 - Endpoint POST /api/nps + email survey D+7.
+
+---
+
+## 2026-04-27 (continuacao) — Batch 52: UI admin /afiliados — list + create + payout
+
+**Commits:** (a registrar nesta sessao).
+
+**Endpoints `/api/affiliates`:**
+- `GET` retorna lista 200 mais recentes (descending createdAt).
+- `POST` valida com zod (name min 2, code regex `^[A-Z0-9-]+$`, commissionBps 0-10000, email opcional). Retorna 409 quando code duplicado (constraint unique).
+- `PATCH /api/affiliates/[id]` permite editar active/commissionBps/notes/name/email.
+- `POST /api/affiliates/[id]/payout` (path-suffix detection) move pendingCents → payoutCents (settled = pendingCents amount). Erro 400 se `no_pending`.
+
+**Page `/afiliados/page.tsx`:**
+- Server-rendered: query 200 affiliates, passa pra client component.
+- Header: count + descrição.
+
+**Client component `affiliates-panel.tsx`:**
+- Botão "+ Novo afiliado" toggle form 4 fields (name/email/code/commissionBps).
+- Code uppercase auto-sanitize on input.
+- Tabela com 8 colunas (Afiliado, Código, %, Cliques, Conv., Pago, Pendente, Ações).
+- Ações por row: Pagar (quando pending > 0) + Desativar/Ativar.
+- Pendente highlight em accent color quando > 0.
+- Inactive row em opacity 0.5.
+- Empty state copy quando sem afiliados.
+
+**Sidebar admin ganha link `/afiliados`:**
+- Em `apps/admin/src/components/layout/sidebar.tsx`, seção "Clientes" agora tem CRM + Demanda + **Afiliados** (icon link).
+
+**Trade-offs arquiteturais:**
+- Form inline em vez de modal — pragmatic V1 jewelry-v1 mood. V2 modal pra aproveitar dashboard espaço.
+- Payout simples (move pending → payout em uma transação) — V2 audit trail em `payout_logs` com timestamp + admin user + valor.
+- Validation client-side mínima (regex code) + server-side zod (autoritativo). Reflete commission % na UI usando `(commissionBps / 100).toFixed(1)` — 1000 bps = 10.0%.
+- Authorize via `authorizeCronRequest` (cookie session OR cron secret) — admin ativo no browser sempre vai ter cookie. V2 trocar pra `authorizeAdminRequest` específico.
+
+**Validações:**
+- pnpm -r typecheck zero erro (após swap I.share → I.link).
+- admin 123/123 (sem novos tests UI deste batch — UI só cobre via Playwright V2). Total 510 passing. Zero regressao.
+- pnpm -r lint admin/storefront limpo.
+
+**Próximo ciclo:**
+- Tests endpoint /api/affiliates POST/PATCH cobertura.
+- P5.T — engine split (server vs pure) refactor — risco médio, deixar pra batch dedicado.
+- P5.V — dogfood DB-real CI (GitHub Actions service postgres).
