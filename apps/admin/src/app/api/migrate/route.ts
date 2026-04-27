@@ -449,6 +449,83 @@ export async function POST(req: NextRequest) {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_invite_tokens_token ON user_invite_tokens(token)`);
     results.push('user_invite_tokens: ok');
 
+    // Migration 0023 — retention tables (wishlist_items, restock_notifications, gift_cards)
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS wishlist_items (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL,
+        user_id uuid,
+        anonymous_id varchar(64),
+        product_id uuid NOT NULL,
+        variant_id uuid,
+        created_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_wishlist_user ON wishlist_items(user_id)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_wishlist_anon ON wishlist_items(anonymous_id)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_wishlist_product ON wishlist_items(product_id)`);
+    results.push('wishlist_items: ok');
+
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS restock_notifications (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL,
+        user_id uuid,
+        email varchar(300),
+        product_id uuid NOT NULL,
+        variant_id uuid,
+        notified_at timestamptz,
+        created_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_restock_variant ON restock_notifications(variant_id)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_restock_product ON restock_notifications(product_id)`);
+    results.push('restock_notifications: ok');
+
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS gift_cards (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL,
+        code varchar(32) NOT NULL,
+        initial_value_cents integer NOT NULL,
+        current_balance_cents integer NOT NULL,
+        expires_at timestamptz,
+        status varchar(20) DEFAULT 'active' NOT NULL,
+        buyer_user_id uuid,
+        recipient_email varchar(300),
+        created_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_giftcard_code ON gift_cards(code)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_giftcard_tenant ON gift_cards(tenant_id)`);
+    results.push('gift_cards: ok');
+
+    // Migration 0024 — product_reviews
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS product_reviews (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL,
+        product_id uuid NOT NULL,
+        order_id uuid,
+        user_id uuid,
+        anonymous_name varchar(100),
+        anonymous_email varchar(300),
+        rating integer NOT NULL,
+        title varchar(200),
+        body text,
+        status varchar(20) DEFAULT 'pending' NOT NULL,
+        admin_response text,
+        verified_purchase boolean DEFAULT false NOT NULL,
+        helpful_count integer DEFAULT 0 NOT NULL,
+        created_at timestamptz DEFAULT now() NOT NULL,
+        updated_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_reviews_product ON product_reviews(product_id)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_reviews_tenant_status ON product_reviews(tenant_id, status)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_reviews_user ON product_reviews(user_id)`);
+    results.push('product_reviews: ok');
+
     return NextResponse.json({ ok: true, results });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
