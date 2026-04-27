@@ -18,3 +18,5 @@ export * from './experiments-stats';
 export * from './cpf';
 export * from './currency';
 export * from './fraud';
+export * from './cohort-retention';
+export * from './best-send-hour';

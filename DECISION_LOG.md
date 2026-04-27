@@ -5640,3 +5640,51 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - P3.K — UI filter chips garantia em /clientes.
 - Cron reconciliação afiliados.
 - Plugar emitMultichannelNotification em low-stock-check.
+
+---
+
+## 2026-04-27 (continuacao) — Batch 49: Métricas saúde — NPS + cohort + bestSendHour (P3.L parcial)
+
+**Commits:** (a registrar nesta sessao).
+
+**Engine helpers puros:**
+
+`packages/engine/src/cohort-retention.ts`:
+- `cohortRetention(orders, monthsBack, now)` — retorna matriz cohort com retentionByOffset[N] (clientes que voltaram no mês cohort+N) e retentionPctByOffset.
+- Agrupa customerEmail → primeiro mês (cohort) + activeMonths Set.
+- Filtra orders fora do range monthsBack. Skip null email.
+- 7 tests cobrem vazio / 1 cliente / 2 pedidos mesmo cliente / 2 cohorts / 50% retention / orders out of range / sem email.
+
+`packages/engine/src/best-send-hour.ts`:
+- `bestSendHour(events)` — histograma 24 buckets UTC, retorna hora com maior contagem.
+- Default 9am quando nenhum open.
+- Confidence: low (<10), medium (10-49), high (>=50).
+- 5 tests cobrem vazio / detecção / confidence levels / histogram shape.
+
+`computeNps(responses)` no mesmo arquivo:
+- NPS = % Promoters (9-10) - % Detractors (0-6). Range -100 a +100.
+- Passives (7-8) não contribuem.
+- 6 tests cobrem vazio / 100% promoters / 100% detractors / 0 NPS / passives only / range cap.
+
+**Schema `nps_responses`:**
+- Campos: tenantId, userId, customerEmail, score 0-10, comment, surveyTrigger ('delivery_d7'|'ticket_close'|'manual'|'web_widget'), relatedOrderId, relatedTicketId, createdAt.
+- Indexes (tenantId, createdAt) + (tenantId, score) + userId.
+- Migration idempotente em /api/migrate.
+
+**Trade-offs arquiteturais:**
+- CAC engine NÃO implementado neste batch — exige Meta Insights API + Google Ads API integration. V2 quando tenant config tiver tokens. Por agora dashboard pode mostrar `new_customers_count` direto sem custo.
+- Dashboard UI admin que consume helpers NÃO criada — V2 widgets em `/admin/dashboard` (cohort table, NPS gauge, bestSendHour timeline).
+- Cohort calc é O(N orders + M customers + K cohorts) — fine pra <100k orders. Tenants maiores precisam pre-computed materialized view V2.
+- bestSendHour usa UTC — V2: aceitar timezone arg pra tenant local.
+- NPS survey trigger D+7 NÃO automatizado — V2 cron daily detect orders.deliveredAt + 7 dias → enviar email com link survey.
+
+**Validações:**
+- pnpm -r typecheck zero erro.
+- engine 144/144 (+18 cohort/bestSendHour/NPS). Total 489 passing. Zero regressao.
+- pnpm -r lint admin/storefront limpo.
+
+**Próximo ciclo:**
+- Endpoint admin GET /api/customers/cohort + dashboard widget cohort retention.
+- Endpoint POST /api/nps + email RecoverNps survey D+7 cron.
+- P5.T — engine split (server vs pure) refactor.
+- UI admin warranty filters.

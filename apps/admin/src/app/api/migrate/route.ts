@@ -737,6 +737,26 @@ export async function POST(req: NextRequest) {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_push_subs_tenant_user ON push_subscriptions(tenant_id, user_id)`);
     results.push('push_subscriptions: ok');
 
+    // Fase 1.2 — nps_responses (survey D+7 + ticket close)
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS nps_responses (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL,
+        user_id uuid,
+        customer_email varchar(300),
+        score integer NOT NULL,
+        comment text,
+        survey_trigger varchar(32) DEFAULT 'manual' NOT NULL,
+        related_order_id uuid,
+        related_ticket_id uuid,
+        created_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_nps_tenant_created ON nps_responses(tenant_id, created_at)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_nps_tenant_score ON nps_responses(tenant_id, score)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_nps_user ON nps_responses(user_id)`);
+    results.push('nps_responses: ok');
+
     // Fase 1.2 — affiliate_links (programa de afiliados)
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS affiliate_links (
