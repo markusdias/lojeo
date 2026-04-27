@@ -1,36 +1,62 @@
-import { Html, Body, Container, Heading, Text, Button, Hr } from '@react-email/components';
+import { EmailShell, btnPrimary } from './_shell';
+import { tokens as t } from './_tokens';
 
 export interface WelcomeProps {
   storeName: string;
   customerName: string;
   loginUrl: string;
+  storeDocument?: string;
+  storeAddress?: string;
+  supportEmail?: string;
+  unsubscribeUrl?: string;
+  privacyUrl?: string;
 }
 
-export function Welcome({ storeName, customerName, loginUrl }: WelcomeProps) {
+export function Welcome({
+  storeName,
+  customerName,
+  loginUrl,
+  storeDocument,
+  storeAddress,
+  supportEmail,
+  unsubscribeUrl,
+  privacyUrl,
+}: WelcomeProps) {
   return (
-    <Html lang="pt-BR">
-      <Body style={{ fontFamily: 'system-ui, sans-serif', backgroundColor: '#f8f7f4' }}>
-        <Container style={{ padding: '32px 24px', maxWidth: 560 }}>
-          <Heading style={{ color: '#1a1a1a', fontSize: 24 }}>Bem-vindo, {customerName}!</Heading>
-          <Text>Sua conta na {storeName} está pronta. Acesse seus pedidos e favoritos.</Text>
-          <Button
-            href={loginUrl}
+    <EmailShell
+      preview={`Bem-vinda à ${storeName}`}
+      storeName={storeName}
+      storeDocument={storeDocument}
+      storeAddress={storeAddress}
+      supportEmail={supportEmail}
+      unsubscribeUrl={unsubscribeUrl}
+      privacyUrl={privacyUrl}
+    >
+      <tr>
+        <td style={{ padding: '40px 40px 24px' }}>
+          <div
             style={{
-              backgroundColor: '#1a1a1a',
-              color: '#fff',
-              padding: '12px 24px',
-              borderRadius: 4,
-              textDecoration: 'none',
+              fontFamily: t.fontDisplay,
+              fontSize: t.fsH2,
+              lineHeight: 1.2,
+              marginBottom: 12,
             }}
           >
+            Bem-vinda, {customerName}.
+          </div>
+          <div style={{ fontSize: t.fsSmall, color: t.textSecondary, lineHeight: 1.6 }}>
+            Sua conta na {storeName} está pronta. Acompanhe pedidos, salve favoritos e descubra
+            peças feitas à mão na bancada.
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td style={{ padding: '0 40px 32px' }}>
+          <a href={loginUrl} style={btnPrimary}>
             Acessar minha conta
-          </Button>
-          <Hr style={{ marginTop: 32, borderColor: '#e0ddd4' }} />
-          <Text style={{ fontSize: 12, color: '#666' }}>
-            {storeName} — você recebe esse email porque criou conta na nossa loja.
-          </Text>
-        </Container>
-      </Body>
-    </Html>
+          </a>
+        </td>
+      </tr>
+    </EmailShell>
   );
 }
