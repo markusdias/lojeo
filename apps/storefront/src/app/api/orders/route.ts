@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db, orders, orderItems, orderEvents, coupons, calcCouponDiscountCents, emitSellerNotification } from '@lojeo/db';
-import { createMercadoPagoPreference, createMercadoPagoPixPayment } from '../../../lib/payments/mercado-pago';
+import { createMercadoPagoPreference, createMercadoPagoPixPayment, createMercadoPagoBoletoPayment } from '../../../lib/payments/mercado-pago';
 import { sendOrderConfirmationEmail, sendPixGeneratedEmail } from '../../../lib/email/transactional';
 import { eq, and, sql } from 'drizzle-orm';
 import { checkRateLimit, getClientIp } from '../../../lib/rate-limit';
@@ -281,8 +281,9 @@ export async function POST(req: Request) {
         .where(eq(orders.id, order.id));
     }
 
-    // Pix direto: cria payment com QR + copia-e-cola, dispara email com QR.
+    // Pix/Boleto direto: cria payment com QR/PDF, dispara email transacional.
     let pixData: { qrCode: string; qrCodeBase64: string; ticketUrl: string | null } | null = null;
+    let boletoData: { boletoUrl: string; barcode: string } | null = null;
     if (body.paymentMethod === 'pix' && body.customerEmail) {
       const pix = await createMercadoPagoPixPayment({
         orderId: order.id,
@@ -311,6 +312,24 @@ export async function POST(req: Request) {
         qrCodeBase64: pix.qrCodeBase64,
         pixCopyPaste: pix.qrCode,
       });
+    }
+
+    if (body.paymentMethod === 'boleto' && body.customerEmail) {
+      const boleto = await createMercadoPagoBoletoPayment({
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        totalCents,
+        payerEmail: body.customerEmail,
+      });
+      boletoData = { boletoUrl: boleto.boletoUrl, barcode: boleto.barcode };
+      const updateData: Record<string, unknown> = {
+        metadata: { shippingLabel: body.shipping.label, boleto: boletoData },
+      };
+      if (boleto.source === 'mp') {
+        updateData.gatewayPaymentId = boleto.paymentId;
+        updateData.gatewayStatus = 'pending';
+      }
+      await db.update(orders).set(updateData).where(eq(orders.id, order.id));
     }
 
     if (body.customerEmail) {
@@ -360,6 +379,7 @@ export async function POST(req: Request) {
         preferenceId: preference.id,
         initPoint: preference.initPoint,
         pix: pixData,
+        boleto: boletoData,
       },
     }, { status: 201 });
   } catch (err) {

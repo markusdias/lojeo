@@ -228,6 +228,89 @@ export async function fetchMercadoPagoPayment(paymentId: string): Promise<MpPaym
   }
 }
 
+export interface BoletoPaymentInput {
+  orderId: string;
+  orderNumber: string;
+  totalCents: number;
+  payerEmail: string;
+  payerName?: string;
+  payerCpf?: string;
+  expiresInDays?: number;
+  notificationUrl?: string;
+}
+
+export interface BoletoPaymentResult {
+  paymentId: string;
+  boletoUrl: string;     // PDF do boleto pra cliente baixar
+  barcode: string;       // linha digitável fallback
+  source: 'mp' | 'mock';
+}
+
+export async function createMercadoPagoBoletoPayment(input: BoletoPaymentInput): Promise<BoletoPaymentResult> {
+  const token = process.env.MERCADO_PAGO_ACCESS_TOKEN;
+  if (!token) {
+    return {
+      paymentId: `mock-bol-${input.orderId}`,
+      boletoUrl: '',
+      barcode: `MOCK-BOLETO-${input.orderNumber}`,
+      source: 'mock',
+    };
+  }
+
+  const [firstName, ...rest] = (input.payerName ?? input.payerEmail.split('@')[0] ?? 'Cliente').split(' ');
+  const cpfDigits = (input.payerCpf ?? '').replace(/[^0-9]/g, '');
+  const payload = {
+    transaction_amount: input.totalCents / 100,
+    description: `Pedido ${input.orderNumber}`,
+    payment_method_id: 'bolbradesco',
+    external_reference: input.orderId,
+    notification_url: input.notificationUrl,
+    date_of_expiration: new Date(Date.now() + (input.expiresInDays ?? 3) * 86400_000).toISOString(),
+    payer: {
+      email: input.payerEmail,
+      first_name: firstName ?? 'Cliente',
+      last_name: rest.join(' ') || undefined,
+      identification: cpfDigits.length === 11 ? { type: 'CPF', number: cpfDigits } : undefined,
+    },
+  };
+
+  try {
+    const r = await fetch(`${MP_BASE}/v1/payments`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${token}`,
+        'x-idempotency-key': `boleto-${input.orderId}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) {
+      const text = await r.text();
+      logger.warn({ status: r.status, body: text.slice(0, 500) }, 'mp boleto payment failed');
+      throw new Error(`mp_boleto_failed_${r.status}`);
+    }
+    const data = (await r.json()) as {
+      id: number | string;
+      transaction_details?: { external_resource_url?: string };
+      barcode?: { content?: string };
+    };
+    return {
+      paymentId: String(data.id),
+      boletoUrl: data.transaction_details?.external_resource_url ?? '',
+      barcode: data.barcode?.content ?? '',
+      source: 'mp',
+    };
+  } catch (err) {
+    logger.error({ err: err instanceof Error ? err.message : err }, 'mp boleto payment threw');
+    return {
+      paymentId: `mock-bol-fallback-${input.orderId}`,
+      boletoUrl: '',
+      barcode: `MOCK-FALLBACK-${input.orderNumber}`,
+      source: 'mock',
+    };
+  }
+}
+
 /**
  * Mapeia status MP para status interno do order.
  * approved/authorized → paid · rejected/cancelled → cancelled · resto → pending

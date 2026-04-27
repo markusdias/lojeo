@@ -13,12 +13,18 @@ interface PixData {
   ticketUrl: string | null;
 }
 
+interface BoletoData {
+  boletoUrl: string;
+  barcode: string;
+}
+
 interface FetchedOrder {
   id: string;
   orderNumber: string;
   paymentMethod: string | null;
   status: string;
   pix: PixData | null;
+  boleto: BoletoData | null;
 }
 
 function ConfirmacaoInner() {
@@ -41,7 +47,7 @@ function ConfirmacaoInner() {
         orderNumber?: string;
         paymentMethod?: string | null;
         status?: string;
-        metadata?: { pix?: PixData | null };
+        metadata?: { pix?: PixData | null; boleto?: BoletoData | null };
       } | null) => {
         if (d?.id) {
           setFetched({
@@ -50,6 +56,7 @@ function ConfirmacaoInner() {
             paymentMethod: d.paymentMethod ?? null,
             status: d.status ?? 'pending',
             pix: d.metadata?.pix ?? null,
+            boleto: d.metadata?.boleto ?? null,
           });
         }
       })
@@ -61,6 +68,7 @@ function ConfirmacaoInner() {
   const orderNumber = state.orderNumber ?? fetched?.orderNumber ?? null;
   const paymentMethod = state.paymentMethod ?? fetched?.paymentMethod ?? null;
   const pix = fetched?.pix ?? null;
+  const boleto = fetched?.boleto ?? null;
   const orderStatus = fetched?.status ?? 'pending';
 
   useEffect(() => {
@@ -119,9 +127,49 @@ function ConfirmacaoInner() {
           padding: 24, border: '1px solid var(--divider)', borderRadius: 8, marginBottom: 32, textAlign: 'left',
         }}>
           <h3 style={{ marginBottom: 12 }}>Seu boleto</h3>
-          <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16 }}>
-            O boleto será gerado via Mercado Pago após integração (Sprint 3 completo). Você receberá o link por email assim que disponível.
-          </p>
+          {boleto?.boletoUrl ? (
+            <>
+              <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16 }}>
+                Vence em 3 dias úteis. Após o pagamento, leva 1-2 dias para a compensação.
+              </p>
+              <a
+                href={boleto.boletoUrl}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  padding: '14px 16px',
+                  background: 'var(--text-primary, #1A1612)',
+                  color: '#fff',
+                  textAlign: 'center',
+                  borderRadius: 8,
+                  fontSize: 14,
+                  fontWeight: 500,
+                  textDecoration: 'none',
+                }}
+              >
+                Baixar boleto (PDF) ↗
+              </a>
+              {boleto.barcode && (
+                <textarea
+                  readOnly
+                  value={boleto.barcode}
+                  style={{
+                    width: '100%', marginTop: 12, padding: 8,
+                    fontFamily: 'monospace', fontSize: 11,
+                    border: '1px solid var(--divider)', borderRadius: 6,
+                    resize: 'none', minHeight: 50,
+                    background: 'var(--surface-sunken, #FAF6EE)',
+                  }}
+                />
+              )}
+            </>
+          ) : (
+            <p style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
+              Boleto em modo simulado (Mercado Pago não conectado). Você receberá o link por email assim que disponível.
+            </p>
+          )}
         </div>
       )}
 
@@ -249,7 +297,6 @@ function PixSection({ pix, orderStatus, orderId, setFetched }: PixSectionProps) 
           <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16 }}>
             Escaneie o QR code abaixo no app do seu banco. Ou copie o código e cole na opção Pix copia-e-cola.
           </p>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={`data:image/png;base64,${pix.qrCodeBase64}`}
             alt="QR Code Pix"
