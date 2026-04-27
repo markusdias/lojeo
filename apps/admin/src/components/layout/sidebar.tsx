@@ -69,6 +69,7 @@ const SECTIONS: NavSection[] = [
     items: [
       { href: '/ia-analyst', label: 'IA Analyst', icon: <Icon d={I.sparkles} /> },
       { href: '/ugc', label: 'Moderação UGC', icon: <Icon d={I.gallery} />, badgeKey: 'ugc' },
+      { href: '/competitors', label: 'Concorrentes', icon: <Icon d={I.chart} /> },
     ],
   },
   {
