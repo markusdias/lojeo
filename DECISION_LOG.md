@@ -4110,3 +4110,36 @@ curl -X POST -H "x-cron-secret: $CRON_SECRET" \
 - Sub-aba "Notificações" em /settings linkando pra /notificacoes/preferencias.
 - Dashboard banner alertando quando há notification crítica não lida.
 - Audit visual hover/focus/active states em botões/links (interaction polish).
+
+
+---
+
+## 2026-04-27 (continuacao) — Batch 17: Settings tab Notificações + dashboard banner crítico
+
+**Commits:** 2742181.
+
+**Settings sidebar — entrada "Notificações":**
+- Adicionada ao grupo "Comunicação" (ao lado de E-mail, Pixels & Analytics).
+- Type assertion `as SettingsTab` porque tab vai p/ rota externa (não muda activeTab interno).
+- Renderizada como `<Link href="/notificacoes/preferencias">` aproveitando rota existente — evita duplicação UI.
+- Ícone bell (sino) inline path Lucide-style.
+
+**Dashboard CriticalAlertsBanner:**
+- Server component async no topo do dashboard, antes do onboarding card.
+- Query: count de sellerNotifications com severity=critical AND readAt IS NULL AND (userId=me OR userId IS NULL broadcast).
+- Render condicional: skip silencioso se count=0 OU DB indisponível (try/catch).
+- Card vermelho: ícone ⚠, "X aviso(s) crítico(s) não lido(s)", descrição genérica ("Falha em NF-e, pedidos urgentes, ou esgotamento"), CTA "Ver →" linkando /notificacoes.
+- Não consome Topbar bell — é destaque adicional pra alertas mais graves que merecem atenção imediata.
+
+**Trade-offs:**
+- Query no dashboard adiciona round-trip DB. Aceito porque rota é cached por sessão e count é index hit (idx_seller_notif_tenant_read).
+- Não filtra type específico — qualquer notification critical aparece. V2: priority list (fiscal.failed > inventory esgotado > churn).
+
+**Validações:**
+- Tests admin 77/77 verde. Typecheck/lint zero.
+- 0 regressão.
+
+**Próximo ciclo:**
+- Email transactional plug (sendEmail já existe + templates) — emit em order.created e order.paid hooks chama sendEmail. Modo mock sem RESEND_API_KEY.
+- UX testing prod completo via Playwright.
+- Documentar AcroForm fields nos templates Email (next/react-email render).
