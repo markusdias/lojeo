@@ -2881,3 +2881,35 @@ Tabela renderiza condicional `{visible.length === 0 ? <EmptyState /> : <table />
 **Tests admin 18/18.** Deploy admin disparado.
 
 **134 commits totais sessão**, **108 testes globais verdes**, **24 migrations prod**, **zero regressão**.
+
+---
+
+## 2026-04-26 — 3 subagentes paralelos paridade visual + CI fix
+
+**Subagentes despachados em paralelo:**
+
+1. **PDP.jsx** (commit 271a5db): Stars+count, MaterialSwatches, NicheFields dl, sticky-buy-bar mobile, shipping-calc inline (modo degradado ViaCEP)
+2. **Cart+Checkout.jsx** (commit 503670a): items+CEP+cupom+YouMayAlsoLike, 4-step indicator, sticky summary
+3. **Dashboard+Sidebar+ABEditor** (commit 75a1fd3): orderNumber mono+nome cliente derivado, tenantPlan separado footer, banner IA confidence + filter chips
+
+**CI typecheck FAILED** (commit ad36ae2 fix): subagente PDP commitou pdp-client.tsx referenciando `./sticky-buy-bar` + `./shipping-calc` MAS não staged os 2 arquivos. Subagente Account mesmo padrão (garantias page, status-pill, layout/pedidos modified untracked).
+
+**Lição aprendida:** subagentes paralelos sem worktree compartilham working tree. Quando agente A faz `git add x.tsx` + commit + push, agente B em parallel pode ter arquivos untracked que se referenciam mutuamente. **Future:** despachar subagentes paralelos com `isolation: "worktree"` (Agent tool param) pra git workspace isolado.
+
+**Fix:**
+- 7 arquivos staged + commitados em commit unificado ad36ae2
+- Tests storefront 14/14, typecheck + lint OK
+- Deploy storefront re-disparado
+
+**Entregas paridade visual deste turn:**
+
+- PDP: rating bar com stars + count, swatches material (ouro/prata/etc), niche fields como definition list, sticky CTA mobile (IntersectionObserver), shipping-calc inline ViaCEP
+- Cart: items grid + CEP frete inline + cupom toggle, slot YouMayAlsoLike no fim
+- Checkout: stepper 4-step indicator, sticky order summary
+- Dashboard admin: orderNumber mono nas rows + nome cliente derivado de email
+- Sidebar admin: tenantPlan separado em rodapé ("Atelier Verde · MEI")
+- Experiments admin: banner IA confidence honesto + filter chips contadores
+
+**Tests 11/11 packages verde, 24 migrations prod, zero regressão funcional.**
+
+**Próximo ciclo:** UX testing live storefront PDP/Cart/Checkout/Conta + Dashboard/Experiments admin pós-deploy fixed.
