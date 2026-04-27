@@ -4421,3 +4421,51 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - Polling status em /checkout/confirmacao (intervalo 5s) pra detectar pagamento confirmado.
 - E2E tests Playwright: criar order via API + assertar QR retorna + email mock log.
 - Audit visual hover/focus storefront (homologar com admin).
+
+
+---
+
+## 2026-04-27 (continuacao) — Batch 24: QR Pix UI + polling + a11y storefront
+
+**Commits:** d22a61d.
+
+**POST /api/orders persiste pixData em order.metadata.pix:**
+- Antes: pixData só existia no response da chamada (perdido em redirect MP cross-session).
+- Agora: salvo em jsonb `orders.metadata.pix = {qrCode, qrCodeBase64, ticketUrl}`.
+- /api/orders GET (storefront) já retorna order completo incluindo metadata — confirmacao lê direto.
+
+**/checkout/confirmacao PixSection client component:**
+- Lê `fetched.metadata.pix` (TS-typed PixData interface).
+- Render condicional:
+  - **paid**: card verde "Pagamento confirmado ✓" + texto sobre NF-e/rastreio próximos.
+  - **pix com QR base64**: `<img src='data:image/png;base64,...' 200x200>` + botão "Copiar código Pix" (clipboard.writeText + feedback "✓ Código copiado" 2.5s) + textarea readonly mono com EMV payload.
+  - **pix sem QR (mock fallback)**: mensagem "Pix em modo simulado, contato WhatsApp".
+- **Polling status** setInterval 5s chamando /api/orders, atualiza state quando status mudou. setInterval cleared on paid/cancelled. Cliente vê pagamento confirmado sem refresh manual.
+
+**A11y storefront focus-visible:**
+- `apps/storefront/src/app/globals.css` ganha `a/button/input/textarea/select:focus-visible` outline 2px accent + offset 2px + radius 4px. Alinha com admin (batch 22).
+- Preserva `:focus:not(:focus-visible) { outline: none }` pra mouse clicks (UX nativa).
+
+**Trade-offs:**
+- Polling 5s é simples vs SSE/WebSocket (mais infra). 5s é janela aceitável pra confirmação Pix (geralmente 1-30s no banco). V2: SSE quando tier produção.
+- pixData persistido em jsonb metadata sem schema dedicado — PII baixíssima (string EMV é pública por design Pix). ticketUrl OK público.
+- QR base64 inline no email + img src — peso ~10KB por email. Aceitável; alternativa upload pra R2 + URL pública adiciona dep.
+
+**Validações:**
+- Tests storefront 49/49, admin 77/77 verde. db 20, engine 87, etc. ~250+. Typecheck/lint zero.
+- 0 regressão.
+- Deploy storefront disparado.
+
+**Sprint 3 (checkout BR) — coverage:**
+- ✓ Mercado Pago Preference creation (init_point redirect)
+- ✓ Mercado Pago Payment direto Pix (QR inline storefront)
+- ✓ Webhook MP real-mode (lookup payment, update status, emit notification)
+- ✓ /checkout/confirmacao com QR + polling
+- ✓ /checkout/falha
+- ⏳ Boleto via MP (mesmo padrão Pix Payment direto, payment_method_id=bolbradesco)
+
+**Próximo ciclo:**
+- Boleto direto MP (template já existe? verificar) — completa Sprint 3.
+- Hover/focus polish admin sidebar nav-item (já tem hover, falta focus-visible).
+- Audit final Sprint 13 — checklist roadmap.
+- E2E Playwright fluxo checkout completo (criar order → ver QR → mock paid).
