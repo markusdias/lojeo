@@ -27,6 +27,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { id: productId } = await params;
   const tid = tenantId(req);
 
+  // Auth: middleware (src/middleware.ts) bloqueia /api/products/* mutações sem
+  // sessão NextAuth. Permission scope (products.write) validada lá.
+
   const product = await db.query.products.findFirst({
     where: and(eq(products.id, productId), eq(products.tenantId, tid)),
   });

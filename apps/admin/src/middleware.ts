@@ -67,15 +67,40 @@ function needs2FAGate(pathname: string): boolean {
   return true;
 }
 
+// Mutações em rotas /api/* exigem sessão. Allowlist mantém endpoints públicos
+// (auth flow, webhooks externos, track behavioral, migrate bootstrap).
+const API_AUTH_ALLOWLIST_PREFIXES = [
+  '/api/auth/',
+  '/api/migrate',
+  '/api/health',
+  '/api/track',
+  '/api/events',
+  '/api/webhooks/',
+];
+
+function needsApiAuth(pathname: string, method: string): boolean {
+  if (!pathname.startsWith('/api/')) return false;
+  for (const prefix of API_AUTH_ALLOWLIST_PREFIXES) {
+    if (pathname === prefix || pathname.startsWith(prefix)) return false;
+  }
+  return STATE_CHANGING_METHODS.has(method.toUpperCase());
+}
+
 export default auth((req) => {
   const csrfBlock = csrfCheck(req);
   if (csrfBlock) return csrfBlock;
 
+  // Auth gate /api/* mutações — defesa em profundidade. Endpoints individuais
+  // ainda devem checar permission scope quando aplicável.
+  const session = req.auth;
+  const pathname = req.nextUrl.pathname;
+  if (needsApiAuth(pathname, req.method) && !session?.user) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  }
+
   // 2FA enforcement: usuários com 2FA habilitado precisam ter verificado
   // a sessão (cookie lojeo_2fa_verified=1) antes de acessar rotas protegidas.
-  const session = req.auth;
   const requires2FA = session?.user?.requires2FA === true;
-  const pathname = req.nextUrl.pathname;
   if (session?.user && requires2FA && needs2FAGate(pathname)) {
     const verified = req.cookies.get('lojeo_2fa_verified')?.value === '1';
     if (!verified) {

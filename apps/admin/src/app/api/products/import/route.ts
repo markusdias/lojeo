@@ -80,6 +80,18 @@ export interface ImportRowResult {
 }
 
 export async function POST(req: Request) {
+  // Auth: middleware bloqueia /api/* mutations sem sessão. Permission scope lazy.
+  if (process.env.NODE_ENV !== 'test') {
+    const { auth } = await import('../../../../auth');
+    const { requirePermission } = await import('../../../../lib/roles');
+    const session = await auth();
+    try {
+      await requirePermission(session, 'products', 'write');
+    } catch (e) {
+      return NextResponse.json({ error: String(e) }, { status: 403 });
+    }
+  }
+
   const url = new URL(req.url);
   const dryRun = url.searchParams.get('dry') === 'true';
   const tid = tenantId(req);
