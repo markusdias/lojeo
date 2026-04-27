@@ -54,3 +54,8 @@ npm-debug.log*
 .env.production.local
 secrets/
 *.token
+
+# Playwright screenshots
+*-admin.png
+*-storefront.png
+.playwright-mcp/
