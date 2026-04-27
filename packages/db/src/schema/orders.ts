@@ -98,6 +98,9 @@ export const orders = pgTable(
     giftCardDiscountCents: integer('gift_card_discount_cents').default(0),
     // Customer email — set on both guest and logged-in orders for lookup
     customerEmail: varchar('customer_email', { length: 300 }),
+    // Timestamps de transição de status (migration 0002 já cria estas colunas)
+    paidAt: timestamp('paid_at', { withTimezone: true }),
+    cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
     // Metadata for extensibility
     metadata: jsonb('metadata').default({}).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),

@@ -5688,3 +5688,48 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - Endpoint POST /api/nps + email RecoverNps survey D+7 cron.
 - P5.T — engine split (server vs pure) refactor.
 - UI admin warranty filters.
+
+---
+
+## 2026-04-27 (continuacao) — Batch 50: Cron afiliados reconciliation
+
+**Commits:** (a registrar nesta sessao).
+
+**Helper puro `apps/admin/src/lib/affiliates/reconcile.ts`:**
+- `readAffiliateRefFromMetadata(metadata)` — extrai + sanitiza ref de `order.metadata.affiliateRef`.
+- `planReconciliation(orders, affiliatesByCode, alreadyReconciled)` retorna ReconcilePlan[] com commission cents calculada por affiliate.commissionBps.
+- `aggregatePlansByAffiliate(plans)` agrupa por affiliateLinkId pra reduzir UPDATEs.
+
+**13 tests vitest:**
+- readAffiliateRefFromMetadata: 5 cenários (string / uppercase sanitiza / null/undefined / non-object / chars especiais → null).
+- planReconciliation: 6 cenários (paid+ref+ativo / não pago skip / já reconciled skip / inativo skip / código não cadastrado skip / commission floor).
+- aggregatePlansByAffiliate: 2 cenários (soma + vazio).
+
+**Cron `/api/cron/affiliate-reconcile`:**
+- Auth via authorizeCronRequest.
+- Lookback 30d. Query orders paid + metadata ? 'affiliateRef' (Postgres `?` operator pra jsonb).
+- Detect already reconciled via `metadata.affiliateReconciledAt`.
+- planReconciliation + aggregatePlansByAffiliate.
+- Aplica: UPDATE affiliate_links SET conversions+=N, pending_cents+=cents.
+- Marca order.metadata.affiliateReconciledAt = now via jsonb_set.
+- Response com counts pra observability.
+
+**Schema TS `orders` ganha `paidAt` + `cancelledAt`:**
+- Migration 0002 já tem essas colunas. Schema TS estava desincronizado — alinhamento.
+- `paidAt` necessário pra cron query orders pagos.
+
+**Trade-offs arquiteturais:**
+- Reconcile guarda `affiliateReconciledAt` em order.metadata em vez de tabela link_conversions separada. Simplicidade V1; V2 separar quando precisar audit trail dedicado (clawback handling, reverter conversion).
+- Pending cents acumula em `affiliate_links.pending_cents`. Payout real (lojista paga afiliado) NÃO automatizado — V2 endpoint POST /api/affiliates/[id]/payout que move pending_cents → payout_cents.
+- Cron lookback 30d evita reconcile orders muito antigos. Tenants com fluxo lento podem ajustar.
+- jsonb `?` operator pra detectar key — PostgreSQL nativo, eficiente com GIN index (V2 adicionar GIN em orders.metadata se volume crescer).
+
+**Validações:**
+- pnpm -r typecheck zero erro.
+- admin 115/115 (+13 reconcile). engine 144/144. Total 502 passing. Zero regressao.
+- pnpm -r lint admin/storefront limpo.
+
+**Próximo ciclo:**
+- UI admin /afiliados list + form CRUD.
+- P5.T — engine split (server vs pure) refactor.
+- P3.K UI warranty filter chips.
