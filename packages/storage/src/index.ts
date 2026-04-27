@@ -4,6 +4,7 @@ import type { StorageDriver } from './types';
 
 export * from './types';
 export { LocalDriver, R2Driver };
+export { removeBg, type RemoveBgOptions, type RemoveBgResult } from './remove-bg';
 
 let cached: StorageDriver | null = null;
 

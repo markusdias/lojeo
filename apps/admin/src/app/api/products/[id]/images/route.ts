@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server';
 import { eq, and } from 'drizzle-orm';
 import sharp from 'sharp';
 import { db, productImages, products } from '@lojeo/db';
-import { getStorage } from '@lojeo/storage';
+import { getStorage, removeBg } from '@lojeo/storage';
 import { ai } from '@lojeo/ai';
 import { isValidImageUpload } from '@lojeo/engine';
+import { logger } from '@lojeo/logger';
 
 const SIZES = [
   { suffix: 'sm', width: 200 },
@@ -118,7 +119,76 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     })
     .returning();
 
-  return NextResponse.json({ image: row, thumbnails }, { status: 201 });
+  // ── Remove.bg enrichment opcional ──────────────────────────────────────────
+  // Modo degradado: se REMOVE_BG_KEY ausente OU flag removeBg='false' no form,
+  // pulamos. Falhas no provedor não bloqueiam o upload — a imagem original
+  // já foi salva e devolvida acima.
+  let nobgImage: typeof row | null = null;
+  let nobgThumbnails: Record<string, string> | null = null;
+  let nobgError: string | null = null;
+  const removeBgKey = process.env.REMOVE_BG_KEY ?? '';
+  const flag = formData.get('removeBg')?.toString().toLowerCase();
+  const wantsNoBg = flag === 'true' || flag === '1' || flag === 'on';
+  if (removeBgKey && wantsNoBg) {
+    try {
+      const rb = await removeBg({ apiKey: removeBgKey, image: rawBuffer, mime: meta.format ? `image/${meta.format}` : 'image/png' });
+      if (rb.ok && rb.image) {
+        const nobgFull = await sharp(rb.image).webp({ quality: 90 }).toBuffer();
+        const nobgFullResult = await storage.put(`${baseKey}/nobg.webp`, nobgFull, {
+          contentType: 'image/webp',
+          cacheControl: 'public, max-age=31536000, immutable',
+        });
+        const nobgThumbs: Record<string, string> = {};
+        for (const size of SIZES) {
+          const buf = await sharp(rb.image)
+            .resize({ width: size.width, withoutEnlargement: true })
+            .webp({ quality: 85 })
+            .toBuffer();
+          const result = await storage.put(`${baseKey}/nobg-${size.suffix}.webp`, buf, {
+            contentType: 'image/webp',
+            cacheControl: 'public, max-age=31536000, immutable',
+          });
+          nobgThumbs[size.suffix] = result.url;
+        }
+        nobgThumbnails = nobgThumbs;
+        // Marcação de variant "sem fundo" via prefixo no altText — schema
+        // productImages não tem coluna customFields e este sprint não inclui
+        // migration. O prefixo é estável e suficiente para o admin diferenciar.
+        const nobgAlt = altText ? `[nobg] ${altText}` : '[nobg]';
+        const [nobgRow] = await db
+          .insert(productImages)
+          .values({
+            tenantId: tid,
+            productId,
+            url: nobgFullResult.url,
+            altText: nobgAlt,
+            position: position + 1,
+            width,
+            height,
+          })
+          .returning();
+        nobgImage = nobgRow ?? null;
+      } else {
+        nobgError = rb.error ?? 'unknown';
+        logger.warn({ err: rb.error, detail: rb.detail }, 'remove-bg: provider falhou — seguindo só com original');
+      }
+    } catch (err) {
+      nobgError = err instanceof Error ? err.message : String(err);
+      logger.warn({ err }, 'remove-bg: exceção inesperada — seguindo só com original');
+    }
+  }
+
+  return NextResponse.json(
+    {
+      image: row,
+      thumbnails,
+      nobgImage,
+      nobgThumbnails,
+      nobgError,
+      removeBgEnabled: Boolean(removeBgKey),
+    },
+    { status: 201 },
+  );
 }
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {

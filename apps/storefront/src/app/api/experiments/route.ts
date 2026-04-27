@@ -6,6 +6,65 @@ export const dynamic = 'force-dynamic';
 
 const TENANT_ID = process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
 
+// ── Self-seed de experimentos canônicos do storefront ────────────────────────
+// Quando uma key requisitada é canônica e ainda não existe no DB, criamos com
+// os defaults (idempotente via unique index uniq_experiments_tenant_key).
+// Evita depender de migration manual via admin para que o A/B funcione no
+// primeiro deploy.
+interface SelfSeedSpec {
+  key: string;
+  name: string;
+  description: string;
+  variants: Variant[];
+  status: 'active';
+  targetMetric: 'conversion';
+}
+
+const SELF_SEED: SelfSeedSpec[] = [
+  {
+    key: 'homepage_personalization',
+    name: 'Homepage personalization vs default',
+    description:
+      'Compara homepage com hero personalizado + RecommendedForYou (variante "personalized") vs hero estático sem recomendações (variante "control"). Mede conversion via cart_add.',
+    variants: [
+      { key: 'control', name: 'Controle (default)', weight: 50 },
+      { key: 'personalized', name: 'Personalizado', weight: 50 },
+    ],
+    status: 'active',
+    targetMetric: 'conversion',
+  },
+];
+
+async function ensureSelfSeed(requestedKeys: string[]): Promise<void> {
+  const seedsToCheck = SELF_SEED.filter((s) => requestedKeys.includes(s.key));
+  if (seedsToCheck.length === 0) return;
+
+  const existing = await db
+    .select({ key: experiments.key })
+    .from(experiments)
+    .where(and(eq(experiments.tenantId, TENANT_ID), inArray(experiments.key, seedsToCheck.map((s) => s.key))));
+
+  const existingKeys = new Set(existing.map((e) => e.key));
+  const missing = seedsToCheck.filter((s) => !existingKeys.has(s.key));
+  if (missing.length === 0) return;
+
+  for (const spec of missing) {
+    await db
+      .insert(experiments)
+      .values({
+        tenantId: TENANT_ID,
+        key: spec.key,
+        name: spec.name,
+        description: spec.description,
+        status: spec.status,
+        targetMetric: spec.targetMetric,
+        variants: spec.variants,
+        startedAt: new Date(),
+      })
+      .onConflictDoNothing();
+  }
+}
+
 /**
  * GET /api/experiments?keys=hero-test,checkout-cta&anonymousId=abc123
  *
@@ -23,6 +82,13 @@ export async function GET(req: NextRequest) {
   }
   const keys = keysParam.split(',').map(s => s.trim()).filter(Boolean);
   if (keys.length === 0) return NextResponse.json({ assignments: {} });
+
+  // Garante experimentos canônicos seedados antes do query (idempotente)
+  try {
+    await ensureSelfSeed(keys);
+  } catch {
+    // best-effort — falha de seed não bloqueia leitura
+  }
 
   // Fetch only active experiments matching keys
   const activeExperiments = await db.select().from(experiments)

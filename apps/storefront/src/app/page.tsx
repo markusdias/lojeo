@@ -4,6 +4,11 @@ import { eq, and, desc } from 'drizzle-orm';
 import { getActiveTemplate } from '../template';
 import { ProductCard } from '../components/ui/product-card';
 import { PersonalizedHero } from '../components/marketing/personalized-hero';
+import { StaticHero } from '../components/marketing/static-hero';
+import {
+  HomePersonalizationProvider,
+  HomeVariantGate,
+} from '../components/marketing/home-personalization-gate';
 import { RecommendedForYouSection } from '../components/products/recommended-for-you';
 import { ContinueWhereLeftOffSection } from '../components/products/continue-where-left-off';
 import { AnonAffinitySection } from '../components/products/anon-affinity-section';
@@ -82,12 +87,21 @@ export default async function HomePage() {
       .limit(4),
   ]);
 
+  const HERO_DEFAULTS = {
+    headline: 'Peças que ficam.',
+    subheadline: 'Joalheria contemporânea, finalizada à mão no nosso ateliê. Ouro 18k e prata 925 com garantia de um ano.',
+    cta: { label: 'Ver coleção', href: '/produtos' },
+  };
+
   return (
-    <>
+    <HomePersonalizationProvider>
       {/* ── HERO ── */}
       {/* Paridade: docs/design-system-jewelry-v1/project/ui_kits/storefront/Home.jsx#Hero
          aspectRatio 16/9 puro (sem minHeight forçado), gradient diagonal champagne,
-         overlay horizontal 92→0% para legibilidade do texto à esquerda. */}
+         overlay horizontal 92→0% para legibilidade do texto à esquerda.
+         A/B test `homepage_personalization` (Sprint 12):
+           - control: StaticHero (sem RFM, sem A/B de copy)
+           - personalized: PersonalizedHero + RecommendedForYouSection */}
       <section style={{ maxWidth: 'var(--container-max)', margin: '24px auto 0', padding: '0 var(--container-pad)' }}>
         <div style={{
           position: 'relative', borderRadius: 8, overflow: 'hidden',
@@ -99,16 +113,25 @@ export default async function HomePage() {
             position: 'absolute', inset: 0,
             background: 'linear-gradient(90deg, rgba(232,221,201,0.92) 0%, rgba(232,221,201,0.4) 50%, rgba(232,221,201,0) 70%)',
           }} />
-          {/* Content — A/B test homepage-hero (defaults preservados como fallback quando inativo) */}
+          {/* Content */}
           <div style={{
             position: 'absolute', left: 'clamp(24px, 5vw, 80px)',
             top: '50%', transform: 'translateY(-50%)',
           }}>
-            <PersonalizedHero
-              defaultHeadline="Peças que ficam."
-              defaultSubheadline="Joalheria contemporânea, finalizada à mão no nosso ateliê. Ouro 18k e prata 925 com garantia de um ano."
-              defaultCta={{ label: 'Ver coleção', href: '/produtos' }}
-            />
+            <HomeVariantGate variant="control">
+              <StaticHero
+                headline={HERO_DEFAULTS.headline}
+                subheadline={HERO_DEFAULTS.subheadline}
+                cta={HERO_DEFAULTS.cta}
+              />
+            </HomeVariantGate>
+            <HomeVariantGate variant="personalized">
+              <PersonalizedHero
+                defaultHeadline={HERO_DEFAULTS.headline}
+                defaultSubheadline={HERO_DEFAULTS.subheadline}
+                defaultCta={HERO_DEFAULTS.cta}
+              />
+            </HomeVariantGate>
           </div>
         </div>
       </section>
@@ -145,8 +168,14 @@ export default async function HomePage() {
       {/* ── CONTINUE DE ONDE PAROU (cliente logado, último product_view) ── */}
       <ContinueWhereLeftOffSection currency={tpl.currency} />
 
-      {/* ── PARA VOCÊ (cliente logado recorrente, server) ── */}
-      <RecommendedForYouSection currency={tpl.currency} />
+      {/* ── PARA VOCÊ (cliente logado recorrente, server) ──
+         Renderizada apenas na variante `personalized` do A/B
+         `homepage_personalization`. Server-side renderiza sempre (custo de
+         query é baixo) e o gate apenas controla visibilidade — assim o SSR
+         continua estável e crawlers veem a homepage default (control). */}
+      <HomeVariantGate variant="personalized">
+        <RecommendedForYouSection currency={tpl.currency} />
+      </HomeVariantGate>
 
       {/* ── CONTINUE EXPLORANDO (anônimo recorrente, client por anonymousId) ── */}
       <AnonAffinitySection currency={tpl.currency} />
@@ -239,6 +268,6 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
-    </>
+    </HomePersonalizationProvider>
   );
 }

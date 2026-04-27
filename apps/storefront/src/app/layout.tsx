@@ -11,14 +11,22 @@ import { ServiceWorkerRegister } from '../components/pwa/sw-register';
 import { db, tenants } from '@lojeo/db';
 import { eq } from 'drizzle-orm';
 import { auth } from '../auth';
+import { getHreflangAlternates } from '../lib/hreflang';
 import './globals.css';
 import '@lojeo/template-jewelry-v1/tokens.css';
 
+// Hreflang base no <head> do root layout — cobre TODAS as páginas (Next.js
+// Metadata API herda alternates.languages quando rotas filhas não sobrescrevem).
+// Hoje só temos pt-BR + x-default; Fase 1.2 com coffee-v1 expande automaticamente
+// via getHreflangAlternates (ver apps/storefront/src/lib/hreflang.ts).
 export const metadata = {
   title: 'Joias — Atelier',
   description: 'Joalheria contemporânea em ouro 18k e prata 925, com garantia de um ano.',
   manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, statusBarStyle: 'default' as const, title: 'Atelier' },
+  alternates: {
+    languages: getHreflangAlternates('/'),
+  },
 };
 
 export const viewport = {
