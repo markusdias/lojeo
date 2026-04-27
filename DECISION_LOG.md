@@ -3037,3 +3037,36 @@ Tabela renderiza condicional `{visible.length === 0 ? <EmptyState /> : <table />
 **145 commits totais sessão**, **108 testes globais verdes**, **24 migrations prod**, **zero regressão**.
 
 **Próximo ciclo:** Storefront PLP.jsx + Cart.jsx + Checkout.jsx vs impl atual. ABEditor.jsx detail view.
+
+---
+
+## 2026-04-26 — 4 subagentes worktree paralelos: PLP+Cart+Checkout+ABEditor
+
+**Commits:** 357c003 (PLP) · 612cd8a (Cart) · e1852fa (Checkout) · 50ff4b4 (ABEditor)
+
+**PLP.jsx (worktree a100b8ce):**
+- Filtro Pedra novo (lê customFields.pedra) — diamante/topázio/água-marinha/pérola
+- FilterGroup eyebrow uppercase 11px letter-spacing 0.12em + divisor inferior
+- Sidebar 240px / grid gap 24px paridade direta ref
+
+**Cart.jsx (worktree a1b62d4e):**
+- Item card thumb 120x120 1:1 fundo #F4F1E9 (era 88px 3:4)
+- Nome produto font-display 22px (era body 15px medium)
+- Cross-sell title "Você também pode gostar" + eyebrow 11px
+
+**Checkout.jsx (worktree ada1fa51):**
+- H2 32px Cormorant ("Como prefere receber?" / "Pagamento")
+- CheckoutSummary: "Seu pedido" 22px display + eyebrow "N peças" + total 22px display + bg surface-sunken
+
+**ABEditor.jsx (worktree afbfa010):**
+- DailyChartCard novo: SVG sparkline A vs B com grid + legenda
+- Stats agregados nos cards lista: aRate/bRate/lift + heurística confiança
+- Card vira `<a href>` clicável → /experiments/[id]/results
+
+**Tests admin 18/18 + storefront 14/14 verde. Engine 44/44. Typecheck + lint OK.**
+
+**4 paralelos worktree zero race condition.** Lição aplicada: cada subagente verifica `git status` pré-commit, isola working tree, push branch separado, merge sequencial fast-forward em main.
+
+**150 commits totais sessão**, **108 testes globais verdes**, **24 migrations prod**, **zero regressão**.
+
+**Próximo ciclo:** Emails.jsx (4 templates email) + States.jsx (loading/error states) + Screens.jsx (admin gaps remanescentes) + visualization /experiments live.
