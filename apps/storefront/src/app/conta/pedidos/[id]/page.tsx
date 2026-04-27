@@ -1,8 +1,9 @@
 import { notFound } from 'next/navigation';
 import { auth } from '../../../../auth';
 import { db, orders, orderItems, orderEvents } from '@lojeo/db';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, asc } from 'drizzle-orm';
 import Link from 'next/link';
+import { StatusPill } from '../../../../components/account/status-pill';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,14 +18,38 @@ const STATUS_LABEL: Record<string, string> = {
   cancelled: 'Cancelado',
 };
 
-const STATUS_ICON: Record<string, string> = {
-  pending: '◉',
-  paid: '✓',
-  preparing: '◈',
-  shipped: '→',
-  delivered: '✓',
-  cancelled: '✕',
-};
+// Etapas canônicas do timeline do ref jewelry-v1 — render mesmo sem orderEvents.
+const TIMELINE_STAGES: Array<{ key: string; label: string }> = [
+  { key: 'paid', label: 'Pagamento confirmado' },
+  { key: 'preparing', label: 'Em produção' },
+  { key: 'shipped', label: 'Postado' },
+  { key: 'in_transit', label: 'Em trânsito' },
+  { key: 'delivered', label: 'Entregue' },
+];
+
+function stageIndex(status: string) {
+  switch (status) {
+    case 'pending':
+      return -1;
+    case 'paid':
+      return 0;
+    case 'preparing':
+      return 1;
+    case 'shipped':
+      return 3; // assume já em trânsito quando shipped
+    case 'delivered':
+      return 4;
+    default:
+      return -1;
+  }
+}
+
+function fmtTimelineDate(d: Date | null | undefined) {
+  if (!d) return '';
+  return new Date(d).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' }) +
+    ' · ' +
+    new Date(d).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
 
 function fmt(cents: number) {
   return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -56,10 +81,37 @@ export default async function OrderDetailPage({ params }: PageProps) {
 
   const [items, events] = await Promise.all([
     db.select().from(orderItems).where(and(eq(orderItems.orderId, id), eq(orderItems.tenantId, tid))),
-    db.select().from(orderEvents).where(and(eq(orderEvents.orderId, id), eq(orderEvents.tenantId, tid))).orderBy(desc(orderEvents.createdAt)),
+    db.select().from(orderEvents).where(and(eq(orderEvents.orderId, id), eq(orderEvents.tenantId, tid))).orderBy(asc(orderEvents.createdAt)),
   ]);
 
   const addr = order.shippingAddress as Record<string, string>;
+
+  // Map events para datas das etapas (busca primeira ocorrência de cada status canônico).
+  const stageDates: Record<string, Date | null> = {};
+  for (const stage of TIMELINE_STAGES) {
+    if (stage.key === 'in_transit') {
+      // "Em trânsito" não tem evento próprio — usa shippedAt + 1 dia como heurística.
+      stageDates[stage.key] = order.shippedAt ?? null;
+      continue;
+    }
+    const ev = events.find(e => e.toStatus === stage.key);
+    stageDates[stage.key] = ev ? new Date(ev.createdAt) : null;
+  }
+  // Fallback diretos a partir do order quando não há events.
+  if (!stageDates.paid && order.status !== 'pending') stageDates.paid = order.createdAt;
+  if (!stageDates.shipped && order.shippedAt) stageDates.shipped = order.shippedAt;
+  if (!stageDates.delivered && order.deliveredAt) stageDates.delivered = order.deliveredAt;
+
+  const currentIdx = stageIndex(order.status);
+
+  // Previsão de entrega para etapa "Entregue" (futuro).
+  let etaText = '';
+  if (order.status !== 'delivered' && order.shippingDeadlineDays && order.shippedAt) {
+    const eta = new Date(
+      new Date(order.shippedAt).getTime() + order.shippingDeadlineDays * 24 * 60 * 60 * 1000,
+    );
+    etaText = 'previsto ' + eta.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' });
+  }
 
   return (
     <div>
@@ -74,12 +126,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
             {new Date(order.createdAt).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
-        <span style={{
-          fontSize: 13, fontWeight: 600, padding: '6px 14px', borderRadius: 99,
-          background: 'var(--accent-soft)', color: 'var(--accent)',
-        }}>
-          {STATUS_LABEL[order.status] ?? order.status}
-        </span>
+        <StatusPill status={order.status} />
       </div>
 
       {/* Items */}
@@ -154,35 +201,161 @@ export default async function OrderDetailPage({ params }: PageProps) {
         </section>
       )}
 
-      {/* Timeline */}
-      {events.length > 0 && (
-        <section>
-          <h2 style={{ fontSize: 16, fontWeight: 500, marginBottom: 16 }}>Histórico</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-            {events.map((ev, i) => (
-              <div key={ev.id} style={{ display: 'flex', gap: 16, position: 'relative' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <div style={{
-                    width: 28, height: 28, borderRadius: 999, flexShrink: 0,
-                    background: i === 0 ? 'var(--accent)' : 'var(--surface-sunken)',
-                    border: '1px solid var(--divider)',
-                    display: 'grid', placeItems: 'center',
-                    fontSize: 11, color: i === 0 ? '#fff' : 'var(--text-muted)',
-                  }}>
-                    {STATUS_ICON[ev.toStatus ?? ''] ?? '●'}
+      {/* Timeline visual — etapas canônicas do pedido (ref Account.jsx Timeline) */}
+      <section style={{ marginBottom: 32 }}>
+        <p style={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 14 }}>
+          Status do pedido
+        </p>
+        <div>
+          {TIMELINE_STAGES.map((stage, i) => {
+            const reached = i <= currentIdx;
+            const current = i === currentIdx;
+            const future = !reached;
+            const lastStage = i === TIMELINE_STAGES.length - 1;
+            const date = stageDates[stage.key];
+            const dateLabel =
+              future && stage.key === 'delivered' && etaText
+                ? etaText
+                : date
+                ? fmtTimelineDate(date)
+                : future
+                ? 'em breve'
+                : '';
+            return (
+              <div
+                key={stage.key}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '20px 1fr',
+                  gap: 14,
+                  alignItems: 'flex-start',
+                  paddingBottom: 14,
+                  position: 'relative',
+                }}
+              >
+                <div
+                  style={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: 999,
+                    marginTop: 4,
+                    background: future ? 'transparent' : 'var(--accent)',
+                    border: '1.5px solid ' + (future ? 'var(--divider)' : 'var(--accent)'),
+                  }}
+                />
+                {!lastStage && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      left: 5,
+                      top: 16,
+                      bottom: 0,
+                      width: 2,
+                      background: future ? 'var(--divider)' : 'var(--accent)',
+                    }}
+                  />
+                )}
+                <div>
+                  <div
+                    style={{
+                      fontWeight: current ? 500 : 400,
+                      fontSize: 14,
+                      color: future ? 'var(--text-muted)' : 'var(--text-primary)',
+                    }}
+                  >
+                    {stage.label}
                   </div>
-                  {i < events.length - 1 && (
-                    <div style={{ width: 1, flex: 1, background: 'var(--divider)', margin: '4px 0' }} />
+                  {dateLabel && (
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{dateLabel}</div>
                   )}
                 </div>
-                <div style={{ paddingBottom: 20, flex: 1 }}>
-                  <p style={{ fontSize: 14, fontWeight: 500 }}>
-                    {ev.toStatus ? (STATUS_LABEL[ev.toStatus] ?? ev.toStatus) : ev.eventType}
-                  </p>
-                  {ev.notes && <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{ev.notes}</p>}
-                  <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-                    {new Date(ev.createdAt).toLocaleString('pt-BR')}
-                  </p>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Documentos — NF-e (ref Account.jsx OrderDrawer/DocBtn) */}
+      {(order.invoiceUrl || order.invoiceKey) && (
+        <section style={{ marginBottom: 32 }}>
+          <p style={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 14 }}>
+            Documentos
+          </p>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {order.invoiceUrl && (
+              <a
+                href={order.invoiceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  padding: '10px 14px',
+                  background: 'var(--surface)',
+                  border: '1px solid var(--divider)',
+                  borderRadius: 4,
+                  fontSize: 13,
+                  color: 'var(--text-primary)',
+                  textDecoration: 'none',
+                  fontFamily: 'var(--font-body)',
+                }}
+              >
+                ↓ NF-e (PDF)
+              </a>
+            )}
+            {order.invoiceKey && (
+              <span
+                style={{
+                  padding: '10px 14px',
+                  background: 'var(--surface)',
+                  border: '1px solid var(--divider)',
+                  borderRadius: 4,
+                  fontSize: 13,
+                  color: 'var(--text-secondary)',
+                  fontFamily: 'var(--font-mono)',
+                }}
+                title="Chave de acesso da NF-e"
+              >
+                Chave · {order.invoiceKey}
+              </span>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Histórico detalhado de eventos (mantém audit trail) */}
+      {events.length > 0 && (
+        <section>
+          <p style={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 14 }}>
+            Histórico detalhado
+          </p>
+          <div style={{ background: 'var(--surface)', borderRadius: 8, overflow: 'hidden' }}>
+            {[...events].reverse().map((ev, i) => (
+              <div
+                key={ev.id}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr auto',
+                  gap: 12,
+                  padding: '12px 16px',
+                  borderTop: i === 0 ? 'none' : '1px solid var(--divider)',
+                  fontSize: 13,
+                  alignItems: 'flex-start',
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 500 }}>
+                    {ev.toStatus ? STATUS_LABEL[ev.toStatus] ?? ev.toStatus : ev.eventType}
+                  </div>
+                  {ev.notes && (
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{ev.notes}</div>
+                  )}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                  {new Date(ev.createdAt).toLocaleString('pt-BR', {
+                    day: 'numeric',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
                 </div>
               </div>
             ))}

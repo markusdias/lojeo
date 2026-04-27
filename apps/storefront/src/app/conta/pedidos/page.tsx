@@ -4,28 +4,11 @@ import { eq, and, desc, or, inArray } from 'drizzle-orm';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { RebuySuggestion } from '../../../components/account/rebuy-suggestion';
+import { StatusPill } from '../../../components/account/status-pill';
 
 export const dynamic = 'force-dynamic';
 
 const tenantId = () => process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
-
-const STATUS_LABEL: Record<string, string> = {
-  pending: 'Aguardando pagamento',
-  paid: 'Pago',
-  preparing: 'Em preparação',
-  shipped: 'Enviado',
-  delivered: 'Entregue',
-  cancelled: 'Cancelado',
-};
-
-const STATUS_COLOR: Record<string, string> = {
-  pending: '#92400E',
-  paid: '#065F46',
-  preparing: '#1E40AF',
-  shipped: '#5B21B6',
-  delivered: '#065F46',
-  cancelled: '#991B1B',
-};
 
 function fmt(cents: number) {
   return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -106,9 +89,6 @@ export default async function PedidosPage() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {rows.map(order => {
           const orderItemList = itemsByOrder[order.id] ?? [];
-          const statusLabel = STATUS_LABEL[order.status] ?? order.status;
-          const statusColor = STATUS_COLOR[order.status] ?? 'var(--text-secondary)';
-
           return (
             <Link
               key={order.id}
@@ -120,21 +100,16 @@ export default async function PedidosPage() {
                 background: 'var(--surface)',
                 transition: 'box-shadow 150ms',
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12, gap: 12 }}>
                   <div>
-                    <p style={{ fontWeight: 500, marginBottom: 2 }}>{order.orderNumber}</p>
+                    <p style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--text-secondary)', marginBottom: 2 }}>{order.orderNumber}</p>
                     <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
                       {new Date(order.createdAt).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </p>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <span style={{
-                      fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 99,
-                      background: `${statusColor}18`, color: statusColor,
-                    }}>
-                      {statusLabel}
-                    </span>
-                    <p style={{ fontSize: 14, fontWeight: 500, marginTop: 6 }}>{fmt(order.totalCents)}</p>
+                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+                    <StatusPill status={order.status} />
+                    <p style={{ fontSize: 14, fontWeight: 500 }}>{fmt(order.totalCents)}</p>
                   </div>
                 </div>
 
