@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { EmptyState, IconHeart, IconGiftCard } from '../../components/ui/empty-state';
 
 export type Tab = 'wishlists' | 'gift-cards' | 'back-in-stock';
 
@@ -146,10 +147,13 @@ export function WishlistTabs({ initialTab, totals, wishlists, giftcards, giftcar
       {tab === 'wishlists' && (
         <div className="lj-card" style={{ overflow: 'hidden' }}>
           {wishlists.length === 0 ? (
-            <div style={{ padding: 'var(--space-8)', textAlign: 'center' }}>
-              <p className="body-s" style={{ color: 'var(--fg-secondary)' }}>
-                Nenhuma wishlist registrada ainda. Conforme clientes salvam favoritos, elas aparecem aqui.
-              </p>
+            <div style={{ padding: 'var(--space-8)' }}>
+              <EmptyState
+                icon={<IconHeart />}
+                title="Nenhuma wishlist registrada"
+                description="Quando clientes salvarem produtos como favoritos no storefront, eles aparecem aqui ranqueados por demanda. Use para priorizar reposição e campanha."
+                action={{ label: 'Ver produtos', href: '/products' }}
+              />
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-body-s)' }}>
@@ -244,11 +248,13 @@ export function WishlistTabs({ initialTab, totals, wishlists, giftcards, giftcar
           {/* Cards table */}
           <div className="lj-card" style={{ overflow: 'hidden' }}>
             {giftcards.length === 0 ? (
-              <div style={{ padding: 'var(--space-8)', textAlign: 'center' }}>
-                <p className="body-s" style={{ color: 'var(--fg-secondary)', marginBottom: 'var(--space-3)' }}>
-                  Nenhum gift card emitido ainda.
-                </p>
-                <p className="caption">Vendas como produto especial no storefront viram cards aqui automaticamente.</p>
+              <div style={{ padding: 'var(--space-8)' }}>
+                <EmptyState
+                  icon={<IconGiftCard />}
+                  title="Nenhum gift card emitido"
+                  description="Vendas como produto especial no storefront viram gift cards aqui automaticamente. Você também pode emitir manualmente para presentes corporativos."
+                  action={{ label: 'Vender vale-presente', href: 'https://apps-lojeo-storefront.m9axtw.easypanel.host/presente' }}
+                />
               </div>
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-body-s)' }}>
@@ -298,10 +304,13 @@ export function WishlistTabs({ initialTab, totals, wishlists, giftcards, giftcar
       {tab === 'back-in-stock' && (
         <div className="lj-card" style={{ overflow: 'hidden' }}>
           {restock.length === 0 ? (
-            <div style={{ padding: 'var(--space-8)', textAlign: 'center' }}>
-              <p className="body-s" style={{ color: 'var(--fg-secondary)' }}>
-                Ninguém esperando reposição. Conforme clientes pedirem &quot;avise-me quando voltar&quot;, eles aparecem aqui.
-              </p>
+            <div style={{ padding: 'var(--space-8)' }}>
+              <EmptyState
+                icon={<IconHeart />}
+                title="Ninguém esperando reposição"
+                description="Quando clientes clicarem em “avise-me quando voltar” em produtos esgotados, a fila aparece aqui. Use para priorizar reposição com demanda confirmada."
+                action={{ label: 'Ver estoque', href: '/inventory' }}
+              />
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-body-s)' }}>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { InfoTooltip } from '../../components/ui/info-tooltip';
+import { EmptyState, IconChart } from '../../components/ui/empty-state';
 
 type AttributionModel = 'last_click' | 'first_click' | 'linear';
 
@@ -157,8 +158,14 @@ export default function AtribuicaoPage() {
         ) : resp?.error ? (
           <div style={{ padding: 24, color: '#991B1B', fontSize: 14 }}>Erro: {resp.error}</div>
         ) : !resp || resp.data.length === 0 ? (
-          <div style={{ padding: 24, color: '#6B7280', fontSize: 14 }}>
-            Sem pedidos pagos com UTM nos últimos {days} dias.
+          <div style={{ padding: 'var(--space-8)' }}>
+            <EmptyState
+              icon={<IconChart />}
+              title={`Sem pedidos pagos com UTM nos últimos ${days} dias`}
+              description="Cole UTMs nas suas campanhas (Meta, Google Ads, email) para ver receita e conversão por canal aqui."
+              action={{ label: 'Ver pedidos', href: '/pedidos' }}
+              secondaryAction={{ label: 'Configurar pixels', href: '/settings?tab=pixels' }}
+            />
           </div>
         ) : (
           <table style={{ width: '100%', fontSize: 14, borderCollapse: 'collapse' }}>
