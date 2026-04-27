@@ -7,11 +7,18 @@ import { useCheckout } from '../../../components/checkout/checkout-provider';
 import { useTracker } from '../../../components/tracker-provider';
 import { Icon } from '../../../components/ui/icon';
 
+interface PixData {
+  qrCode: string;
+  qrCodeBase64: string;
+  ticketUrl: string | null;
+}
+
 interface FetchedOrder {
   id: string;
   orderNumber: string;
   paymentMethod: string | null;
   status: string;
+  pix: PixData | null;
 }
 
 function ConfirmacaoInner() {
@@ -23,18 +30,26 @@ function ConfirmacaoInner() {
   const [loading, setLoading] = useState(false);
 
   // MP-redirect-flow: chega aqui sem provider state (sessão diferente). Fetch order.
+  // Lê metadata.pix pra renderizar QR.
   useEffect(() => {
     if (state.orderId || !queryOrderId) return;
     setLoading(true);
     fetch(`/api/orders?id=${encodeURIComponent(queryOrderId)}`, { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
-      .then((d: { id?: string; orderNumber?: string; paymentMethod?: string | null; status?: string } | null) => {
+      .then((d: {
+        id?: string;
+        orderNumber?: string;
+        paymentMethod?: string | null;
+        status?: string;
+        metadata?: { pix?: PixData | null };
+      } | null) => {
         if (d?.id) {
           setFetched({
             id: d.id,
             orderNumber: d.orderNumber ?? '—',
             paymentMethod: d.paymentMethod ?? null,
             status: d.status ?? 'pending',
+            pix: d.metadata?.pix ?? null,
           });
         }
       })
@@ -45,6 +60,8 @@ function ConfirmacaoInner() {
   const orderId = state.orderId ?? fetched?.id ?? null;
   const orderNumber = state.orderNumber ?? fetched?.orderNumber ?? null;
   const paymentMethod = state.paymentMethod ?? fetched?.paymentMethod ?? null;
+  const pix = fetched?.pix ?? null;
+  const orderStatus = fetched?.status ?? 'pending';
 
   useEffect(() => {
     if (!orderId) return;
@@ -94,23 +111,7 @@ function ConfirmacaoInner() {
       </p>
 
       {isPix && (
-        <div style={{
-          padding: 24, border: '1px solid var(--divider)', borderRadius: 8, marginBottom: 32, textAlign: 'left',
-        }}>
-          <h3 style={{ marginBottom: 12 }}>Pague via Pix</h3>
-          <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16 }}>
-            QR code será gerado pelo Mercado Pago após integração (Sprint 3 completo). Por enquanto, entre em contato via WhatsApp para finalizar o pagamento.
-          </p>
-          <div style={{
-            width: 160, height: 160, background: 'var(--surface-sunken)',
-            margin: '0 auto', borderRadius: 8, display: 'grid', placeItems: 'center',
-          }}>
-            <span style={{ fontSize: 40, color: 'var(--text-muted)' }}>◉</span>
-          </div>
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 12, textAlign: 'center' }}>
-            QR code do Pix — disponível após integração MP
-          </p>
-        </div>
+        <PixSection pix={pix} orderStatus={orderStatus} orderId={orderId} setFetched={setFetched} />
       )}
 
       {isBoleto && (
@@ -183,6 +184,125 @@ function ConfirmacaoInner() {
           Continuar comprando
         </Link>
       </div>
+    </div>
+  );
+}
+
+interface PixSectionProps {
+  pix: PixData | null;
+  orderStatus: string;
+  orderId: string;
+  setFetched: React.Dispatch<React.SetStateAction<FetchedOrder | null>>;
+}
+
+function PixSection({ pix, orderStatus, orderId, setFetched }: PixSectionProps) {
+  const [copied, setCopied] = useState(false);
+
+  // Polling status: a cada 5s, verifica se MP webhook atualizou status pra paid.
+  // Para quando paid/cancelled.
+  useEffect(() => {
+    if (orderStatus === 'paid' || orderStatus === 'cancelled') return;
+    if (!orderId) return;
+    const id = setInterval(() => {
+      fetch(`/api/orders?id=${encodeURIComponent(orderId)}`, { cache: 'no-store' })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d: { status?: string; metadata?: { pix?: PixData | null }; orderNumber?: string; paymentMethod?: string | null } | null) => {
+          if (d?.status && d.status !== orderStatus) {
+            setFetched((prev) => prev ? { ...prev, status: d.status ?? prev.status } : prev);
+          }
+        })
+        .catch(() => null);
+    }, 5000);
+    return () => clearInterval(id);
+  }, [orderStatus, orderId, setFetched]);
+
+  if (orderStatus === 'paid') {
+    return (
+      <div style={{
+        padding: 24, border: '1px solid var(--success, #166534)',
+        background: 'var(--surface, #fff)', borderRadius: 8, marginBottom: 32,
+      }}>
+        <strong style={{ fontSize: 18, color: 'var(--success, #166534)' }}>Pagamento confirmado ✓</strong>
+        <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 8 }}>
+          Recebemos seu Pix. Em breve enviaremos email com NF-e e código de rastreio.
+        </p>
+      </div>
+    );
+  }
+
+  async function copyPix() {
+    if (!pix?.qrCode) return;
+    try {
+      await navigator.clipboard.writeText(pix.qrCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch { /* */ }
+  }
+
+  return (
+    <div style={{
+      padding: 24, border: '1px solid var(--divider)', borderRadius: 8, marginBottom: 32, textAlign: 'left',
+    }}>
+      <h3 style={{ marginBottom: 12 }}>Pague via Pix</h3>
+      {pix?.qrCodeBase64 ? (
+        <>
+          <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16 }}>
+            Escaneie o QR code abaixo no app do seu banco. Ou copie o código e cole na opção Pix copia-e-cola.
+          </p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={`data:image/png;base64,${pix.qrCodeBase64}`}
+            alt="QR Code Pix"
+            width={200}
+            height={200}
+            style={{ display: 'block', margin: '0 auto', borderRadius: 8 }}
+          />
+          {pix.qrCode && (
+            <div style={{ marginTop: 16 }}>
+              <button
+                type="button"
+                onClick={copyPix}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  background: copied ? 'var(--success, #166534)' : 'var(--text-primary, #1A1612)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 8,
+                  fontSize: 14,
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }}
+              >
+                {copied ? '✓ Código copiado' : 'Copiar código Pix'}
+              </button>
+              <textarea
+                readOnly
+                value={pix.qrCode}
+                style={{
+                  width: '100%',
+                  marginTop: 8,
+                  padding: 8,
+                  fontFamily: 'monospace',
+                  fontSize: 11,
+                  border: '1px solid var(--divider)',
+                  borderRadius: 6,
+                  resize: 'vertical',
+                  minHeight: 60,
+                  background: 'var(--surface-sunken, #FAF6EE)',
+                }}
+              />
+            </div>
+          )}
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 12, textAlign: 'center' }}>
+            Aguardando pagamento — esta página atualiza automaticamente.
+          </p>
+        </>
+      ) : (
+        <p style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
+          Pix em modo simulado (Mercado Pago não conectado). Entre em contato via WhatsApp para finalizar manualmente.
+        </p>
+      )}
     </div>
   );
 }

@@ -291,12 +291,19 @@ export async function POST(req: Request) {
         payerEmail: body.customerEmail,
       });
       pixData = { qrCode: pix.qrCode, qrCodeBase64: pix.qrCodeBase64, ticketUrl: pix.ticketUrl };
+      // Persiste pixData em order.metadata.pix pra render em /checkout/confirmacao
+      // após redirect MP (sessão diferente, sem provider state).
+      const updateData: Record<string, unknown> = {
+        metadata: {
+          shippingLabel: body.shipping.label,
+          pix: pixData,
+        },
+      };
       if (pix.source === 'mp') {
-        await db
-          .update(orders)
-          .set({ gatewayPaymentId: pix.paymentId, gatewayStatus: 'pending' })
-          .where(eq(orders.id, order.id));
+        updateData.gatewayPaymentId = pix.paymentId;
+        updateData.gatewayStatus = 'pending';
       }
+      await db.update(orders).set(updateData).where(eq(orders.id, order.id));
       void sendPixGeneratedEmail({
         customerEmail: body.customerEmail,
         orderCode: order.orderNumber,
