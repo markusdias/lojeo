@@ -10,6 +10,7 @@ import {
 } from '@lojeo/db';
 import { auth } from '../../../../auth';
 import { TENANT_ID, requirePermission, recordAuditLog } from '../../../../lib/roles';
+import { sendTradeApprovedEmail } from '../../../../lib/email/transactional';
 
 // Gera código GFT-XXXX-XXXX-XXXX (alfabeto sem ambíguos)
 const GFT_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -155,6 +156,18 @@ export async function PATCH(
         ...(issuedGiftCardCode ? { issuedGiftCardCode } : {}),
       },
     });
+
+    if (newStatus === 'approved' && existing.customerEmail) {
+      const tradeType: 'exchange' | 'refund' | 'warranty' =
+        existing.type === 'warranty' ? 'warranty' :
+        existing.type === 'exchange' ? 'exchange' :
+        'refund';
+      void sendTradeApprovedEmail({
+        customerEmail: existing.customerEmail,
+        orderCode: existing.orderId,
+        type: tradeType,
+      });
+    }
 
     return NextResponse.json({ return: updated, issuedGiftCardCode });
   } catch (err) {

@@ -5,6 +5,7 @@ import { eq, and, asc, not, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { scoreCustomers, SEGMENT_LABELS, type RfmSegment } from '@lojeo/engine';
 import { IssueInvoiceButton } from './issue-invoice-button';
+import { sendShippingNotificationEmail } from '../../../lib/email/transactional';
 
 const STATUS_LABEL: Record<string, string> = {
   pending:   'Aguardando pagamento',
@@ -150,6 +151,16 @@ export default async function PedidoDetailPage({ params }: PageProps) {
       actor: 'admin',
       notes,
     });
+
+    if (newStatus === 'shipped' && trackingCode && order!.customerEmail) {
+      void sendShippingNotificationEmail({
+        customerEmail: order!.customerEmail,
+        orderCode: order!.orderNumber ?? id,
+        trackingCode,
+        estimatedDelivery: '7 dias úteis',
+        orderId: id,
+      });
+    }
 
     revalidatePath(`/pedidos/${id}`);
     revalidatePath('/pedidos');
