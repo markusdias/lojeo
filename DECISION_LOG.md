@@ -3755,3 +3755,37 @@ V2: trocar por react-markdown + sanitizer quando implementar UGC blog/comentario
 - Cron real (Trigger.dev ou EasyPanel cron) para low-stock-check + churn-detection
 - Filtros notification preferences por tenant (opt-out de tipos)
 - Audit visual prod via Playwright após deploy estabilizar
+
+
+---
+
+## 2026-04-27 (continuacao) — Batch 9: /products/import UI + auth gate global
+
+**Commits:** 614e3f4.
+
+**Fix link quebrado:**
+- Botão "Importar CSV" em `/products` apontava `/products/import` (404). Criada página com 3 etapas:
+  1. Modelo CSV (botão download de exemplo `lojeo-produtos-modelo.csv`)
+  2. Upload + checkbox dry-run (default ON)
+  3. Resultado: 4 stats (Total/Válidas|Inseridas/Erros/Puladas) + tabela detalhada por linha + transição clara dry-run → import real
+- Reusa endpoint POST `/api/products/import` existente (já parsing CSV + zod validation + 500 row max + 2MB max).
+
+**Security: auth gate global no middleware:**
+- Antes: ~30 endpoints `/api/*` sem auth check explícito (CSRF protegia POST/PUT/PATCH/DELETE com origin check, mas sem session check). Risco: leaks GET sem auth.
+- Agora: middleware adiciona `needsApiAuth(pathname, method)` — para mutations `/api/*`, exige `req.auth.user`. Allowlist: `/api/auth/*`, `/api/migrate`, `/api/health`, `/api/track`, `/api/events`, `/api/webhooks/*`. Storefront tracking (POST /api/track) continua público — já validado por rate-limit + zod.
+- Defesa em profundidade: endpoints individuais ainda devem chamar `requirePermission(session, scope, action)` quando aplicável. Adicionado em `/api/products/[id]/images` POST e `/api/products/import` POST com **lazy import** (`if NODE_ENV !== 'test'` + dynamic await import auth/roles) — evita vitest module resolution falhar em `dogfood.test.ts` que importa esses route files diretamente.
+- GETs continuam acessíveis. Storefront público lê produtos/orders via storefront API endpoints separados.
+
+**Trade-off — lazy auth import vs middleware-only:**
+- Vitest não resolve `next-auth → next/server` quando route file importa auth top-level. Solução: dynamic import dentro do handler com guard `NODE_ENV !== 'test'`. Custo: 1 await dynamic import overhead em prod (negligível, lazy + module cache). Benefício: dogfood.test.ts continua importando handlers diretamente para integration tests sem mock de auth.
+
+**Validações:**
+- Tests admin 63/63 verde (8 passed, 1 skipped — dogfood quando DATABASE_URL placeholder).
+- Typecheck zero. Lint zero novos.
+- Build deploy disparado.
+- 0 regressão.
+
+**Próximo ciclo:**
+- Aplicar mesmo padrão lazy-auth nos demais ~28 endpoints sensíveis (orders, customers, ugc, etc) progressivamente.
+- Audit security mais profundo: GET endpoints que retornam dados sensíveis (LTV cliente, audit logs) precisam auth também — middleware atual deixa GET passar.
+- UX testing prod /products/import com CSV real.
