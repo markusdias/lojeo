@@ -89,7 +89,7 @@ export function ImageUpload({ productId, removeBgEnabled = false, onUploaded }: 
         </span>
       </label>
 
-      {removeBgEnabled && (
+      {removeBgEnabled ? (
         <label
           style={{
             display: 'inline-flex',
@@ -107,6 +107,22 @@ export function ImageUpload({ productId, removeBgEnabled = false, onUploaded }: 
           />
           Gerar também versão sem fundo (Remove.bg)
         </label>
+      ) : (
+        <span
+          title="Configure REMOVE_BG_KEY em variáveis de ambiente para habilitar remoção de fundo automática"
+          aria-label="Configure REMOVE_BG_KEY em variáveis de ambiente para habilitar remoção de fundo automática"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
+            fontSize: 'var(--text-caption)',
+            color: 'var(--fg-muted, var(--fg-secondary))',
+            cursor: 'help',
+          }}
+        >
+          <span aria-hidden style={{ opacity: 0.6 }}>⊘</span>
+          Remoção de fundo desabilitada
+        </span>
       )}
 
       {error && (

@@ -54,8 +54,6 @@ export default function AtribuicaoPage() {
       .catch(() => setLoading(false));
   }, [days, model]);
 
-  const showPlaceholderBanner = model !== 'last_click';
-
   const selectStyle = {
     padding: '8px 12px',
     fontSize: 14,
@@ -135,21 +133,20 @@ export default function AtribuicaoPage() {
         </button>
       </div>
 
-      {/* Placeholder banner para first_click / linear */}
-      {showPlaceholderBanner && (
+      {/* Banner informativo do modelo (note) — explica fallback last-click quando sem behavior_events */}
+      {model !== 'last_click' && resp?.note && (
         <div
           style={{
-            background: '#FEF3C7',
-            border: '1px solid #FCD34D',
-            color: '#92400E',
-            padding: 12,
-            borderRadius: 8,
-            fontSize: 13,
-            marginBottom: 16,
+            background: 'var(--neutral-50, #F9FAFB)',
+            border: '1px solid var(--border, #E5E7EB)',
+            color: 'var(--fg-secondary, #4B5563)',
+            padding: 10,
+            borderRadius: 6,
+            fontSize: 12,
+            marginBottom: 12,
           }}
         >
-          <strong>Aviso v1:</strong> First-click e Linear v1 = last-click. Roadmap futuro: análise completa de jornada com cross-reference em behavior_events.
-          {resp?.note && <div style={{ marginTop: 4, opacity: 0.9 }}>{resp.note}</div>}
+          {resp.note}
         </div>
       )}
 

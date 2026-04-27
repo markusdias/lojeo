@@ -32,16 +32,19 @@ export default async function ProductEditPage({ params }: { params: Promise<{ id
         <p className="caption mono">{product.id.slice(0, 8)}</p>
       </header>
 
-      <ProductEditClient product={{
-        id: product.id,
-        name: product.name,
-        description: product.description ?? '',
-        seoTitle: product.seoTitle ?? '',
-        seoDescription: product.seoDescription ?? '',
-        priceCents: product.priceCents,
-        status: product.status,
-        customFields: product.customFields as Record<string, unknown>,
-      }} />
+      <ProductEditClient
+        product={{
+          id: product.id,
+          name: product.name,
+          description: product.description ?? '',
+          seoTitle: product.seoTitle ?? '',
+          seoDescription: product.seoDescription ?? '',
+          priceCents: product.priceCents,
+          status: product.status,
+          customFields: product.customFields as Record<string, unknown>,
+        }}
+        removeBgEnabled={!!process.env.REMOVE_BG_KEY}
+      />
     </div>
   );
 }

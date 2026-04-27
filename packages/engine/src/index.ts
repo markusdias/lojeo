@@ -12,3 +12,4 @@ export * from './file-signature';
 export * from './customer-ltv';
 export * from './competitive-pricing';
 export * from './embeddings';
+export * from './attribution';

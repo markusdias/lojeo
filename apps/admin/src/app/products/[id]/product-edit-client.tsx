@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ImageUpload, type UploadedPayload } from '@/components/products/image-upload';
 
 interface ProductData {
   id: string;
@@ -13,7 +14,20 @@ interface ProductData {
   customFields: Record<string, unknown>;
 }
 
-export function ProductEditClient({ product }: { product: ProductData }) {
+interface UploadedImage {
+  id: string;
+  url: string;
+  altText: string | null;
+  variant: 'original' | 'nobg';
+}
+
+export function ProductEditClient({
+  product,
+  removeBgEnabled = false,
+}: {
+  product: ProductData;
+  removeBgEnabled?: boolean;
+}) {
   const [description, setDescription] = useState(product.description);
   const [seoTitle, setSeoTitle] = useState(product.seoTitle);
   const [seoDescription, setSeoDescription] = useState(product.seoDescription);
@@ -23,6 +37,25 @@ export function ProductEditClient({ product }: { product: ProductData }) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'ok' | 'error'; text: string } | null>(null);
   const [aiCost, setAiCost] = useState<{ model: string; cached: boolean; costUsdMicro: number } | null>(null);
+  const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
+  const [uploadNotice, setUploadNotice] = useState<string | null>(null);
+
+  function handleUploaded(payload: UploadedPayload) {
+    setUploadNotice(null);
+    const next: UploadedImage[] = [];
+    if (payload.image) {
+      next.push({ ...payload.image, variant: 'original' });
+    }
+    if (payload.nobgImage) {
+      next.push({ ...payload.nobgImage, variant: 'nobg' });
+    }
+    if (next.length > 0) {
+      setUploadedImages(prev => [...next, ...prev].slice(0, 12));
+    }
+    if (payload.nobgError) {
+      setUploadNotice(`Imagem salva, mas remoção de fundo falhou: ${payload.nobgError}`);
+    }
+  }
 
   async function handleGenerate() {
     setGenerating(true);
@@ -102,6 +135,54 @@ export function ProductEditClient({ product }: { product: ProductData }) {
           <p className="body-s" style={{ margin: 'var(--space-2) 0 0', color: 'var(--fg-secondary)' }}>
             Campos custom: {Object.entries(product.customFields).map(([k, v]) => `${k}: ${String(v)}`).join(', ')}
           </p>
+        )}
+      </div>
+
+      {/* Upload de imagens com Remove.bg opcional */}
+      <div className="lj-card" style={{ padding: 'var(--space-5)' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 'var(--space-3)', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+          <h2 style={{ fontSize: 'var(--text-h3)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', margin: 0 }}>
+            Imagens do produto
+          </h2>
+          {removeBgEnabled ? (
+            <span className="lj-badge lj-badge-accent" style={{ alignSelf: 'center' }}>Remove.bg ativo</span>
+          ) : (
+            <span
+              className="lj-badge"
+              title="Configure REMOVE_BG_KEY em variáveis de ambiente para habilitar remoção de fundo automática"
+              style={{ alignSelf: 'center', cursor: 'help' }}
+            >
+              Remove.bg desabilitado
+            </span>
+          )}
+        </div>
+        <ImageUpload
+          productId={product.id}
+          removeBgEnabled={removeBgEnabled}
+          onUploaded={handleUploaded}
+        />
+        {uploadNotice && (
+          <p className="caption" style={{ marginTop: 'var(--space-2)', color: 'var(--fg-secondary)' }}>
+            {uploadNotice}
+          </p>
+        )}
+        {uploadedImages.length > 0 && (
+          <div style={{ marginTop: 'var(--space-4)', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 'var(--space-3)' }}>
+            {uploadedImages.map((img) => (
+              <figure key={`${img.id}-${img.variant}`} style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+                <div style={{ aspectRatio: '1', borderRadius: 'var(--radius-md)', overflow: 'hidden', background: 'var(--bg-subtle, #f5f0e8)' }}>
+                  <img
+                    src={img.url}
+                    alt={img.altText ?? 'Imagem do produto'}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                </div>
+                <figcaption className="caption" style={{ textAlign: 'center' }}>
+                  {img.variant === 'nobg' ? 'Sem fundo' : 'Original'}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
         )}
       </div>
 

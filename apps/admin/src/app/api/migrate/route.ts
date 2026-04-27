@@ -675,6 +675,42 @@ export async function POST(req: NextRequest) {
     //   CREATE INDEX ... USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)
     results.push('product_embeddings: ok');
 
+    // Sprint 12 — scheduled_reports (Sec 13.2 stub — relatórios programados por email)
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS scheduled_reports (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL,
+        name varchar(200) NOT NULL,
+        report_type varchar(40) NOT NULL,
+        cron_expression varchar(40) NOT NULL,
+        destinations jsonb DEFAULT '{"emails":[]}'::jsonb NOT NULL,
+        filters jsonb DEFAULT '{}'::jsonb NOT NULL,
+        active boolean DEFAULT true NOT NULL,
+        last_run_at timestamptz,
+        next_run_at timestamptz,
+        created_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_scheduled_reports_tenant_active ON scheduled_reports(tenant_id, active)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_scheduled_reports_next_run ON scheduled_reports(next_run_at)`);
+    results.push('scheduled_reports: ok');
+
+    // Sprint 13 — push_subscriptions (PWA Web Push stub — armazena endpoints sem provider real)
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL,
+        user_id uuid,
+        endpoint text NOT NULL UNIQUE,
+        keys_p256dh text NOT NULL,
+        keys_auth text NOT NULL,
+        user_agent text,
+        created_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_push_subs_tenant_user ON push_subscriptions(tenant_id, user_id)`);
+    results.push('push_subscriptions: ok');
+
     return NextResponse.json({ ok: true, results });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

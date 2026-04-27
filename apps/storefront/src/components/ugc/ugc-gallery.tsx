@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTracker } from '../tracker-provider';
 
 interface UgcPost {
   id: string;
@@ -10,6 +11,18 @@ interface UgcPost {
   customerName: string | null;
   productsTagged: Array<{ productId: string; x: number; y: number; label?: string }>;
   approvedAt: string | null;
+}
+
+interface TaggedProductData {
+  id: string;
+  name: string;
+  slug: string;
+  priceCents: number;
+  image: { url: string; altText: string | null } | null;
+}
+
+function fmtBRL(cents: number): string {
+  return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
 type FilterKey = 'todos' | 'tagged' | 'recent';
@@ -32,7 +45,11 @@ export function UgcGallery({
   const [inViewport, setInViewport] = useState(false);
   const [filter, setFilter] = useState<FilterKey>('todos');
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [taggedProducts, setTaggedProducts] = useState<Record<string, TaggedProductData>>({});
+  const [openPinIdx, setOpenPinIdx] = useState<number | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const tracker = useTracker();
+  const impressionTrackedRef = useRef<Set<string>>(new Set());
 
   // Intersection Observer — só faz fetch quando proximo do viewport
   useEffect(() => {
@@ -81,13 +98,92 @@ export function UgcGallery({
   useEffect(() => {
     if (lightboxIndex === null) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setLightboxIndex(null);
+      if (e.key === 'Escape') {
+        if (openPinIdx !== null) setOpenPinIdx(null);
+        else setLightboxIndex(null);
+      }
       if (e.key === 'ArrowRight') setLightboxIndex(i => (i === null ? null : Math.min(i + 1, filteredPosts.length - 1)));
       if (e.key === 'ArrowLeft') setLightboxIndex(i => (i === null ? null : Math.max(i - 1, 0)));
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [lightboxIndex, filteredPosts.length]);
+  }, [lightboxIndex, filteredPosts.length, openPinIdx]);
+
+  // Reset pin aberto ao trocar de post
+  useEffect(() => {
+    setOpenPinIdx(null);
+  }, [lightboxIndex]);
+
+  // Click fora do hover-card ou do pin fecha o aberto (mobile)
+  useEffect(() => {
+    if (openPinIdx === null) return;
+    const onDoc = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      if (target.closest('.ugc-pin-wrap')) return;
+      setOpenPinIdx(null);
+    };
+    document.addEventListener('click', onDoc);
+    return () => document.removeEventListener('click', onDoc);
+  }, [openPinIdx]);
+
+  // Pré-carrega dados dos produtos taggeados no post atual do lightbox
+  const currentPost = lightboxIndex !== null ? filteredPosts[lightboxIndex] : null;
+  const currentTaggedIds = useMemo(() => {
+    if (!currentPost) return [] as string[];
+    return (currentPost.productsTagged ?? []).map(t => t.productId);
+  }, [currentPost]);
+
+  useEffect(() => {
+    if (currentTaggedIds.length === 0) return;
+    const missing = currentTaggedIds.filter(id => !taggedProducts[id]);
+    if (missing.length === 0) return;
+    const ctrl = new AbortController();
+    fetch(`/api/products/by-ids?ids=${missing.join(',')}`, { signal: ctrl.signal })
+      .then(r => r.json())
+      .then((d: { products?: TaggedProductData[] }) => {
+        if (!d.products) return;
+        setTaggedProducts(prev => {
+          const next = { ...prev };
+          for (const p of d.products!) next[p.id] = p;
+          return next;
+        });
+      })
+      .catch(() => {});
+    return () => ctrl.abort();
+  }, [currentTaggedIds, taggedProducts]);
+
+  // Tracking impression — uma vez por post com pins
+  useEffect(() => {
+    if (!tracker || !currentPost) return;
+    if (currentTaggedIds.length === 0) return;
+    if (impressionTrackedRef.current.has(currentPost.id)) return;
+    impressionTrackedRef.current.add(currentPost.id);
+    tracker.track({
+      type: 'recommendation_impression',
+      entityType: 'ugc_post',
+      entityId: currentPost.id,
+      metadata: {
+        source: 'ugc_tag',
+        count: currentTaggedIds.length,
+        productIds: currentTaggedIds,
+      },
+    });
+  }, [tracker, currentPost, currentTaggedIds]);
+
+  function handlePinClick(productId: string, position: number) {
+    if (!tracker || !currentPost) return;
+    tracker.track({
+      type: 'recommendation_click',
+      entityType: 'product',
+      entityId: productId,
+      metadata: {
+        source: 'ugc_tag',
+        ugcPostId: currentPost.id,
+        position,
+      },
+    });
+  }
 
   return (
     <section ref={ref} style={{ padding: '48px 0', minHeight: 1 }}>
@@ -214,6 +310,29 @@ export function UgcGallery({
             .ugc-card:hover img { transform: scale(1.04); }
             .ugc-card:hover .ugc-card__overlay { opacity: 1 !important; }
             .ugc-card:focus-visible { outline: 2px solid var(--accent, #B8956A); outline-offset: 2px; }
+            @keyframes ugc-pin-pulse {
+              0%, 100% { box-shadow: 0 1px 4px rgba(0,0,0,0.35), 0 0 0 2px rgba(255,255,255,0.5); }
+              50% { box-shadow: 0 1px 4px rgba(0,0,0,0.35), 0 0 0 6px rgba(255,255,255,0.25); }
+            }
+            .ugc-pin:focus-visible { outline: 2px solid var(--accent, #B8956A); outline-offset: 3px; }
+            .ugc-hover-card { opacity: 0; pointer-events: none; transition: opacity 0.15s ease; }
+            .ugc-hover-card--open { opacity: 1; pointer-events: auto; }
+            .ugc-pin-wrap:hover .ugc-hover-card,
+            .ugc-pin-wrap:focus-within .ugc-hover-card { opacity: 1; pointer-events: auto; }
+            @media (max-width: 640px) {
+              .ugc-hover-card { display: none; }
+              .ugc-hover-card--open {
+                display: block;
+                position: fixed !important;
+                left: 16px !important;
+                right: 16px !important;
+                top: 16px !important;
+                bottom: auto !important;
+                transform: none !important;
+                max-width: none !important;
+                z-index: 110 !important;
+              }
+            }
           `}</style>
           {lightboxIndex !== null && filteredPosts[lightboxIndex] && (
             <div
@@ -242,11 +361,113 @@ export function UgcGallery({
                 ×
               </button>
               <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 'min(900px, 90vw)', maxHeight: '85vh', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-                <img
-                  src={filteredPosts[lightboxIndex].imageUrl}
-                  alt={filteredPosts[lightboxIndex].caption ?? 'Foto ampliada'}
-                  style={{ maxWidth: '100%', maxHeight: '75vh', objectFit: 'contain', borderRadius: 4 }}
-                />
+                <div style={{ position: 'relative', maxWidth: '100%', maxHeight: '75vh', display: 'inline-block' }}>
+                  <img
+                    src={filteredPosts[lightboxIndex].imageUrl}
+                    alt={filteredPosts[lightboxIndex].caption ?? 'Foto ampliada'}
+                    style={{ maxWidth: '100%', maxHeight: '75vh', objectFit: 'contain', borderRadius: 4, display: 'block' }}
+                  />
+                  {(filteredPosts[lightboxIndex].productsTagged ?? []).map((tag, i) => {
+                    const data = taggedProducts[tag.productId];
+                    const open = openPinIdx === i;
+                    const labelText = tag.label ?? data?.name ?? 'produto';
+                    const ariaLabel = `Tag ${labelText} em ${Math.round(tag.x)}%, ${Math.round(tag.y)}%`;
+                    return (
+                      <div
+                        key={`${tag.productId}-${i}`}
+                        className="ugc-pin-wrap"
+                        style={{
+                          position: 'absolute',
+                          left: `${tag.x}%`,
+                          top: `${tag.y}%`,
+                          transform: 'translate(-50%, -50%)',
+                        }}
+                      >
+                        <button
+                          type="button"
+                          className="ugc-pin"
+                          aria-label={ariaLabel}
+                          aria-expanded={open}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenPinIdx(prev => (prev === i ? null : i));
+                          }}
+                          style={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: '50%',
+                            background: 'white',
+                            border: 'none',
+                            boxShadow: '0 1px 4px rgba(0,0,0,0.35), 0 0 0 2px rgba(255,255,255,0.5)',
+                            color: 'var(--accent, #B8956A)',
+                            fontSize: 16,
+                            fontWeight: 600,
+                            lineHeight: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            padding: 0,
+                            animation: 'ugc-pin-pulse 2s ease-in-out infinite',
+                          }}
+                        >
+                          <span aria-hidden>+</span>
+                        </button>
+                        <div
+                            role="dialog"
+                            aria-label={`Detalhe do produto ${data?.name ?? labelText}`}
+                            className={`ugc-hover-card${open ? ' ugc-hover-card--open' : ''}`}
+                            style={{
+                              position: 'absolute',
+                              left: '50%',
+                              bottom: 'calc(100% + 10px)',
+                              transform: 'translateX(-50%)',
+                              minWidth: 200,
+                              maxWidth: 240,
+                              background: 'white',
+                              color: 'var(--ink, #1a1a1a)',
+                              borderRadius: 4,
+                              padding: 12,
+                              boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+                              zIndex: 2,
+                            }}
+                          >
+                            {data ? (
+                              <>
+                                {data.image && (
+                                  <img
+                                    src={data.image.url}
+                                    alt={data.image.altText ?? data.name}
+                                    style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 2, marginBottom: 8, background: 'var(--surface, #f5f0e8)' }}
+                                  />
+                                )}
+                                <p style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.3, marginBottom: 4 }}>{data.name}</p>
+                                <p style={{ fontSize: 13, marginBottom: 8 }}>{fmtBRL(data.priceCents)}</p>
+                                <a
+                                  href={`/produtos/${data.slug}`}
+                                  onClick={() => handlePinClick(data.id, i)}
+                                  style={{
+                                    display: 'inline-block',
+                                    fontSize: 11,
+                                    letterSpacing: '0.06em',
+                                    textTransform: 'uppercase',
+                                    color: 'var(--accent, #B8956A)',
+                                    textDecoration: 'none',
+                                    borderBottom: '1px solid var(--accent, #B8956A)',
+                                    paddingBottom: 1,
+                                  }}
+                                >
+                                  Ver produto →
+                                </a>
+                              </>
+                            ) : (
+                              <p style={{ fontSize: 12, color: 'var(--text-muted, #777)' }}>Carregando…</p>
+                            )}
+                          </div>
+                      </div>
+                    );
+                  })}
+                </div>
                 <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, textAlign: 'center', maxWidth: 600 }}>
                   {filteredPosts[lightboxIndex].customerName && (
                     <p style={{ marginBottom: 4, fontWeight: 500 }}>{filteredPosts[lightboxIndex].customerName}</p>
