@@ -6,6 +6,7 @@ import { useCheckout, type ShippingOption } from '../../../components/checkout/c
 import { useCart } from '../../../components/cart/cart-provider';
 import { useTracker } from '../../../components/tracker-provider';
 import { CheckoutSummary } from '../../../components/checkout/checkout-summary';
+import { estimateIntlTax, intlTaxNoticeCopy } from '../../../lib/shipping/intl-tax';
 
 function fmt(cents: number, currency = 'BRL') {
   if (cents === 0) return currency === 'BRL' ? 'Grátis' : 'Free';
@@ -55,6 +56,21 @@ export default function FretePage() {
   }, [state.address.postalCode, state.address.country, subtotalCents]);
 
   const selected = options.find((o) => o.id === selectedId);
+
+  // Aviso VAT/alfândega — exibido quando toCountry != fromCountry default
+  const toCountry = (state.address.country ?? 'BR').toUpperCase();
+  const fromCountry = currency === 'BRL' ? 'BR' : currency === 'GBP' ? 'GB' : currency === 'EUR' ? 'DE' : 'US';
+  const taxEstimate = selected
+    ? estimateIntlTax({
+        toCountry,
+        fromCountry,
+        subtotalCents,
+        shippingCents: selected.priceCents,
+        locale: currency === 'BRL' ? 'pt-BR' : 'en-US',
+      })
+    : null;
+  const taxCopy = taxEstimate ? intlTaxNoticeCopy(taxEstimate) : null;
+  const showTaxNotice = taxEstimate && taxEstimate.noticeKey !== 'none' && taxCopy && taxCopy.title;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -128,6 +144,31 @@ export default function FretePage() {
         <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 16 }}>
           * Prazos em dias úteis a partir do despacho. Sprint 4: cálculo real via Melhor Envio por CEP.
         </p>
+
+        {showTaxNotice && taxCopy && taxEstimate && (
+          <div
+            data-testid="intl-tax-notice"
+            style={{
+              marginTop: 20,
+              padding: 16,
+              borderRadius: 8,
+              background: 'var(--surface-sunken, #FAF6EE)',
+              border: '1px solid var(--divider)',
+            }}
+          >
+            <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 6 }}>
+              {taxCopy.title}
+              {taxEstimate.estimatedCents > 0 && (
+                <span style={{ marginLeft: 8, fontWeight: 400, color: 'var(--text-secondary)' }}>
+                  ≈ {fmt(taxEstimate.estimatedCents, currency)}
+                </span>
+              )}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+              {taxCopy.body}
+            </div>
+          </div>
+        )}
 
         <div style={{ display: 'flex', gap: 12, marginTop: 32 }}>
           <button

@@ -5360,3 +5360,50 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 
 **Próximo ciclo:**
 - P2.I — permission scopes em ~28 endpoints sem requirePermission (ordens/customers/UGC/etc.).
+
+---
+
+## 2026-04-27 (continuacao) — Batch 43: P2.J validado + P3.N VAT/alfândega notice
+
+**Commits:** (a registrar nesta sessao).
+
+**P2.J — LGPD UI cliente JÁ ENTREGUE (auditoria):**
+- `/conta/privacidade` page client-side com:
+  - Botão "Baixar dados (JSON)" → `GET /api/conta` (LGPD art. 18 II portabilidade).
+  - Botão "Excluir conta permanentemente" + input confirm `EXCLUIR_MINHA_CONTA` → `DELETE /api/conta` (LGPD art. 18 VI eliminação).
+- `/api/conta` route já implementa:
+  - GET: agrega user + orders + addresses + ugcPosts + wishlist + reviews → JSON download.
+  - DELETE: anonimiza orders (mantém para fiscal NF-e 5 anos) + deleta tudo sem retenção legal (addresses/ugc/wishlist/restock/reviews/behaviorEvents/sessions/users) + signOut.
+- HTTP semantics correto (GET portabilidade, DELETE eliminação) — task list pedia POST mas current é mais idiomático.
+- Status: ✓ marcado completed.
+
+**P3.N — VAT/alfândega checkout notice:**
+- Helper puro `apps/storefront/src/lib/shipping/intl-tax.ts`:
+  - Tabela hardcoded V1: VAT EU (DE 19% / FR 20% / ES 21% / IT 22% / NL 21% / PT 23% / BE 21% / AT 20% / IE 23%), GB VAT 20%, US sales tax 7%, CA 13%, BR customs 60% (importação).
+  - `estimateIntlTax({ toCountry, fromCountry, subtotalCents, shippingCents, locale })` retorna `{ taxKind, rateBps, estimatedCents, noticeKey, locale }`.
+  - Domestico (toCountry === fromCountry): retorna noticeKey='none'.
+  - País não listado: noticeKey='customs_destination' com 0 cents.
+  - `intlTaxNoticeCopy(estimate)` retorna `{ title, body }` bilingue PT/EN.
+- 10 tests vitest cobrem domestico, EU VAT, GB, US sales tax, BR customs 60%, país não listado, copy PT/EN.
+- Componente inline em `/checkout/frete/page.tsx`:
+  - Exibido após shipping options quando `taxEstimate.noticeKey !== 'none'`.
+  - data-testid="intl-tax-notice" pra Playwright UX.
+  - Renderiza `≈ ${formatMoney(estimatedCents, currency)}` quando estimatedCents > 0.
+  - fromCountry derivado do currency (USD/CAD→US, GBP→GB, EUR→DE, BRL→BR).
+
+**Trade-offs arquiteturais:**
+- Estimativas são approximate — produtos com HS code específico podem ter aliquotas diferentes. V2: lookup table HS code + provider TaxJar/Avalara real-time.
+- US sales tax 7% é média estatutária — varia 0–10.5% por estado. Real-time exigiria TaxJar/Avalara/Stripe Tax integration.
+- BR customs 60% reflete IPI+ICMS+desembaraço aproximado. Disclaimer: receptor é responsável.
+- Locale derivada do currency, não de browser/template explicit — V2 detectar via tpl.locale do useEffect.
+- Eurozone: VAT é aplicado no destino quando `> €150` (B2C OSS). V1 não distingue thresholds — sempre exibe estimativa. Aceita pra Fase 1.2; V2 implement OSS thresholds.
+
+**Validações:**
+- pnpm -r typecheck zero erro.
+- storefront 119/119 (+10 intl-tax). Total 394 passing. Zero regressao.
+- pnpm -r lint admin/storefront limpo.
+
+**Próximo ciclo:**
+- P3.K — UI filter chips garantia expirando 30/60/90d em /clientes (engine helper já existe via expiringWithinDays).
+- P3.M — endereço adaptativo intl (BR CEP / US ZIP+state / UK postcode regex / EU genérico).
+- P4.P/Q — Google Shopping feed + Meta Catalog feed (XML/CSV).
