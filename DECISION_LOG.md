@@ -3898,3 +3898,52 @@ V2: trocar por react-markdown + sanitizer quando implementar UGC blog/comentario
 - Botão "Emitir NF-e" em /pedidos/[id] que chama POST /api/orders/[id]/invoice.
 - Cron real low-stock + churn (Trigger.dev ou EasyPanel cron).
 - Confirmacao MP-redirect-flow: aceitar `?order=X` query param + fetch /api/orders?id=X quando sem provider state.
+
+
+---
+
+## 2026-04-27 (continuacao) — Batch 12: Botão NF-e + churn-check cron — Sprint 9 fechado
+
+**Commits:** fa767c2.
+
+**UI: IssueInvoiceButton em /pedidos/[id]:**
+- Componente client renderizado quando `!invoiceKey && status ∈ {paid, preparing, shipped}`.
+- Chama POST /api/orders/[id]/invoice com feedback inline. Diferencia mensagem real (Bling conectado) vs mock simulada (sem creds).
+- `router.refresh()` após sucesso atualiza display do invoiceKey.
+
+**Endpoint POST /api/cron/churn-check (auth lazy):**
+- Aggregate orders por customer (reutilizando query do GET /api/customers/churn).
+- `scoreChurnBatch` (engine) identifica risco crítico/alto.
+- Filtra top 5 customers ordenados por `daysSinceLastOrder DESC`.
+- Dedup 7 dias por email em `metadata->>'email'` — evita spam ao lojista.
+- Emit `churn.alert` severity **critical** (risco crítico) ou **warning** (alto).
+- Body actionable: "X dias sem comprar (Y pedidos no histórico). Considere envio de cupom de retenção."
+- Link direto `/clientes/[email]` para deep-dive.
+
+**Sprint 9 line 504 — coverage final:**
+- ✓ novo pedido (order.created)
+- ✓ pagamento confirmado (order.paid)
+- ✓ estoque baixo (inventory.low_stock)
+- ✓ avaliação pendente (review.pending)
+- ✓ solicitação de troca (return.requested)
+- ✓ falha fiscal (fiscal.failed)
+- ✓ churn iminente (churn.alert)
+- ✓ repor produto (restock.demand)
+- ✓ ticket atribuído (ticket.assigned)
+
+**9/9 hooks live. Sprint 9 notificações lojista 100% concluído.**
+
+**Trade-offs:**
+- Churn-check é endpoint manual on-demand — não cron real automático. EasyPanel pode agendar (cron job → curl POST), ou Trigger.dev quando configurado. Lojista pode rodar manual via futuro botão "Verificar churn" em /clientes ou /ia-analyst.
+- Dedup query usa jsonb metadata->>'email' — eficiente porque tem índice tenant+type. Funciona em PG 12+.
+
+**Validações:**
+- Tests admin 71/71 verde. Typecheck/lint zero.
+- 0 regressão.
+- Deploy admin disparado.
+
+**Próximo ciclo:**
+- Botão "Verificar churn" em /clientes ou /ia-analyst pra disparar cron-check manualmente.
+- Cron real EasyPanel (cronjob hourly → curl POST /api/cron/{low-stock,churn}-check).
+- Confirmacao MP-redirect-flow: aceitar `?order=X` query param + fetch /api/orders?id=X.
+- Dashboard: card "Próximos passos" para MEI sem produtos (onboarding inline).
