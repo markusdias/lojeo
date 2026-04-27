@@ -51,6 +51,7 @@ body {
 .lj-btn-primary:hover { background: var(--accent-hover); }
 .lj-btn-primary:active { background: var(--accent-pressed); }
 .lj-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.lj-btn-primary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .lj-btn-secondary {
   background: var(--bg-elevated);
@@ -63,6 +64,7 @@ body {
   cursor: pointer;
 }
 .lj-btn-secondary:hover { background: var(--neutral-50); }
+.lj-btn-secondary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .lj-btn-danger {
   background: var(--error);
@@ -75,6 +77,15 @@ body {
   cursor: pointer;
 }
 .lj-btn-danger:hover { opacity: 0.9; }
+.lj-btn-danger:focus-visible { outline: 2px solid var(--error); outline-offset: 2px; }
+
+/* Keyboard a11y — outline accent quando focado via Tab, none em mouse */
+a:focus-visible, button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+:focus:not(:focus-visible) { outline: none; }
 
 .lj-input {
   background: var(--bg-elevated);
