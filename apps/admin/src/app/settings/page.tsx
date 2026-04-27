@@ -37,6 +37,11 @@ interface TenantConfig {
     googleAdsConversionId?: string; // AW-XXXX
   };
   brandGuide?: BrandGuide;
+  // Sprint 8 v2 — limite de requests do IA Analyst por usuário
+  aiAnalystRateLimit?: {
+    perMinute?: number; // default 10
+    perDay?: number;    // default 200
+  };
 }
 
 interface Settings {
@@ -595,6 +600,48 @@ export default function SettingsPage() {
               className="w-full border rounded px-3 py-2 text-sm font-mono text-xs"
             />
             <p className="text-xs text-neutral-400 mt-1">3–5 exemplos de alto desempenho melhoram muito a qualidade da geração.</p>
+          </div>
+
+          {/* Rate limit IA Analyst (Sprint 8 v2) */}
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 'var(--space-4)', marginTop: 'var(--space-4)' }}>
+            <h3 className="font-semibold text-sm" style={{ marginBottom: 4 }}>Limites do IA Analyst por usuário</h3>
+            <p className="text-xs text-neutral-500" style={{ marginBottom: 'var(--space-3)' }}>
+              Controla quantas perguntas cada usuário pode fazer ao IA Analyst. Protege sua cota mensal contra uso abusivo.
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  Por minuto
+                  <InfoTooltip text="Máximo de perguntas por minuto, por usuário. Padrão 10. Acima disso retorna 429." />
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={120}
+                  step={1}
+                  value={settings.config.aiAnalystRateLimit?.perMinute ?? 10}
+                  onChange={e => setConfig({ aiAnalystRateLimit: { ...settings.config.aiAnalystRateLimit, perMinute: Math.max(1, Math.min(120, parseInt(e.target.value || '10', 10))) } })}
+                  placeholder="10"
+                  className="w-full border rounded px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  Por dia
+                  <InfoTooltip text="Máximo de perguntas por dia, por usuário. Padrão 200. Reset à meia-noite UTC." />
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={10000}
+                  step={1}
+                  value={settings.config.aiAnalystRateLimit?.perDay ?? 200}
+                  onChange={e => setConfig({ aiAnalystRateLimit: { ...settings.config.aiAnalystRateLimit, perDay: Math.max(1, Math.min(10_000, parseInt(e.target.value || '200', 10))) } })}
+                  placeholder="200"
+                  className="w-full border rounded px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
           </div>
         </section>
 

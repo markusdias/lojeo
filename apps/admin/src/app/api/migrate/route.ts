@@ -627,6 +627,54 @@ export async function POST(req: NextRequest) {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_ticket_rules_priority ON ticket_assignment_rules(tenant_id, priority)`);
     results.push('ticket_assignment_rules: ok');
 
+    // Sprint 8 v2 — IA Analyst cache server-side (24h TTL, hash similarity)
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS ai_analyst_cache (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL,
+        query_hash varchar(64) NOT NULL,
+        query_normalized text NOT NULL,
+        response jsonb NOT NULL,
+        tool_calls jsonb DEFAULT '[]'::jsonb NOT NULL,
+        model varchar(40) NOT NULL,
+        tokens_in integer DEFAULT 0 NOT NULL,
+        tokens_out integer DEFAULT 0 NOT NULL,
+        cost_usd_micro integer DEFAULT 0 NOT NULL,
+        created_at timestamptz DEFAULT now() NOT NULL,
+        hit_count integer DEFAULT 0 NOT NULL
+      )
+    `);
+    await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS uniq_ai_analyst_cache_tenant_hash ON ai_analyst_cache(tenant_id, query_hash)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_ai_analyst_cache_created ON ai_analyst_cache(created_at)`);
+    results.push('ai_analyst_cache: ok');
+
+    // Sprint 12 — pgvector extension (best-effort; pode falhar em RDS sem permissão)
+    // V1 não depende dela: armazenamos embeddings como JSON em coluna text.
+    // V2: migrar coluna `embedding` para tipo nativo `vector(N)` e criar índice ivfflat.
+    try {
+      await db.execute(sql`CREATE EXTENSION IF NOT EXISTS vector`);
+      results.push('extension_vector: ok');
+    } catch (extErr) {
+      const msg = extErr instanceof Error ? extErr.message : String(extErr);
+      results.push(`extension_vector: skipped (${msg})`);
+    }
+
+    // Sprint 12 — product_embeddings (V1 JSON-encoded em coluna text)
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS product_embeddings (
+        product_id uuid PRIMARY KEY,
+        tenant_id uuid NOT NULL,
+        embedding text,
+        model varchar(40) DEFAULT 'mock-deterministic-256',
+        dimensions integer DEFAULT 256,
+        computed_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_product_embeddings_tenant ON product_embeddings(tenant_id)`);
+    // V2 (após migrar para vector(N)):
+    //   CREATE INDEX ... USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)
+    results.push('product_embeddings: ok');
+
     return NextResponse.json({ ok: true, results });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { EmptyState, IconImage } from '../../components/ui/empty-state';
+import { TagEditor, type TaggedProduct } from '../../components/ugc/tag-editor';
 
 interface UgcPost {
   id: string;
@@ -13,7 +14,7 @@ interface UgcPost {
   status: string;
   source: string;
   rejectionReason: string | null;
-  productsTagged: Array<{ productId: string; x: number; y: number; label?: string }>;
+  productsTagged: TaggedProduct[];
   createdAt: string;
 }
 
@@ -44,6 +45,7 @@ export default function UgcModerationPage() {
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('pending');
+  const [editingPost, setEditingPost] = useState<UgcPost | null>(null);
 
   function load() {
     setLoading(true);
@@ -211,6 +213,18 @@ export default function UgcModerationPage() {
                       </button>
                     </div>
                   )}
+                  {p.status === 'approved' && (
+                    <div style={{ marginTop: 'var(--space-3)' }}>
+                      <button
+                        type="button"
+                        onClick={() => setEditingPost(p)}
+                        className="lj-btn-secondary"
+                        style={{ width: '100%', fontSize: 'var(--text-caption)' }}
+                      >
+                        {p.productsTagged.length > 0 ? 'Editar tags' : 'Adicionar tags de produto'}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -219,8 +233,20 @@ export default function UgcModerationPage() {
       )}
 
       <p className="caption">
-        Editor de &quot;compre o look&quot; (tags posicionais) bloqueado por Design C — fila de moderação básica disponível.
+        Editor de &quot;compre o look&quot; (tags posicionais) ativo: clique em &quot;Editar tags&quot; nos posts aprovados.
       </p>
+
+      {editingPost && (
+        <TagEditor
+          postId={editingPost.id}
+          imageUrl={editingPost.imageUrl}
+          initialTags={editingPost.productsTagged ?? []}
+          onClose={() => setEditingPost(null)}
+          onSaved={(nextTags) => {
+            setPosts(prev => prev.map(p => (p.id === editingPost.id ? { ...p, productsTagged: nextTags } : p)));
+          }}
+        />
+      )}
     </div>
   );
 }

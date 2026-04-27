@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { eq, and } from 'drizzle-orm';
+import { z } from 'zod';
 import { db, ugcPosts } from '@lojeo/db';
 import { auth } from '../../../../auth';
 import { recordAuditLog, requirePermission } from '../../../../lib/roles';
@@ -9,12 +10,35 @@ export const dynamic = 'force-dynamic';
 const TENANT_ID = process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
 
 const VALID_STATUSES = ['pending', 'approved', 'rejected', 'moderating'] as const;
-type Status = typeof VALID_STATUSES[number];
 
-interface PatchBody {
-  status?: Status;
-  rejectionReason?: string;
-  productsTagged?: Array<{ productId: string; x: number; y: number; label?: string }>;
+const TaggedProductSchema = z.object({
+  productId: z.string().uuid(),
+  x: z.number().min(0).max(100),
+  y: z.number().min(0).max(100),
+  label: z.string().max(200).optional(),
+});
+
+const PatchSchema = z.object({
+  status: z.enum(VALID_STATUSES).optional(),
+  rejectionReason: z.string().max(500).optional(),
+  productsTagged: z.array(TaggedProductSchema).max(20).optional(),
+});
+
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth();
+  try {
+    await requirePermission(session, 'ugc', 'read');
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 403 });
+  }
+  const { id } = await params;
+  const [row] = await db
+    .select()
+    .from(ugcPosts)
+    .where(and(eq(ugcPosts.id, id), eq(ugcPosts.tenantId, TENANT_ID)))
+    .limit(1);
+  if (!row) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+  return NextResponse.json(row);
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -25,20 +49,24 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: String(e) }, { status: 403 });
   }
   const { id } = await params;
-  let body: PatchBody;
+
+  let json: unknown;
   try {
-    body = await req.json() as PatchBody;
+    json = await req.json();
   } catch {
     return NextResponse.json({ error: 'invalid_json' }, { status: 400 });
   }
+
+  const parsed = PatchSchema.safeParse(json);
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'invalid', issues: parsed.error.issues }, { status: 400 });
+  }
+  const body = parsed.data;
 
   const update: Record<string, unknown> = {};
   const now = new Date();
 
   if (body.status) {
-    if (!VALID_STATUSES.includes(body.status)) {
-      return NextResponse.json({ error: 'invalid_status' }, { status: 400 });
-    }
     update['status'] = body.status;
     update['moderatedAt'] = now;
     if (body.status === 'approved') {
@@ -51,10 +79,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
   }
 
-  if (body.productsTagged) {
-    if (!Array.isArray(body.productsTagged)) {
-      return NextResponse.json({ error: 'productsTagged must be array' }, { status: 400 });
-    }
+  if (body.productsTagged !== undefined) {
     update['productsTagged'] = body.productsTagged;
   }
 
@@ -70,12 +95,25 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   if (!updated) return NextResponse.json({ error: 'not_found' }, { status: 404 });
 
+  const isTagsOnly = body.productsTagged !== undefined && !body.status;
+  const action = isTagsOnly
+    ? 'ugc.tags_updated'
+    : body.status === 'approved'
+      ? 'ugc.approve'
+      : body.status === 'rejected'
+        ? 'ugc.reject'
+        : 'ugc.update';
+
   await recordAuditLog({
     session,
-    action: body.status === 'approved' ? 'ugc.approve' : body.status === 'rejected' ? 'ugc.reject' : 'ugc.update',
+    action,
     entityType: 'ugc_post',
     entityId: id,
-    after: { status: body.status, productsTagged: body.productsTagged, rejectionReason: body.rejectionReason },
+    after: {
+      status: body.status,
+      productsTagged: body.productsTagged,
+      rejectionReason: body.rejectionReason,
+    },
   });
 
   return NextResponse.json(updated);

@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { db, behaviorEvents, orders, orderItems, aiCalls } from '@lojeo/db';
+import { db, behaviorEvents, orders, orderItems, aiCalls, tenants } from '@lojeo/db';
 import { eq, and, gte, inArray, desc, sql } from 'drizzle-orm';
 import { logger } from '@lojeo/logger';
 import { scoreCustomers, type RfmInput } from '@lojeo/engine';
+import { auth } from '../../../auth';
+import { checkRateLimit } from '../../../lib/rate-limit';
+import { hashQuery, lookup as cacheLookup, store as cacheStore } from '../../../lib/ai-analyst-cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +15,10 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY ?? '';
 const SONNET_MODEL = 'claude-sonnet-4-5-20250929';
 const MAX_MESSAGES = 30;
 const MAX_ITERATIONS = 5;
+
+// Defaults — sobrescritos por tenants.config.aiAnalystRateLimit
+const DEFAULT_RATE_PER_MINUTE = 10;
+const DEFAULT_RATE_PER_DAY = 200;
 
 // ── Tool implementations ──────────────────────────────────────────────────────
 
@@ -344,6 +351,35 @@ interface ChatMessage {
   content: string;
 }
 
+interface RateLimitConfig {
+  perMinute?: number;
+  perDay?: number;
+}
+
+async function loadRateLimitConfig(tenantId: string): Promise<{ perMinute: number; perDay: number }> {
+  try {
+    const tenant = await db.query.tenants?.findFirst({ where: eq(tenants.id, tenantId) });
+    const cfg = (tenant?.config ?? {}) as { aiAnalystRateLimit?: RateLimitConfig };
+    const rl = cfg.aiAnalystRateLimit ?? {};
+    return {
+      perMinute: Math.max(1, Math.min(120, Number(rl.perMinute ?? DEFAULT_RATE_PER_MINUTE))),
+      perDay: Math.max(1, Math.min(10_000, Number(rl.perDay ?? DEFAULT_RATE_PER_DAY))),
+    };
+  } catch (err) {
+    logger.warn({ err }, 'ai-analyst: falha lendo rate limit config — usando defaults');
+    return { perMinute: DEFAULT_RATE_PER_MINUTE, perDay: DEFAULT_RATE_PER_DAY };
+  }
+}
+
+function clientIp(req: NextRequest): string {
+  return (
+    req.headers.get('cf-connecting-ip') ??
+    req.headers.get('x-real-ip') ??
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+    'unknown'
+  );
+}
+
 export async function POST(req: NextRequest) {
   let body: { messages?: ChatMessage[] };
   try {
@@ -355,6 +391,71 @@ export async function POST(req: NextRequest) {
   const messages = (body.messages ?? []).slice(-MAX_MESSAGES);
   if (messages.length === 0) {
     return NextResponse.json({ error: 'Mensagens obrigatórias' }, { status: 400 });
+  }
+
+  // ── Rate limit por usuário (Sprint 8 v2) ──────────────────────────────────
+  // Identidade: session.user.id quando logado; fallback IP.
+  let userKey = `ip:${clientIp(req)}`;
+  try {
+    const session = await auth();
+    const uid = session?.user?.id;
+    if (uid) userKey = `user:${uid}`;
+  } catch {
+    // segue com IP — auth opcional aqui (mock/dev mode)
+  }
+
+  const rateCfg = await loadRateLimitConfig(TENANT_ID);
+  const minuteCheck = checkRateLimit({
+    key: `ai-analyst:min:${TENANT_ID}:${userKey}`,
+    max: rateCfg.perMinute,
+    windowMs: 60_000,
+  });
+  if (!minuteCheck.ok) {
+    return NextResponse.json({
+      error: 'rate_limited',
+      message: `Limite de ${rateCfg.perMinute} perguntas por minuto atingido. Tente em ${minuteCheck.retryAfterSec}s.`,
+      retryAfterSec: minuteCheck.retryAfterSec,
+    }, { status: 429, headers: { 'Retry-After': String(minuteCheck.retryAfterSec) } });
+  }
+  const dayCheck = checkRateLimit({
+    key: `ai-analyst:day:${TENANT_ID}:${userKey}`,
+    max: rateCfg.perDay,
+    windowMs: 24 * 60 * 60 * 1000,
+  });
+  if (!dayCheck.ok) {
+    return NextResponse.json({
+      error: 'rate_limited',
+      message: `Cota diária de ${rateCfg.perDay} perguntas atingida. Volta amanhã ou peça pro admin aumentar em Configurações > IA.`,
+      retryAfterSec: dayCheck.retryAfterSec,
+    }, { status: 429, headers: { 'Retry-After': String(dayCheck.retryAfterSec) } });
+  }
+
+  // ── Cache lookup (Sprint 8 v2) ────────────────────────────────────────────
+  // Hash sobre a última mensagem do usuário (a "pergunta" atual). Histórico
+  // anterior NÃO entra no hash — duas perguntas idênticas em conversas
+  // diferentes compartilham cache (intencional: economiza tokens).
+  const lastUser = [...messages].reverse().find(m => m.role === 'user')?.content ?? '';
+  const cacheHash = hashQuery(TENANT_ID, lastUser);
+  if (lastUser) {
+    const cached = await cacheLookup(TENANT_ID, cacheHash);
+    if (cached) {
+      const cachedResponse = cached.response as { response?: string; toolsUsed?: string[] } | string;
+      const responseText = typeof cachedResponse === 'string'
+        ? cachedResponse
+        : (cachedResponse?.response ?? '');
+      const toolsCached = Array.isArray(cached.toolCalls) ? cached.toolCalls as string[] : [];
+
+      return NextResponse.json({
+        response: responseText,
+        degraded: false,
+        iterations: 0,
+        toolsUsed: toolsCached,
+        tokensIn: 0,
+        tokensOut: 0,
+        model: cached.model,
+        cached: true,
+      }, { headers: { 'X-Cache': 'HIT' } });
+    }
   }
 
   // Modo degradado quando sem API key
@@ -437,15 +538,37 @@ export async function POST(req: NextRequest) {
       finalText = 'Não consegui completar a análise no momento. Tente reformular a pergunta ou aguarde alguns instantes.';
     }
 
-    return NextResponse.json({
+    const uniqueTools = Array.from(new Set(toolsUsed));
+    const responsePayload = {
       response: finalText,
       degraded: false,
       iterations,
-      toolsUsed: Array.from(new Set(toolsUsed)),
+      toolsUsed: uniqueTools,
       tokensIn: totalTokensIn,
       tokensOut: totalTokensOut,
       model: SONNET_MODEL,
-    });
+    };
+
+    // Persiste no cache (best-effort, non-fatal). Hash já calculado no início.
+    if (lastUser && finalText) {
+      const costUsdMicro = Math.round(
+        (totalTokensIn / 1_000_000) * 3_000_000 +
+        (totalTokensOut / 1_000_000) * 15_000_000,
+      );
+      void cacheStore(
+        TENANT_ID,
+        cacheHash,
+        lastUser,
+        responsePayload,
+        uniqueTools,
+        SONNET_MODEL,
+        totalTokensIn,
+        totalTokensOut,
+        costUsdMicro,
+      );
+    }
+
+    return NextResponse.json(responsePayload, { headers: { 'X-Cache': 'MISS' } });
   } catch (err) {
     logger.error({ err }, 'ai-analyst: falha na chamada Claude API');
     return NextResponse.json({
