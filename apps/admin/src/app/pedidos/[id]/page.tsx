@@ -379,8 +379,8 @@ export default async function PedidoDetailPage({ params }: PageProps) {
                     {couponCode && (
                       <code className="mono" style={{
                         fontSize: 11,
-                        padding: '2px 6px',
-                        borderRadius: 'var(--radius-sm)',
+                        padding: '1px 5px',
+                        borderRadius: 4,
                         background: 'var(--neutral-50)',
                         color: 'var(--fg-secondary)',
                       }}>{couponCode}</code>
