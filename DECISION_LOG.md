@@ -3008,3 +3008,32 @@ Tabela renderiza condicional `{visible.length === 0 ? <EmptyState /> : <table />
 - Bug RFM: investigar engine scoreCustomers (Beatriz Champion vira Novos)
 
 **142 commits totais sessão**, **108 testes globais verdes**, **24 migrations prod**, **zero regressão**.
+
+---
+
+## 2026-04-26 — Bug RFM fix + Customer.jsx + Team.jsx subagentes paralelos
+
+**Commits:** a579108 (RFM fix) · a988255 (Customer.jsx) · d01fdbd (Team.jsx)
+
+**Bug RFM fixado:**
+- Engine `recencyScore` retornava 6 quando days=mínimo (sem cap superior). Beatriz (days=0) overflow visível.
+- `/clientes/[email]` chamava scoreCustomers([1 input]) sem distribuição → quintile sempre 1.
+- Fix engine: fallback 3 (mediana) com 1 customer + Math.min(5) cap superior recencyScore.
+- Fix page: query agrega TODOS customers do tenant → scoreCustomers com population válida → segment correto.
+
+**Customer.jsx (worktree a7af9866):**
+- Tab Pedidos headers Case Normal (Pedido/Data/Status/Total) + numero/total var(--fg) weight 500
+- Tab Garantias: thumb cinza neutral 44px + texto "Garantia X meses · pedido #N (data)" + badge "X meses restantes"
+- AI Suggestions footer: "Por que isso?" + "Sugestões úteis?" como btn-link clickable
+
+**Team.jsx (worktree a06d6b25):**
+- Avatares determinísticos por hash email
+- Header métricas resumo (X pessoas · N com 2FA)
+- Filter chips por role com contadores
+- 4 arquivos novos: role-badge.tsx (paleta accent/blue/rose/violet/amber/teal), role-cards.tsx (grid 6 funções), audit-preview.tsx (fetch /api/audit?limit=10)
+
+**Tests engine 44/44 + admin 18/18 verde. 11/11 packages.**
+
+**145 commits totais sessão**, **108 testes globais verdes**, **24 migrations prod**, **zero regressão**.
+
+**Próximo ciclo:** Storefront PLP.jsx + Cart.jsx + Checkout.jsx vs impl atual. ABEditor.jsx detail view.
