@@ -2984,3 +2984,27 @@ Tabela renderiza condicional `{visible.length === 0 ? <EmptyState /> : <table />
 **Branches worktree preservados** (não removidos via `git worktree remove` por lock runtime — não impacta funcionalmente).
 
 **Próximo ciclo:** Wishlist.jsx audit (storefront wishlist page atual) + admin /wishlist 3 tabs já entregues, validar paridade visual.
+
+---
+
+## 2026-04-26 — Subagente sequencial: Wishlist.jsx admin paridade
+
+**Commit:** b05d634
+
+**Gaps fixados:**
+- Banner IA Wishlists agora usa `--ai-gradient-soft` (não só accent-soft) + dispara com count >= 5 (não só estoque crítico) + calcula receita potencial sobre `count - stock`
+- Coluna AÇÕES (Wishlists) com botão "Ver lista →" disabled (Sprint 9 lookup individual)
+- Coluna COMPRADOR (Gift cards) extraindo primeiros 8 chars do `buyerUserId`
+- Coluna REPOSIÇÃO (Back-in-stock) placeholder "sem reposição agendada"
+
+**Tests admin 18/18.** Deploy admin disparado.
+
+**Branches worktree** preservados em `.claude/worktrees/` (gitignored agora) — locked runtime, irrelevante.
+
+**Próximo ciclo:**
+- Audit Customer.jsx (admin /clientes/[email]) gaps remanescentes — possível bug RFM já documentado #135
+- Audit Team.jsx (admin /settings/users)
+- Storefront PLP.jsx + Cart.jsx vs impl atual
+- Bug RFM: investigar engine scoreCustomers (Beatriz Champion vira Novos)
+
+**142 commits totais sessão**, **108 testes globais verdes**, **24 migrations prod**, **zero regressão**.
