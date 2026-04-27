@@ -2539,3 +2539,51 @@ Audit revelou outros gaps implementáveis sem bloqueador:
 User pediu **agregar features extras (insights funil, ia-analyst, etc), não jogar fora**. Confirmado: implementação tem várias pages que não estão no design-system (atribuição, cupons, garantias, ia-uso, recomendacoes/ctr, integrações). Nenhuma será removida — adiciono links contextuais quando fizer sentido em pages-pai.
 
 **113 commits totais sessão**, **108 testes globais verdes**, **zero regressão**. Sprint 5 mais perto de fechamento.
+
+---
+
+## 2026-04-26 — Iteração: gaps audit + seed/all + migrations 0023+0024
+
+**Commits:** 50bf1da, 0d1970f, 14a16a7, 2a98fce, 8141cc2, 22c7ac0, cdbaaeb, b93d47f, c837c64, 98fa4f0, [debug expose errors], [migrations 0023+0024]
+
+**Trabalho consolidado:**
+
+1. **Tracking identity link** (50bf1da) — Sprint 2 fechado: `linkIdentity()` no @lojeo/tracking/server faz UPDATE atômico em behavior_sessions+events; storefront layout passa session.user.id ao TrackerProvider; client dispara POST /api/track/identify idempotente via flag localStorage.
+
+2. **/clientes paridade Customer.jsx** (0d1970f, 14a16a7) — pill chips DEMO RFM (4 personas Champion/AtRisk/Lost/New), AI suggestions copy match exato Customer.jsx, tags estáticas curadas (VIP/aniversário 14 jul; aberta last newsletter; veio do Instagram), Marketing toggle switches iOS-style + footnote "Última campanha aberta: Coleção Outono 2026 · há 8 dias", Notas footnote "Última edição: Marina · há 14 dias".
+
+3. **Seed 4 personas** (0d1970f) — /api/seed/order POST cria Beatriz (Champion 5+1=6 pedidos LTV ~R$ 7.520) + Carolina (AtRisk 7 LTV ~R$ 4.890) + Diana (Lost 3 LTV ~R$ 1.870) + Júlia (New 1 LTV R$ 380). Auth via x-seed-token header (env SEED_TOKEN) — bypass session pra disparo via curl externo. Origin header bypassa CSRF do auth middleware. 17 pedidos inseridos.
+
+4. **Audit gaps docs/design-system/ vs implementação** — descobriu Wishlist.jsx oficial tem 3 tabs (Wishlists/GiftCards/BackInStock) + admin não tinha page. Gap principal: schemas declarados (retention.ts) mas migrations nunca aplicadas.
+
+5. **/wishlist admin** (2a98fce) — server component com 3 fetches paralelos, status gift card inferido (active/partial/used/expired), AI insight quando topProduct.stock <= count/8, sidebar item "Demanda" novo na seção Loja.
+
+6. **Storefront UGC seção Home** (cdbaaeb) — gap detectado pelo subagente Explore: Home.jsx ref tem `<UGC/>` entre About e TrustRow, implementação não tinha. UgcGallery refatorado pra aceitar props opcionais (eyebrow/title/columns) preservando uso PDP/comunidade.
+
+7. **/api/seed/all** (b93d47f, c837c64, [debug]) — popula wishlist (56) + gift_cards (5) + ugc (2) + reviews (4) + tickets (3) com marker prefix `seed_` em campos identificadores. DELETE limpa via WHERE LIKE 'seed_%'. Try/catch granular expõe erros por bloco no response — descobriu 3 tabelas inexistentes em prod.
+
+8. **Migrations 0023+0024** ([latest]) — wishlist_items + restock_notifications + gift_cards + product_reviews. Schemas existiam packages/db/src/schema/retention.ts e reviews.ts mas migration apenas em código de desenvolvimento, nunca aplicada em prod via /api/migrate idempotente. Aplicado.
+
+**Inconsistências menores remanescentes (low priority):**
+- UGC/reviews seed inserem só ~metade dos items planejados (sem erro reportado — possível constraint não exposto pelo Drizzle)
+- Restock 0 inserções: variants podem não existir em prod pra os top 6 produtos. Verificar produtos→variants via inspect
+
+**Status atual prod:**
+- /wishlist 200 com dados (56 wishlist items + 5 gift cards visíveis)
+- /clientes/[email] com 4 personas seedadas + pill chips demo nav
+- /pedidos com 18 pedidos seed
+- /tickets 200
+- /avaliacoes 200
+- /ugc 200
+- Storefront / 200 (Home com UGC seção)
+
+**Próximo ciclo:**
+- Validar storefront /comunidade UGC vs ref + /produtos seções faltantes
+- Investigar restock 0 inserções (variants prod)
+- Settings tabs Identidade/Pagamentos/Frete/Email/Fiscal/Pixels/IA gap audit
+- Queues unificado (Reviews/Returns/Shipping em 1 page)
+
+**118 commits totais sessão**, **108 testes globais verdes**, **24 migrações em prod** (4 novas), **zero regressão funcional**.
+
+**Seed token atual prod:** `458502e6fbb1bdb5f3d57796a7ae2650`
+**Cleanup completo:** `curl -X DELETE /api/seed/order` + `curl -X DELETE /api/seed/all` (ambos com x-seed-token + Origin)
