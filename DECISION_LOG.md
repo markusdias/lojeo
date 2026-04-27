@@ -4906,3 +4906,54 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - Plug shipping internacional em UI checkout/frete: detectar address.country + listar quotes paralelo Melhor Envio (BR doméstico) vs DHL/FedEx (intl).
 - Stripe payment integration em POST /api/orders.
 - Storefront `<html lang>` dinâmico via tenant config.
+
+
+---
+
+## 2026-04-27 (continuacao) — Batch 34: Currency formatter + coffee-v1 register storefront
+
+**Commits:** d778c00.
+
+**@lojeo/engine ganha currency.ts puro:**
+- `formatMoney(cents, currency, locale?)` — usa `Intl.NumberFormat` (browser/node universal).
+- Types: `SupportedCurrency` (BRL/USD/EUR/GBP/CAD), `SupportedLocale` (pt-BR/en-US/en-GB/es-ES/fr-FR).
+- `localeFor` mapping default — BRL→pt-BR, USD→en-US, EUR→en-GB, GBP→en-GB, CAD→en-US. Loja específica pode override via locale param.
+- Helpers atalho: `fmtBRL(cents)`, `fmtUSD(cents)` — usados em emails/UI sem repetir args.
+- `asSupportedCurrency(input)` — type guard case-insensitive com fallback BRL pra moedas desconhecidas (template.currency string → SupportedCurrency typed).
+
+**9 tests:**
+- BRL pt-BR (R$, separator . e ,)
+- USD en-US ($, thousands separator)
+- EUR genérico (símbolo €)
+- Helpers atalho
+- asSupportedCurrency case-insensitive + fallback
+
+**Storefront template loader:**
+- `apps/storefront/src/template.ts` registra coffee-v1 ao lado de jewelry-v1.
+- `apps/storefront/package.json` ganha dep `@lojeo/template-coffee-v1: workspace:*`.
+- `apps/storefront/src/app/layout.tsx` já lia `tpl.locale` dinamicamente em `<html lang={tpl.locale}>`. Sem mudança necessária — quando `TEMPLATE_ID=coffee-v1`, lang automatic = `en-US`.
+
+**Trade-offs:**
+- tokens.css ainda hardcoded `@lojeo/template-jewelry-v1/tokens.css` em layout.tsx top-level. Quando coffee-v1 ativo, tokens.css ainda jewelry-v1 (paleta diferente). V2: condicional dynamic import baseado em `tpl.id` ou ambos imports + `[data-template]` selector. Aceito v1 — coffee-v1 instance será deploy separado provavelmente, hardcode resolve em build time.
+- Locale fallback BRL: pragmatic — instances dev/staging sem tenant config retornam BRL. Coffee-v1 instance vai setar TEMPLATE_ID=coffee-v1 + DATABASE_URL com tenant config.
+
+**Validações:**
+- Storefront 78/78, engine 107/107 (+9 currency), admin 77/77, db 20, jewelry-v1 3, coffee-v1 5, email 6, ai 7, tracking 7, ui 0. **Total ~305 tests** ✅. Typecheck/lint zero.
+- 0 regressão.
+
+**Fase 1.2 — coverage atualizada:**
+- ✓ Template scaffolded (batch 30)
+- ✓ Stripe helper (batch 31)
+- ✓ Stripe webhook (batch 32)
+- ✓ DHL/FedEx shipping (batch 33)
+- ✓ **Currency formatter + storefront template register**
+- ⏳ Plug Stripe payment intent em POST /api/orders quando currency != BRL
+- ⏳ Plug shipping international em UI checkout/frete quando toCountry != BR
+- ⏳ tokens.css condicional baseado em tpl.id
+- ⏳ Email templates EN-US fallback (subject + copy)
+- ⏳ Coffee-v1 instance prod deploy
+
+**Próximo ciclo:**
+- Plug formatMoney em PLP/PDP/cart substituindo formatBRL hardcoded.
+- tokens.css strategy (data-template selector OR conditional import build-time).
+- DHL real fetch implementation (V2 priority).
