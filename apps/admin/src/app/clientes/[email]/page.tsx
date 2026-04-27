@@ -184,14 +184,21 @@ export default async function ClienteProfilePage({
     };
   })).filter(w => w.status !== 'none');
 
-  const warrantyRows: WarrantyRow[] = warranties.map(w => ({
-    orderItemId: w.orderItemId,
-    productName: w.productName,
-    startsAt: w.startsAt.toISOString(),
-    expiresAt: w.expiresAt?.toISOString() ?? null,
-    daysRemaining: w.daysRemaining,
-    status: w.status,
-  }));
+  // Lookup orderNumber + warrantyMonths source pra match texto da ref Customer.jsx
+  const warrantyMonthsByItem = new Map(warrantyItems.map(w => [w.orderItemId, w.warrantyMonths ?? null]));
+  const warrantyRows: WarrantyRow[] = warranties.map(w => {
+    const order = customerOrderIdMap.get(w.orderId);
+    return {
+      orderItemId: w.orderItemId,
+      productName: w.productName,
+      startsAt: w.startsAt.toISOString(),
+      expiresAt: w.expiresAt?.toISOString() ?? null,
+      daysRemaining: w.daysRemaining,
+      status: w.status,
+      orderNumber: order?.orderNumber ?? null,
+      warrantyMonths: warrantyMonthsByItem.get(w.orderItemId) ?? null,
+    };
+  });
 
   // Tickets
   const ticketRowsRaw = await db
@@ -494,11 +501,13 @@ export default async function ClienteProfilePage({
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'var(--space-4)', paddingTop: 'var(--space-3)', borderTop: '1px solid var(--border)' }}>
               <span className="caption mono">Haiku · ~0,4¢ · 142 tokens</span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-caption)' }}>
-                <button type="button" style={{ background: 'transparent', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 'inherit' }}>Por que isso?</button>
+                <button type="button" style={{ background: 'transparent', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 'inherit', padding: 0 }}>Por que isso?</button>
                 <span style={{ color: 'var(--fg-muted)' }}>·</span>
-                <span style={{ color: 'var(--fg-secondary)' }}>Sugestões úteis?</span>
-                <button type="button" aria-label="Útil" style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}>👍</button>
-                <button type="button" aria-label="Não útil" style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}>👎</button>
+                <button type="button" style={{ background: 'transparent', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 'inherit', padding: 0 }}>Sugestões úteis?</button>
+                <span style={{ display: 'inline-flex', gap: 4, marginLeft: 2 }}>
+                  <button type="button" aria-label="Útil" style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, fontSize: 'inherit' }}>👍</button>
+                  <button type="button" aria-label="Não útil" style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, fontSize: 'inherit' }}>👎</button>
+                </span>
               </span>
             </div>
           </div>

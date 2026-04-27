@@ -19,6 +19,8 @@ export interface WarrantyRow {
   expiresAt: string | null;
   daysRemaining: number | null;
   status: 'active' | 'expiring_soon' | 'expired' | 'none';
+  orderNumber?: string | null;
+  warrantyMonths?: number | null;
 }
 
 export interface TicketRow {
@@ -125,17 +127,17 @@ export function CustomerTabs({ orders, warranties, tickets }: Props) {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-body-s)' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-subtle)' }}>
-                  <th style={{ textAlign: 'left', padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)', fontWeight: 'var(--w-medium)' }}>PEDIDO</th>
-                  <th style={{ textAlign: 'left', padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)', fontWeight: 'var(--w-medium)' }}>DATA</th>
-                  <th style={{ textAlign: 'left', padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)', fontWeight: 'var(--w-medium)' }}>STATUS</th>
-                  <th style={{ textAlign: 'right', padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)', fontWeight: 'var(--w-medium)' }}>TOTAL</th>
+                  <th style={{ textAlign: 'left', padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)', fontWeight: 'var(--w-medium)' }}>Pedido</th>
+                  <th style={{ textAlign: 'left', padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)', fontWeight: 'var(--w-medium)' }}>Data</th>
+                  <th style={{ textAlign: 'left', padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)', fontWeight: 'var(--w-medium)' }}>Status</th>
+                  <th style={{ textAlign: 'right', padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)', fontWeight: 'var(--w-medium)' }}>Total</th>
                 </tr>
               </thead>
               <tbody>
                 {orders.map(o => (
                   <tr key={o.id} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
-                      <Link href={`/pedidos/${o.id}`} className="mono" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 'var(--w-medium)' }}>
+                      <Link href={`/pedidos/${o.id}`} className="mono" style={{ color: 'var(--fg)', textDecoration: 'none', fontWeight: 500 }}>
                         #{o.orderNumber ?? o.id.slice(0, 8)}
                       </Link>
                     </td>
@@ -148,7 +150,7 @@ export function CustomerTabs({ orders, warranties, tickets }: Props) {
                         {STATUS_LABELS[o.status] ?? o.status}
                       </span>
                     </td>
-                    <td className="numeric" style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right', fontWeight: 'var(--w-medium)' }}>
+                    <td className="numeric" style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right', fontWeight: 500 }}>
                       {fmt(o.totalCents ?? 0)}
                     </td>
                   </tr>
@@ -168,6 +170,17 @@ export function CustomerTabs({ orders, warranties, tickets }: Props) {
           ) : warranties.map(w => {
             const isExpiring = w.status === 'expiring_soon';
             const isExpired = w.status === 'expired';
+            // Match Customer.jsx: badge "X meses restantes" quando > 30d, "Expira em Xd" quando expiring_soon
+            const monthsRemaining = w.daysRemaining != null ? Math.floor(w.daysRemaining / 30) : null;
+            const badgeLabel = isExpired
+              ? 'Expirada'
+              : isExpiring
+                ? `Expira em ${w.daysRemaining}d`
+                : monthsRemaining != null && monthsRemaining >= 1
+                  ? `${monthsRemaining} ${monthsRemaining === 1 ? 'mês' : 'meses'} restantes`
+                  : `${w.daysRemaining}d restantes`;
+            const startDate = new Date(w.startsAt).toLocaleDateString('pt-BR');
+            const months = w.warrantyMonths;
             return (
               <div
                 key={w.orderItemId}
@@ -181,18 +194,21 @@ export function CustomerTabs({ orders, warranties, tickets }: Props) {
                   background: isExpiring ? 'var(--warning-soft)' : isExpired ? 'var(--error-soft)' : 'var(--bg-elevated)',
                 }}
               >
-                <div style={{ width: 40, height: 40, background: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)', flexShrink: 0 }} />
+                {/* Thumb cinza neutral — match ref Customer.jsx (.thumb) */}
+                <div style={{ width: 44, height: 44, background: 'var(--neutral-100, #f3f4f6)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', flexShrink: 0 }} aria-hidden />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontWeight: 'var(--w-medium)', fontSize: 'var(--text-body-s)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <p style={{ fontWeight: 500, fontSize: 'var(--text-body-s)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {w.productName}
                   </p>
-                  <p className="caption">
-                    Início: {new Date(w.startsAt).toLocaleDateString('pt-BR')}
-                    {w.expiresAt && <> · Expira: {new Date(w.expiresAt).toLocaleDateString('pt-BR')}</>}
+                  <p className="caption" style={{ color: 'var(--fg-secondary)' }}>
+                    {months ? `Garantia ${months} ${months === 1 ? 'mês' : 'meses'}` : 'Garantia'}
+                    {w.orderNumber && ` · pedido #${w.orderNumber}`}
+                    {` (${startDate})`}
                   </p>
                 </div>
                 <span className={`lj-badge ${isExpired ? 'lj-badge-error' : isExpiring ? 'lj-badge-warning' : 'lj-badge-success'}`}>
-                  {isExpired ? 'Expirada' : isExpiring ? `Expira em ${w.daysRemaining}d` : `${w.daysRemaining}d restantes`}
+                  <span aria-hidden style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor', display: 'inline-block', marginRight: 4 }} />
+                  {badgeLabel}
                 </span>
               </div>
             );
