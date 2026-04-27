@@ -284,8 +284,34 @@ export default function ExperimentsPage() {
           {list.filter(e => filter === 'all' ? true : e.status === filter).map(exp => {
             const sc = STATUS_COLOR[exp.status] ?? STATUS_COLOR['draft']!;
             const expStats = stats[exp.id] ?? {};
+
+            // Resumo agregado por experimento — paridade ab-row-stats (visitantes/lift/confiança/progresso)
+            const totalExposures = Object.values(expStats).reduce((a, s) => a + s.exposures, 0);
+            const a = exp.variants[0];
+            const b = exp.variants[1];
+            const aStats = a ? expStats[a.key] ?? { exposures: 0, conversions: 0 } : null;
+            const bStats = b ? expStats[b.key] ?? { exposures: 0, conversions: 0 } : null;
+            const aRate = aStats && aStats.exposures > 0 ? (aStats.conversions / aStats.exposures) * 100 : 0;
+            const bRate = bStats && bStats.exposures > 0 ? (bStats.conversions / bStats.exposures) * 100 : 0;
+            const lift = aRate > 0 && bRate > 0 ? ((bRate - aRate) / aRate) * 100 : 0;
+            // Heurística simples de confiança: cresce com sample size, ajustada por |lift|
+            const conf = totalExposures > 0
+              ? Math.min(99.9, 30 + Math.min(60, totalExposures / 50) + Math.abs(lift) * 0.8)
+              : 0;
+            const startedAt = exp.startedAt ? new Date(exp.startedAt) : null;
+            const days = startedAt ? Math.max(0, Math.floor((Date.now() - startedAt.getTime()) / 86400000)) : 0;
+            const daysTotal = 14;
+            const isDraft = exp.status === 'draft';
+            const confColor = conf >= 95 ? 'var(--success)' : conf >= 85 ? 'var(--warning)' : 'var(--error)';
+            const liftColor = lift > 0 ? 'var(--success)' : lift < 0 ? 'var(--error)' : 'var(--fg-muted)';
+
             return (
-              <div key={exp.id} className="lj-card p-5">
+              <a
+                key={exp.id}
+                href={`/experiments/${exp.id}/results`}
+                className="lj-card p-5"
+                style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}
+              >
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
@@ -297,45 +323,62 @@ export default function ExperimentsPage() {
                     <h2 className="text-base font-medium mt-1">{exp.name}</h2>
                     {exp.description && <p className="text-sm text-gray-500 mt-1">{exp.description}</p>}
                   </div>
-                  <div className="flex gap-2 shrink-0">
+                  <div className="flex gap-2 shrink-0" onClick={(ev) => ev.preventDefault()}>
                     {exp.status === 'draft' && (
-                      <button onClick={() => changeStatus(exp.id, 'active')} className="text-xs bg-green-600 text-white px-3 py-1.5 rounded hover:bg-green-700">▶ Iniciar</button>
+                      <button onClick={(ev) => { ev.preventDefault(); changeStatus(exp.id, 'active'); }} className="text-xs bg-green-600 text-white px-3 py-1.5 rounded hover:bg-green-700">▶ Iniciar</button>
                     )}
                     {exp.status === 'active' && (
                       <>
-                        <button onClick={() => changeStatus(exp.id, 'paused')} className="text-xs bg-amber-600 text-white px-3 py-1.5 rounded hover:bg-amber-700">⏸ Pausar</button>
-                        <button onClick={() => changeStatus(exp.id, 'completed')} className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700">✓ Concluir</button>
+                        <button onClick={(ev) => { ev.preventDefault(); changeStatus(exp.id, 'paused'); }} className="text-xs bg-amber-600 text-white px-3 py-1.5 rounded hover:bg-amber-700">⏸ Pausar</button>
+                        <button onClick={(ev) => { ev.preventDefault(); changeStatus(exp.id, 'completed'); }} className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700">✓ Concluir</button>
                       </>
                     )}
                     {exp.status === 'paused' && (
-                      <button onClick={() => changeStatus(exp.id, 'active')} className="text-xs bg-green-600 text-white px-3 py-1.5 rounded hover:bg-green-700">▶ Retomar</button>
+                      <button onClick={(ev) => { ev.preventDefault(); changeStatus(exp.id, 'active'); }} className="text-xs bg-green-600 text-white px-3 py-1.5 rounded hover:bg-green-700">▶ Retomar</button>
                     )}
-                    <button onClick={() => deleteExp(exp.id, exp.name)} className="text-xs text-red-600 hover:underline px-2">Excluir</button>
+                    <button onClick={(ev) => { ev.preventDefault(); deleteExp(exp.id, exp.name); }} className="text-xs text-red-600 hover:underline px-2">Excluir</button>
                   </div>
                 </div>
 
-                {/* Variants table with stats */}
-                <div className="mt-4 grid gap-2">
-                  {exp.variants.map(v => {
-                    const s = expStats[v.key] ?? { exposures: 0, conversions: 0 };
-                    const rate = s.exposures > 0 ? (s.conversions / s.exposures) * 100 : 0;
-                    return (
-                      <div key={v.key} className="flex items-center justify-between text-sm border border-gray-100 rounded p-3">
-                        <div className="flex items-center gap-3">
-                          <code className="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-mono">{v.key}</code>
-                          <span>{v.name}</span>
-                          <span className="text-xs text-gray-400">{v.weight}%</span>
-                        </div>
-                        <div className="flex gap-4 text-xs">
-                          <span className="text-gray-500">{s.exposures} exposições</span>
-                          <span className="text-gray-500">{s.conversions} conversões</span>
-                          <span className="font-medium text-indigo-700">{rate.toFixed(2)}%</span>
-                        </div>
-                      </div>
-                    );
-                  })}
+                {/* Stats agregados — paridade ab-row-stats (ABEditor.jsx) */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 'var(--space-4)', marginTop: 'var(--space-4)', paddingTop: 'var(--space-3)', borderTop: '1px solid var(--border)' }}>
+                  <div>
+                    <p className="eyebrow">Exposições</p>
+                    <p className="numeric" style={{ fontSize: 'var(--text-body-l)', fontWeight: 'var(--w-semibold)' }}>
+                      {isDraft ? '—' : totalExposures.toLocaleString('pt-BR')}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="eyebrow">Conv. A → B</p>
+                    <p className="numeric" style={{ fontSize: 'var(--text-body-l)', fontWeight: 'var(--w-semibold)' }}>
+                      {isDraft || !aStats || !bStats ? '—' : `${aRate.toFixed(1)}% → ${bRate.toFixed(1)}%`}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="eyebrow">Lift</p>
+                    <p className="numeric" style={{ fontSize: 'var(--text-body-l)', fontWeight: 'var(--w-semibold)', color: liftColor }}>
+                      {isDraft ? '—' : `${lift > 0 ? '+' : ''}${lift.toFixed(1)}%`}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="eyebrow">Confiança</p>
+                    <p className="numeric" style={{ fontSize: 'var(--text-body-l)', fontWeight: 'var(--w-semibold)', color: confColor }}>
+                      {isDraft || totalExposures === 0 ? '—' : `${conf.toFixed(1)}%`}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="eyebrow">Tempo</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                      <span style={{ flex: 1, height: 4, background: 'var(--neutral-100)', borderRadius: 999, overflow: 'hidden' }}>
+                        <span style={{ display: 'block', height: '100%', width: `${Math.min(100, (days / daysTotal) * 100)}%`, background: 'var(--accent)' }} />
+                      </span>
+                      <span className="numeric" style={{ fontSize: 'var(--text-caption)', fontWeight: 'var(--w-medium)' }}>
+                        {isDraft ? '—' : `${days}/${daysTotal}d`}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              </a>
             );
           })}
         </div>
