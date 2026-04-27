@@ -112,7 +112,7 @@ export function Header({ storeName }: { storeName: string }) {
           ))}
           <Link href="/colecoes" style={{ color: 'var(--text-secondary)' }}>Coleções</Link>
           <Link href="/blog" style={{ color: 'var(--text-secondary)' }}>Blog</Link>
-          <Link href="/presente" style={{ color: 'var(--text-secondary)' }}>Presente</Link>
+          <Link href="/gift-cards" style={{ color: 'var(--text-secondary)' }}>Presente</Link>
         </nav>
 
         {/* Logo centro */}
@@ -169,10 +169,9 @@ export function Header({ storeName }: { storeName: string }) {
                 {[
                   { label: 'Minha conta', href: '/conta' },
                   { label: 'Pedidos', href: '/conta/pedidos' },
-                  { label: 'Wishlist', href: '/conta/wishlist' },
+                  { label: 'Wishlist', href: '/wishlist' },
                   null,
                   { label: 'Entrar', href: '/entrar' },
-                  { label: 'Criar conta', href: '/cadastro' },
                   null,
                   { label: 'Sobre a marca', href: '/sobre' },
                   { label: 'Trocas e devoluções', href: '/trocas' },
@@ -199,7 +198,7 @@ export function Header({ storeName }: { storeName: string }) {
           </div>
 
           {/* Wishlist */}
-          <Link href="/conta/wishlist" style={iconBtn} aria-label="Lista de desejos">
+          <Link href="/wishlist" style={iconBtn} aria-label="Lista de desejos">
             <Icon name="heart" size={20} />
             {wishCount > 0 && <Pip>{wishCount}</Pip>}
           </Link>
@@ -305,7 +304,7 @@ export function Header({ storeName }: { storeName: string }) {
             Blog
           </Link>
           <Link
-            href="/presente"
+            href="/gift-cards"
             onClick={() => setMobileOpen(false)}
             style={{ padding: '10px 0', fontSize: 16, color: 'var(--text-primary)', borderBottom: '1px solid var(--divider)' }}
           >

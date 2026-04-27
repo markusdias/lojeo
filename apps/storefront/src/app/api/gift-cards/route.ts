@@ -95,6 +95,8 @@ export async function POST(req: Request) {
         expiresAt,
         status: 'active',
         recipientEmail,
+        recipientName: body.recipientName?.trim() || null,
+        message: body.buyerMessage?.trim() || null,
       });
       inserted = true;
     } catch (e) {

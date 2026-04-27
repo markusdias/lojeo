@@ -4,7 +4,26 @@ Decisões técnicas relevantes registradas com data e justificativa.
 
 ---
 
-## 2026-04-27 — Batch 7: Gift card storefront /presente
+## 2026-04-27 — Batch 8: Reversão duplicação /presente + fix links quebrados
+
+**Contexto:** Stakeholder revisou a entrega do batch 7 e identificou que `/presente` (criado nessa sessão) era duplicata de `/gift-cards` (já existente no repo). Mesma feature, dois caminhos: header novo aponta `/presente`, footer antigo aponta `/gift-cards`. Falha grave de auditoria.
+
+**Causa raiz:** Pulei o passo de listar rotas existentes antes de criar feature nova. Subagentes auditaram paridade visual mas não cruzaram com o que eu estava prestes a criar — responsabilidade do orquestrador, não delegável.
+
+**Reversão executada:**
+
+1. **Deletados:** `apps/storefront/src/app/presente/` (page + form + sucesso/[code]), `apps/storefront/src/app/api/gift-card/` (purchase route + code helper + test).
+2. **Header consolidado:** `/presente` → `/gift-cards` em todas as ocorrências (desktop + mobile menu).
+3. **Schema mantido:** ALTER TABLE `gift_cards` (sender_name, recipient_name, message) já estava aplicado em prod via /api/migrate. Mantido — agora útil pelo `POST /api/gift-cards` que passou a persistir `recipientName` + `buyerMessage` (UI antiga já coletava, API só logava).
+4. **Bonus — links quebrados pré-existentes:** corrigidos `/conta/wishlist` (header + dropdown) → `/wishlist` (rota real); removido `/cadastro` do dropdown (rota inexistente; Auth.js v5 + Google OAuth criam conta no primeiro login automaticamente).
+
+**Memória persistida:** `~/.claude/projects/-Volumes-HDextMacMini-projetos-DEV-lojeo/memory/feedback_audit_before_create.md` — checklist obrigatório (rotas + APIs + schemas + navegação + grep semântico PT/EN) antes de criar qualquer arquivo novo. Indexado em MEMORY.md.
+
+**Investigação preventiva — outras possíveis duplicações:** Auditadas todas as 34 rotas storefront + 47 admin + 26 endpoints API storefront + 70 admin. Nenhuma outra duplicação identificada. Inconsistência PT/EN no admin (`/aparencia`, `/cupons`, `/clientes` vs `/collections`, `/products`, `/inventory`) registrada como dívida de UX, não duplicação.
+
+---
+
+## 2026-04-27 — Batch 7: Gift card storefront /presente (REVERTIDO — ver Batch 8)
 
 **Contexto:** Sprint 5 listava 3 itens pendentes de gift card. Schema + admin overview já existiam, faltava UX cliente final.
 
