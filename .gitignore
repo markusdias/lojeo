@@ -55,7 +55,8 @@ npm-debug.log*
 secrets/
 *.token
 
-# Playwright screenshots
-*-admin.png
-*-storefront.png
+# Playwright screenshots (root-level only — preserva docs/design-system/**/*.png)
+/*.png
+/*.jpg
+/*.jpeg
 .playwright-mcp/
