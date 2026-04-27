@@ -4232,3 +4232,46 @@ curl -X POST -H "x-cron-secret: $CRON_SECRET" \
 - PixGenerated email quando MP preference criada com payment_method=pix.
 - Tests transactional helpers (mock sendEmail+render).
 - Email template Boleto (jewelry-v1 não tem — criar ou usar OrderConfirmation com aviso).
+
+
+---
+
+## 2026-04-27 (continuacao) — Batch 20: Welcome email signup + tests transactional
+
+**Commits:** 85b90db.
+
+**Welcome email plug em signup:**
+- `apps/storefront/src/auth.ts` ganha `events.createUser` hook do NextAuth — dispara após DrizzleAdapter inserir user (Google OAuth ou dev-customer-login).
+- Lazy import `./lib/email/transactional` evita impactar edge runtime + bundle do auth flow.
+- Try/catch interno + fire-and-forget: falha email NÃO derruba signup. Console warn pra observability.
+- `sendWelcomeEmail(input)` helper render template `Welcome` (jewelry-v1 existing) com props mínimos `{storeName, customerName, loginUrl, supportEmail}`.
+
+**Tests transactional helpers:**
+- `apps/storefront/src/lib/email/transactional.test.ts`:
+- `vi.mock('@lojeo/email')` substitui sendEmail por captura, mantém render real (testa rendering completo).
+- 5 cases:
+  1. Order skip sem customerEmail (não chama sendEmail)
+  2. Order chamada correta — subject formato `Pedido confirmado · LJ-XXXXX`, to=email correto, html não-vazio (>100 chars)
+  3. Order ok=false quando mockDelivered=false (Resend falha)
+  4. Welcome skip sem email
+  5. Welcome chamada subject contém "Bem-vinda"
+
+**Coverage emails transacionais final: 4/5 plugados**
+- ✓ OrderConfirmation (POST /api/orders)
+- ✓ ShippingNotification (transition shipped + tracking)
+- ✓ TradeApproved (transition return.approved)
+- ✓ Welcome (NextAuth events.createUser)
+- ⏳ PixGenerated (precisa MP retornar QR code com payment_method=pix)
+
+**Storefront tests: 46/46 verde** (+5 transactional). Admin 77/77. Engine 87. db 20. Total 240+.
+
+**Trade-offs:**
+- vi.mock parcial preserva render real — tests cobrem template render path mas dependem de @react-email/render funcionar. Beneficio: catch quebras em template output. Custo: mais lento que mock total (~30ms total p/ 5 tests).
+- events.createUser hook com lazy import: padrão conservador pra preservar edge bundle do auth. V2: middleware pode pre-warm import.
+- Welcome template não diferencia OAuth provider (Google vs dev-login) — props minimal. V2: customizar cumprimento por provider.
+
+**Próximo ciclo:**
+- PixGenerated email: hook em POST /api/orders quando paymentMethod=pix AND preference.source=mp.
+- Audit env vars STOREFRONT_STORE_NAME, STOREFRONT_FROM_EMAIL, STOREFRONT_PUBLIC_URL — adicionar a .env.example.
+- Refactor: padronizar STORE_NAME/FROM_EMAIL constants entre storefront e admin (atualmente duplicado).
+- UX testing prod via Playwright login admin.
