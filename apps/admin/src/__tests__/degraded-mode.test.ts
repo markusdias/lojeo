@@ -85,6 +85,65 @@ describe('admin degraded mode', () => {
     });
   });
 
+  describe('Integrations status (Sprint 13) — FaqZap/Bling/Melhor Envio offline', () => {
+    beforeEach(() => {
+      delete process.env.FAQZAP_API_TOKEN;
+      delete process.env.BLING_CLIENT_ID;
+      delete process.env.BLING_CLIENT_SECRET;
+      delete process.env.MELHOR_ENVIO_TOKEN;
+      delete process.env.TRIGGER_API_URL;
+      delete process.env.TRIGGER_API_KEY;
+    });
+
+    it('GET /api/integrations/status reporta FaqZap como disconnected sem env', async () => {
+      const { GET } = await import('../app/api/integrations/status/route');
+      const res = await GET();
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as {
+        integrations: Array<{ name: string; status: string; message: string }>;
+      };
+      const faqzap = json.integrations.find(i => i.name === 'FaqZap');
+      expect(faqzap).toBeDefined();
+      expect(faqzap?.status).toBe('disconnected');
+      expect(faqzap?.message).toMatch(/escalação chatbot indisponível/i);
+    });
+
+    it('GET /api/integrations/status reporta Bling NF-e como disconnected — emissão manual', async () => {
+      const { GET } = await import('../app/api/integrations/status/route');
+      const res = await GET();
+      const json = (await res.json()) as {
+        integrations: Array<{ name: string; status: string; message: string }>;
+      };
+      const bling = json.integrations.find(i => i.name.toLowerCase().includes('bling'));
+      expect(bling).toBeDefined();
+      expect(bling?.status).toBe('disconnected');
+      expect(bling?.message).toMatch(/manual|não conectado/i);
+    });
+
+    it('GET /api/integrations/status reporta Melhor Envio como disconnected — frete manual', async () => {
+      const { GET } = await import('../app/api/integrations/status/route');
+      const res = await GET();
+      const json = (await res.json()) as {
+        integrations: Array<{ name: string; status: string; message: string }>;
+      };
+      const me = json.integrations.find(i => i.name.toLowerCase().includes('melhor envio'));
+      expect(me).toBeDefined();
+      expect(me?.status).toBe('disconnected');
+      expect(me?.message).toMatch(/manual|não conectado/i);
+    });
+
+    it('GET /api/integrations/status reporta Trigger.dev como disconnected — jobs assíncronos off', async () => {
+      const { GET } = await import('../app/api/integrations/status/route');
+      const res = await GET();
+      const json = (await res.json()) as {
+        integrations: Array<{ name: string; status: string; message: string }>;
+      };
+      const trigger = json.integrations.find(i => i.name.toLowerCase().includes('trigger'));
+      expect(trigger).toBeDefined();
+      expect(trigger?.status).toBe('disconnected');
+    });
+  });
+
   describe('Recommendation engine sem dados de coocorrência', () => {
     it('topPairsForProduct retorna [] quando não há pairs computados (fallback é responsabilidade do route)', () => {
       const result = topPairsForProduct([], 'product-x', 4);

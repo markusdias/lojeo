@@ -78,6 +78,123 @@ describe('storefront degraded mode', () => {
     });
   });
 
+  describe('Gift card validate (Sprint 13) — edge cases retornam valid:false sem quebrar', () => {
+    function mockGiftCardRow(card: Record<string, unknown> | null) {
+      vi.doMock('@lojeo/db', () => ({
+        db: {
+          select: () => ({
+            from: () => ({
+              where: () => ({
+                limit: async () => (card ? [card] : []),
+              }),
+            }),
+          }),
+        },
+        giftCards: {
+          tenantId: 'tenant_id',
+          code: 'code',
+          currentBalanceCents: 'current_balance_cents',
+          expiresAt: 'expires_at',
+          status: 'status',
+        },
+      }));
+    }
+
+    it('code não encontrado → valid:false reason:not_found', async () => {
+      mockGiftCardRow(null);
+      const { POST } = await import('../app/api/gift-cards/validate/route');
+      const req = new Request('http://t/api/gift-cards/validate', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ code: 'GFT-AAAA-BBBB-CCCC' }),
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as { valid: boolean; reason: string };
+      expect(json.valid).toBe(false);
+      expect(json.reason).toBe('not_found');
+    });
+
+    it('card inactive → valid:false reason:inactive', async () => {
+      mockGiftCardRow({
+        code: 'GFT-AAAA-BBBB-CCCC',
+        currentBalanceCents: 10000,
+        expiresAt: new Date(Date.now() + 30 * 86400000),
+        status: 'used',
+      });
+      const { POST } = await import('../app/api/gift-cards/validate/route');
+      const req = new Request('http://t/api/gift-cards/validate', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ code: 'GFT-AAAA-BBBB-CCCC' }),
+      });
+      const res = await POST(req);
+      const json = (await res.json()) as { valid: boolean; reason: string; status: string };
+      expect(json.valid).toBe(false);
+      expect(json.reason).toBe('inactive');
+      expect(json.status).toBe('used');
+    });
+
+    it('saldo zerado → valid:false reason:depleted', async () => {
+      mockGiftCardRow({
+        code: 'GFT-AAAA-BBBB-CCCC',
+        currentBalanceCents: 0,
+        expiresAt: new Date(Date.now() + 30 * 86400000),
+        status: 'active',
+      });
+      const { POST } = await import('../app/api/gift-cards/validate/route');
+      const req = new Request('http://t/api/gift-cards/validate', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ code: 'GFT-AAAA-BBBB-CCCC' }),
+      });
+      const res = await POST(req);
+      const json = (await res.json()) as { valid: boolean; reason: string; balanceCents: number };
+      expect(json.valid).toBe(false);
+      expect(json.reason).toBe('depleted');
+      expect(json.balanceCents).toBe(0);
+    });
+
+    it('card expirado → valid:false reason:expired', async () => {
+      mockGiftCardRow({
+        code: 'GFT-AAAA-BBBB-CCCC',
+        currentBalanceCents: 10000,
+        expiresAt: new Date(Date.now() - 86400000),
+        status: 'active',
+      });
+      const { POST } = await import('../app/api/gift-cards/validate/route');
+      const req = new Request('http://t/api/gift-cards/validate', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ code: 'GFT-AAAA-BBBB-CCCC' }),
+      });
+      const res = await POST(req);
+      const json = (await res.json()) as { valid: boolean; reason: string };
+      expect(json.valid).toBe(false);
+      expect(json.reason).toBe('expired');
+    });
+
+    it('card válido com saldo + expiração futura → valid:true', async () => {
+      const future = new Date(Date.now() + 30 * 86400000);
+      mockGiftCardRow({
+        code: 'GFT-AAAA-BBBB-CCCC',
+        currentBalanceCents: 25000,
+        expiresAt: future,
+        status: 'active',
+      });
+      const { POST } = await import('../app/api/gift-cards/validate/route');
+      const req = new Request('http://t/api/gift-cards/validate', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ code: 'GFT-AAAA-BBBB-CCCC' }),
+      });
+      const res = await POST(req);
+      const json = (await res.json()) as { valid: boolean; balanceCents: number };
+      expect(json.valid).toBe(true);
+      expect(json.balanceCents).toBe(25000);
+    });
+  });
+
   describe('Resend não configurado (sem RESEND_API_KEY)', () => {
     beforeEach(() => {
       delete process.env.RESEND_API_KEY;

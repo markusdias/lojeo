@@ -4,6 +4,36 @@ Decisões técnicas relevantes registradas com data e justificativa.
 
 ---
 
+## 2026-04-27 — Batch 9: Sprint 13 degraded-mode tests (FaqZap/Bling/ME + gift card edges)
+
+**Contexto:** Sprint 13 listava "Modo degradado validado em testes" como pendente. Audit dos testes existentes mostrou cobertura parcial: chat sem ANTHROPIC, status sem MP, status sem Resend (storefront); ai-analyst sem ANTHROPIC, R2 LocalDriver fallback, recommendations sem dados (admin). Faltava: FaqZap, Bling NF-e, Melhor Envio, Trigger.dev, gift card validate edges.
+
+**Audit aplicado (checklist novo da memória):**
+- `find apps/admin/src/__tests__/degraded-mode.test.ts` → arquivo existe, 4 testes
+- `find apps/storefront/src/__tests__/degraded-mode.test.ts` → arquivo existe, 3 testes
+- Decisão: **estender** os arquivos, NÃO criar paralelos.
+
+**Implementado:**
+
+1. **Admin `degraded-mode.test.ts` (4 → 8 testes):** novo describe "Integrations status (Sprint 13) — FaqZap/Bling/Melhor Envio offline" com 4 testes cobrindo `GET /api/integrations/status` retornando `disconnected` para cada integração quando env vars ausentes. Mensagens humanas validadas: "escalação chatbot indisponível" (FaqZap), "manual / não conectado" (Bling/ME).
+
+2. **Storefront `degraded-mode.test.ts` (3 → 8 testes):** novo describe "Gift card validate (Sprint 13)" com 5 testes cobrindo `POST /api/gift-cards/validate` em todos os reasons (not_found / inactive / depleted / expired) + caso happy path (valid:true). Mock vi.doMock de `@lojeo/db.select().from().where().limit()` retornando 0 ou 1 row conforme cenário. Pronto para integração checkout v2 quando aplicar gift card como payment method.
+
+**Cobertura final Sprint 13 modo degradado:**
+- IA: Anthropic offline (chat + ai-analyst) ✅
+- Storage: R2 → LocalDriver fallback ✅
+- Pagamentos: MP offline → status degraded (Stripe/Pagar.me cobertos por pattern check) ✅
+- Email: Resend offline → status degraded ✅
+- WhatsApp: FaqZap offline → escalação indisponível ✅
+- Fiscal: Bling offline → emissão manual ✅
+- Logística: Melhor Envio offline → frete manual ✅
+- Jobs: Trigger.dev offline → assíncrono off ✅
+- Gift card validate: 4 reasons + happy path ✅
+
+**Justificativa CFO/UX:** loja pode operar em prod com configuração mínima (DB + Auth Google) e ir conectando integrações conforme orçamento/aprovações chegam. Cada teste valida que a feature **não quebra**, apenas degrada. Princípio CLAUDE.md: "loja continua vendendo".
+
+---
+
 ## 2026-04-27 — Batch 8: Reversão duplicação /presente + fix links quebrados
 
 **Contexto:** Stakeholder revisou a entrega do batch 7 e identificou que `/presente` (criado nessa sessão) era duplicata de `/gift-cards` (já existente no repo). Mesma feature, dois caminhos: header novo aponta `/presente`, footer antigo aponta `/gift-cards`. Falha grave de auditoria.
