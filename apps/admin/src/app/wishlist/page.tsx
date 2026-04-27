@@ -50,52 +50,62 @@ interface GiftCardSummary {
 }
 
 async function fetchWishlists(tenantId: string): Promise<WishlistRow[]> {
-  const rows = await db
-    .select({
-      productId: wishlistItems.productId,
-      productName: products.name,
-      sku: products.sku,
-      priceCents: products.priceCents,
-      count: sql<number>`cast(count(*) as int)`,
-    })
-    .from(wishlistItems)
-    .innerJoin(products, eq(wishlistItems.productId, products.id))
-    .where(eq(wishlistItems.tenantId, tenantId))
-    .groupBy(wishlistItems.productId, products.name, products.sku, products.priceCents)
-    .orderBy(desc(sql`count(*)`))
-    .limit(20);
+  try {
+    const rows = await db
+      .select({
+        productId: wishlistItems.productId,
+        productName: products.name,
+        sku: products.sku,
+        priceCents: products.priceCents,
+        count: sql<number>`cast(count(*) as int)`,
+      })
+      .from(wishlistItems)
+      .innerJoin(products, eq(wishlistItems.productId, products.id))
+      .where(eq(wishlistItems.tenantId, tenantId))
+      .groupBy(wishlistItems.productId, products.name, products.sku, products.priceCents)
+      .orderBy(desc(sql`count(*)`))
+      .limit(20);
 
-  if (rows.length === 0) return [];
+    if (rows.length === 0) return [];
 
-  const productIds = rows.map(r => r.productId);
-  const stockRows = await db
-    .select({
-      productId: productVariants.productId,
-      qty: sql<number>`cast(coalesce(sum(${inventoryStock.qty}) - sum(${inventoryStock.reserved}), 0) as int)`,
-    })
-    .from(productVariants)
-    .leftJoin(inventoryStock, eq(inventoryStock.variantId, productVariants.id))
-    .where(
-      and(
-        eq(productVariants.tenantId, tenantId),
-        inArray(productVariants.productId, productIds),
-      ),
-    )
-    .groupBy(productVariants.productId);
+    const productIds = rows.map(r => r.productId);
+    let stockMap = new Map<string, number>();
+    try {
+      const stockRows = await db
+        .select({
+          productId: productVariants.productId,
+          qty: sql<number>`cast(coalesce(sum(${inventoryStock.qty}), 0) as int)`,
+        })
+        .from(productVariants)
+        .leftJoin(inventoryStock, eq(inventoryStock.variantId, productVariants.id))
+        .where(
+          and(
+            eq(productVariants.tenantId, tenantId),
+            inArray(productVariants.productId, productIds),
+          ),
+        )
+        .groupBy(productVariants.productId);
+      stockMap = new Map(stockRows.map(s => [s.productId, Number(s.qty ?? 0)]));
+    } catch (e) {
+      console.error('fetchWishlists stock query failed', e);
+    }
 
-  const stockMap = new Map(stockRows.map(s => [s.productId, Number(s.qty ?? 0)]));
-
-  return rows.map(r => ({
-    productId: r.productId,
-    productName: r.productName,
-    sku: r.sku,
-    count: Number(r.count),
-    stock: stockMap.get(r.productId) ?? 0,
-    priceCents: r.priceCents,
-  }));
+    return rows.map(r => ({
+      productId: r.productId,
+      productName: r.productName,
+      sku: r.sku,
+      count: Number(r.count),
+      stock: stockMap.get(r.productId) ?? 0,
+      priceCents: r.priceCents,
+    }));
+  } catch (e) {
+    console.error('fetchWishlists failed', e);
+    return [];
+  }
 }
 
 async function fetchGiftCards(tenantId: string): Promise<{ rows: GiftCardRow[]; summary: GiftCardSummary }> {
+  try {
   const rows = await db
     .select({
       code: giftCards.code,
@@ -172,9 +182,14 @@ async function fetchGiftCards(tenantId: string): Promise<{ rows: GiftCardRow[]; 
       expiringIn30dCount: Number(expiring[0]?.cnt ?? 0),
     },
   };
+  } catch (e) {
+    console.error('fetchGiftCards failed', e);
+    return { rows: [], summary: { inCirculationCents: 0, redeemedThisMonthCents: 0, activeCount: 0, expiringIn30dCount: 0 } };
+  }
 }
 
 async function fetchRestock(tenantId: string): Promise<RestockRow[]> {
+  try {
   const rows = await db
     .select({
       productId: restockNotifications.productId,
@@ -202,6 +217,10 @@ async function fetchRestock(tenantId: string): Promise<RestockRow[]> {
     waiting: Number(r.waiting),
     lastSignupAt: r.lastSignupAt,
   }));
+  } catch (e) {
+    console.error('fetchRestock failed', e);
+    return [];
+  }
 }
 
 interface PageProps {
