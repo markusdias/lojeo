@@ -41,6 +41,7 @@ export function Footer({ storeName }: { storeName: string }) {
             { label: 'Coleções', href: '/colecoes' },
             { label: 'Novidades', href: '/produtos?ordenar=novidades' },
             { label: 'Gift cards', href: '/gift-cards' },
+            { label: 'Comunidade', href: '/comunidade' },
           ].map(l => (
             <Link key={l.href} href={l.href} style={{
               display: 'block', fontSize: 13, color: 'var(--footer-muted)',

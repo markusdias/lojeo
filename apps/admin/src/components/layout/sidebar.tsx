@@ -49,34 +49,65 @@ const I = {
   inbox: 'M3 13h6l1 3h4l1-3h6M3 13V7l3-4h12l3 4v6M3 13v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7',
 };
 
-// Sidebar enxuto conforme design oficial Claude Design (10 itens em 3 sections).
-// Pages secundárias (Devoluções/Cupons/Avaliações/Garantias/Estoque/Coleções/Tickets/Chatbot/
-// Atribuição/Experimentos/CTR/Uso IA/Integrações) seguem acessíveis por URL direta e serão
-// expostas via breadcrumbs e sub-navs internas das pages principais.
+// Sidebar completo: cobre TODA feature acessível do admin (sem páginas órfãs).
+// Pensamento Apple: agrupado por intenção do lojista, não por entidade técnica.
 const SECTIONS: NavSection[] = [
   {
     items: [
       { href: '/dashboard', label: 'Dashboard', icon: <Icon d={I.home} /> },
-      { href: '/pedidos', label: 'Pedidos', icon: <Icon d={I.cart} />, badgeKey: 'pedidos' },
-      { href: '/filas', label: 'Filas', icon: <Icon d={I.inbox} /> },
-      { href: '/products', label: 'Produtos', icon: <Icon d={I.box} /> },
-      { href: '/clientes', label: 'Clientes', icon: <Icon d={I.users} /> },
       { href: '/insights', label: 'Análises', icon: <Icon d={I.chart} /> },
+    ],
+  },
+  {
+    title: 'Vendas',
+    items: [
+      { href: '/pedidos', label: 'Pedidos', icon: <Icon d={I.cart} />, badgeKey: 'pedidos' },
+      { href: '/devolucoes', label: 'Devoluções', icon: <Icon d={I.return} />, badgeKey: 'devolucoes' },
+      { href: '/cupons', label: 'Cupons', icon: <Icon d={I.coupon} /> },
+      { href: '/atribuicao', label: 'Atribuição', icon: <Icon d={I.link} /> },
+    ],
+  },
+  {
+    title: 'Catálogo',
+    items: [
+      { href: '/products', label: 'Produtos', icon: <Icon d={I.box} /> },
+      { href: '/collections', label: 'Coleções', icon: <Icon d={I.squares} /> },
+      { href: '/inventory', label: 'Estoque', icon: <Icon d={I.box} /> },
+      { href: '/recomendacoes', label: 'Recomendações', icon: <Icon d={I.sparkles} /> },
+    ],
+  },
+  {
+    title: 'Atendimento',
+    items: [
+      { href: '/filas', label: 'Filas', icon: <Icon d={I.inbox} /> },
+      { href: '/tickets', label: 'Tickets', icon: <Icon d={I.ticket} />, badgeKey: 'tickets' },
+      { href: '/chatbot', label: 'Chatbot', icon: <Icon d={I.bot} /> },
+      { href: '/avaliacoes', label: 'Avaliações', icon: <Icon d={I.star} /> },
+      { href: '/garantias', label: 'Garantias', icon: <Icon d={I.shield} /> },
+      { href: '/ugc', label: 'Moderação UGC', icon: <Icon d={I.gallery} />, badgeKey: 'ugc' },
+    ],
+  },
+  {
+    title: 'Clientes',
+    items: [
+      { href: '/clientes', label: 'CRM', icon: <Icon d={I.users} /> },
+      { href: '/wishlist', label: 'Demanda', icon: <Icon d={I.star} /> },
     ],
   },
   {
     title: 'IA & Conteúdo',
     items: [
       { href: '/ia-analyst', label: 'IA Analyst', icon: <Icon d={I.sparkles} /> },
-      { href: '/ugc', label: 'Moderação UGC', icon: <Icon d={I.gallery} />, badgeKey: 'ugc' },
+      { href: '/ia-uso', label: 'Uso IA', icon: <Icon d={I.flask} /> },
       { href: '/competitors', label: 'Concorrentes', icon: <Icon d={I.chart} /> },
+      { href: '/experiments', label: 'Experimentos A/B', icon: <Icon d={I.flask} /> },
     ],
   },
   {
-    title: 'Loja',
+    title: 'Configuração',
     items: [
-      { href: '/wishlist', label: 'Demanda', icon: <Icon d={I.star} /> },
       { href: '/aparencia', label: 'Aparência', icon: <Icon d={I.palette} /> },
+      { href: '/integracoes', label: 'Integrações', icon: <Icon d={I.globe} /> },
       { href: '/settings', label: 'Configurações', icon: <Icon d={I.gear} /> },
     ],
   },
