@@ -106,3 +106,63 @@ export function stripeStatusToOrderStatus(s: string): 'paid' | 'cancelled' | 'pe
   if (s === 'canceled') return 'cancelled';
   return 'pending';
 }
+
+/**
+ * Verifica assinatura Stripe webhook (HMAC SHA256).
+ * Header `Stripe-Signature: t=<timestamp>,v1=<signature>,v0=<...>`.
+ * Sem STRIPE_WEBHOOK_SECRET: retorna true (modo dev).
+ */
+export async function verifyStripeSignature(
+  rawBody: string,
+  signatureHeader: string | null,
+): Promise<boolean> {
+  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!secret) return true; // dev mode aceita
+  if (!signatureHeader) return false;
+
+  const tMatch = signatureHeader.match(/t=(\d+)/);
+  const v1Match = signatureHeader.match(/v1=([a-f0-9]+)/);
+  if (!tMatch || !v1Match) return false;
+  const ts = tMatch[1]!;
+  const expectedSig = v1Match[1]!;
+
+  const payload = `${ts}.${rawBody}`;
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  const sigBuf = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
+  const computed = Array.from(new Uint8Array(sigBuf))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  if (computed.length !== expectedSig.length) return false;
+  let diff = 0;
+  for (let i = 0; i < computed.length; i++) {
+    diff |= computed.charCodeAt(i) ^ expectedSig.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
+export async function fetchStripePaymentIntent(piId: string): Promise<{
+  id: string;
+  status: string;
+  metadata?: { order_id?: string };
+} | null> {
+  const token = process.env.STRIPE_SECRET_KEY;
+  if (!token) return null;
+  try {
+    const r = await fetch(`${STRIPE_BASE}/payment_intents/${piId}`, {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    if (!r.ok) return null;
+    return (await r.json()) as { id: string; status: string; metadata?: { order_id?: string } };
+  } catch (err) {
+    logger.warn({ err: err instanceof Error ? err.message : err }, 'stripe fetch pi failed');
+    return null;
+  }
+}

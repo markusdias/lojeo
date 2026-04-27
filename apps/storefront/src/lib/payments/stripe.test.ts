@@ -3,6 +3,7 @@ import {
   isStripeConfigured,
   createStripePaymentIntent,
   stripeStatusToOrderStatus,
+  verifyStripeSignature,
 } from './stripe';
 
 describe('stripe helper', () => {
@@ -82,6 +83,36 @@ describe('stripe helper', () => {
       const result = await createStripePaymentIntent(sampleInput);
       expect(result.source).toBe('mock');
       expect(result.paymentIntentId).toContain('mock-pi-fallback');
+    });
+  });
+
+  describe('verifyStripeSignature', () => {
+    const originalSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    afterEach(() => {
+      if (originalSecret !== undefined) process.env.STRIPE_WEBHOOK_SECRET = originalSecret;
+      else delete process.env.STRIPE_WEBHOOK_SECRET;
+    });
+
+    it('aceita tudo em dev mode (sem env)', async () => {
+      delete process.env.STRIPE_WEBHOOK_SECRET;
+      const ok = await verifyStripeSignature('body', 't=1,v1=abc');
+      expect(ok).toBe(true);
+    });
+
+    it('rejeita header ausente quando secret presente', async () => {
+      process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test';
+      expect(await verifyStripeSignature('body', null)).toBe(false);
+    });
+
+    it('rejeita header sem t/v1', async () => {
+      process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test';
+      expect(await verifyStripeSignature('body', 'invalid')).toBe(false);
+    });
+
+    it('rejeita signature errada', async () => {
+      process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test';
+      expect(await verifyStripeSignature('body', 't=1,v1=ab')).toBe(false);
     });
   });
 
