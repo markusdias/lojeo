@@ -269,7 +269,7 @@ export async function POST(req: Request) {
         currency_id: 'BRL',
       })),
       notificationUrl: baseUrl ? `${baseUrl}/api/webhooks/mercado-pago` : undefined,
-      successUrl: baseUrl ? `${baseUrl}/checkout/sucesso?order=${order.id}` : `/checkout/sucesso?order=${order.id}`,
+      successUrl: baseUrl ? `${baseUrl}/checkout/confirmacao?order=${order.id}` : `/checkout/confirmacao?order=${order.id}`,
       failureUrl: baseUrl ? `${baseUrl}/checkout/falha?order=${order.id}` : `/checkout/falha?order=${order.id}`,
     });
 

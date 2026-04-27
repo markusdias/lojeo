@@ -47,7 +47,7 @@ export async function createMercadoPagoPreference(
   if (!token) {
     return {
       id: `mock-${input.orderId}`,
-      initPoint: input.successUrl ?? `/checkout/sucesso?order=${input.orderId}`,
+      initPoint: input.successUrl ?? `/checkout/confirmacao?order=${input.orderId}`,
       sandboxInitPoint: null,
       source: 'mock',
     };
@@ -98,7 +98,7 @@ export async function createMercadoPagoPreference(
     // Modo degradado: cair em mock para não quebrar checkout
     return {
       id: `mock-fallback-${input.orderId}`,
-      initPoint: input.successUrl ?? `/checkout/sucesso?order=${input.orderId}`,
+      initPoint: input.successUrl ?? `/checkout/confirmacao?order=${input.orderId}`,
       sandboxInitPoint: null,
       source: 'mock',
     };
