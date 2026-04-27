@@ -3111,3 +3111,38 @@ Tabela renderiza condicional `{visible.length === 0 ? <EmptyState /> : <table />
 **155 commits totais sessão**, **114 testes globais verdes** (+6 email), **24 migrations prod**, **zero regressão**.
 
 **Próximo ciclo:** UX validation /login + /not-found + emails preview + paridade visual final remanescente (PLP filtros tipo joia + admin /aparencia preview live).
+
+---
+
+## 2026-04-26 — Sprint 5 fechamento parcial: Gift opção checkout + UX validation RFM fix live
+
+**Commit:** 8a5703a (gift checkout)
+
+**UX validation RFM fix LIVE:**
+Pós-deploy commit a579108, /clientes/beatriz.lima@email.com agora exibe corretamente:
+- Pill chips topo "Champion 5/5/4" highlighted active
+- Avatar gradient verde Champion
+- Badge "Campeões · RFM 5/4/5" (era "Novos · 6/1/1" antes do fix)
+- Pitch correto "Compra recorrente · histórico denso (6 pedidos) · cliente engajada"
+- AI suggestions Champion ("PRÓXIMAS OPORTUNIDADES · cliente engajada · histórico denso · não force a venda")
+- Tags VIP / prefere brincos / São Paulo / aniversário 14 jul
+
+**Gift checkout (Sprint 5):**
+Critério "Opção de presente no checkout (toggle, campo mensagem, embalagem com custo configurável, pedido marcado para separação especial)" — entregue:
+- Toggle "É um presente 🎁" já existia
+- Adicionado checkbox "Embalagem premium R$ 9,90" expandido junto da textarea mensagem
+- Microcopy: "Caixa rígida acetinada + fita de cetim + cartão handwritten"
+- giftPackagingCents (schema orders já tinha) agora populado via POST /api/orders body.gift.packagingCents
+- CheckoutSummary nova prop giftPackagingCents — linha "Embalagem premium 🎁" entre Frete e Total + somado
+- GIFT_PREMIUM_CENTS = 990 hardcoded; futuro lê de tenants.config.checkout.giftPackagingCents
+
+**Tests storefront 14/14. Engine 44/44. Total 11/11 packages verde.**
+
+**156 commits totais sessão**, **114 testes globais verdes**, **24 migrations prod**, **zero regressão**.
+
+**Próximo ciclo:**
+- UX validation gift opção live
+- Próximos itens Sprint 5: Gift card produto storefront / Notificação restock Trigger.dev (BLOQUEADO)
+- Sprint 6 trocas/devoluções v2 melhorias (logística reversa via Melhor Envio BLOQUEADO)
+- Sprint 4 Mercado Pago real (BLOQUEADO OAuth)
+- Voltar paridade visual: refs ainda parciais ou faltantes
