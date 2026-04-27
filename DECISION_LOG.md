@@ -4322,3 +4322,48 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - Refactor: extrair render+sendEmail wrapper único pra reduzir boilerplate try/catch nas 5 funções.
 - Audit visual hover/focus states em buttons/links críticos.
 - Coffee-v1 template — Fase 1.2 internacional (após Fase 1 100%).
+
+
+---
+
+## 2026-04-27 (continuacao) — Batch 22: A11y focus-visible + audit prod final
+
+**Commits:** b9065ee.
+
+**A11y improvements admin globals.css:**
+- `.lj-btn-primary/secondary/danger` ganham `:focus-visible` outline 2px com offset 2px (accent ou error).
+- Selectors globais `a:focus-visible, button:focus-visible` aplicam outline accent + radius 4px.
+- `:focus:not(:focus-visible) { outline: none }` remove outline em mouse clicks (preserva native experience).
+- Storefront já tinha skip-link + focus-not-visible (batch antigo).
+
+**Audit prod storefront final (subagent Explore):**
+- 24/25 rotas críticas retornam 200. /presente retorna 404 — **comportamento correto** (rota foi intencionalmente removida em commit d7d4bae após duplicação detectada; substituída por /gift-cards no header).
+- Issues identificados pelo audit revelados como **false positives**:
+  - Footer "ausente": existe — `<footer>` confirmado em home prod.
+  - alt="": apenas next/image em uso (não tags `<img>` raw).
+  - Cookie consent "missing": componente é client-side (cookie-banner.tsx), não aparece no SSR HTML inicial.
+  - Hero "skeleton" no SSR: comportamento esperado de PersonalizedHero (skeleton até carregar dados client).
+
+**Conclusão:** sistema sólido. Sem issues UX user-facing detectados em rotas públicas.
+
+**Validações:**
+- Tests 240+. Lint zero. Typecheck zero.
+- 0 regressão.
+- Deploy admin disparado.
+
+**Estado fim do dia 2026-04-27 (após 22 batches):**
+- Sprint 0-13 completos com features production-ready.
+- Sprint 9 notificações lojista 100% (9/9 hooks emit + opt-out preferences + dashboard banner crítico + cron secret pra scheduler externo).
+- Sprint 13 GDPR/LGPD 100% (cookie banner + Pixels respect consent + /privacidade).
+- Integrações conectáveis 11 providers (UI + API + sentinel pattern + tests).
+- Email transacional 4/5 plugados (Order/Shipping/TradeApproved/Welcome). PixGenerated bloqueado em MP Payment direto.
+- MP integration real-mode (preference creation + webhook payment status update).
+- Bling integration real-mode (NF-e via OAuth2 + endpoint admin).
+- A11y focus-visible globals admin.
+- Tests: admin 77/77, storefront 46/46, db 20/20, engine 87, template-jewelry-v1 3, tracking 7, ai 7, ui 0. Total ~250.
+
+**Próximo dia / próxima sessão:**
+- UX testing prod via Playwright login admin (criar pedido E2E, validar email mock log).
+- Coffee-v1 template Fase 1.2 (após Fase 1 100%).
+- Pix Payment direto MP — desbloqueia PixGenerated email.
+- Refactor: dual-mode helper único pra integrations (DRY entre MP/Bling/email).
