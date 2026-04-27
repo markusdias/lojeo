@@ -5821,3 +5821,47 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - Tests endpoint /api/affiliates POST/PATCH cobertura.
 - P5.T — engine split (server vs pure) refactor — risco médio, deixar pra batch dedicado.
 - P5.V — dogfood DB-real CI (GitHub Actions service postgres).
+
+---
+
+## 2026-04-27 (continuacao) — Batch 53: engine /pure subpath (P5.T)
+
+**Commits:** (a registrar nesta sessao).
+
+**Auditoria pré-implementação:**
+- `@lojeo/engine` tem 2 módulos com dependência DB: `tenant.ts` (tenants table) + `inventory.ts` (inventoryStock).
+- Outros 19 módulos são puros (template/pricing/sku/rfm/churn/inventory-forecast/warranty/market-basket/file-signature/customer-ltv/competitive-pricing/embeddings/attribution/markdown/experiments-stats/cpf/currency/fraud/cohort-retention/best-send-hour).
+- markdown-editor.tsx (admin client) já usa subpath específico `@lojeo/engine/markdown` — não puxa chain DB. OK histórico.
+
+**Solução adotada — subpath export `@lojeo/engine/pure`:**
+- `packages/engine/src/pure.ts` re-exporta apenas os 19 módulos puros.
+- `packages/engine/package.json` adiciona `"./pure": "./src/pure.ts"` em exports field.
+- Cliente consome: `import { fmtBRL, computeFraudScore } from '@lojeo/engine/pure';` — não puxa db.
+- Main barrel `@lojeo/engine` continua exportando tudo (server-side).
+
+**Por que NÃO criei pacote separado:**
+- 2 módulos com DB vs 19 puros — overhead de novo workspace + duplicação package.json/tsconfig não compensa.
+- Subpath export é padrão Node.js bem documentado; bundlers respeitam (Next.js, Vite, esbuild).
+- Migração futura pra packages separados é trivial se necessário (apenas mover arquivos + atualizar imports).
+
+**4 tests vitest `pure.test.ts`:**
+- Smoke: 13 helpers exportados são funções (formatMoney, computeFraudScore, cohortRetention, bestSendHour, computeNps, scoreChurnBatch, computeWarranty, scoreCustomers, computeAttribution, renderMarkdown, isValidCpf, formatCpf, asSupportedCurrency).
+- Negative: getTenantById/getInventoryStock NÃO exportados em /pure.
+- formatMoney smoke: `R$ 10,00` para 1000 cents BRL.
+- computeFraudScore smoke: cliente recorrente + valor baixo → recommendation 'approve'.
+
+**Trade-offs arquiteturais:**
+- Apps client components futuros que precisem engine helpers (não só markdown) usam `@lojeo/engine/pure`.
+- Storefront atual NÃO foi migrado (markdown subpath ainda OK, outros client components não importam engine).
+- V2 quando criar dashboard widget client-side com fraud/cohort/NPS → migrar pra subpath /pure.
+- Possível V3: split em `@lojeo/engine-pure` + `@lojeo/engine-server` packages quando crescer >50 módulos.
+
+**Validações:**
+- pnpm -r typecheck zero erro.
+- engine 148/148 (+4 pure smoke). Total 514 passing. Zero regressao.
+- pnpm -r lint admin/storefront limpo.
+
+**Próximo ciclo:**
+- P5.V — dogfood DB-real CI (GitHub Actions service postgres).
+- Migrar low-stock-check + churn-check pra usar emitMultichannelNotification.
+- Endpoint POST /api/nps + cron survey D+7.
