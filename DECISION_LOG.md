@@ -2821,3 +2821,46 @@ Não migrei pra page-by-tab nem refactorei o form. Usei anchor nav sticky no top
 - Audit hierarquia sub-pages /settings/users /settings/2fa /settings/audit /settings/onboarding (já existem, link nav já presente)
 
 **131 commits totais sessão**, **108 testes globais verdes**, **24 migrations prod**, **zero regressão**.
+
+---
+
+## 2026-04-26 — /pedidos empty state + /settings anchor active highlighting
+
+**Commits:** [pedidos empty + settings active]
+
+**UX testing detectou:**
+
+- `/pedidos?status=cancelled` (e outros filtros 0 rows) renderizava `<td colSpan={7}>Nenhum pedido encontrado.</td>` dentro da table — texto plano sem contexto.
+- `/settings` anchor nav sticky tinha 7 anchor links mas sem feedback visual de qual está ativo — user não sabia onde estava no scroll.
+
+**Fixes:**
+
+1. `/pedidos` empty state condicional contextual:
+   - Sem `statusFilter`: IconShoppingBag + "Nenhum pedido nesse período" + CTA "Compartilhar storefront" + "Ver dicas de tráfego" (microcopy ativação)
+   - Com `statusFilter`: "Nenhum pedido com status \"Cancelado\"" + CTA "Ver todos os pedidos" (volta filtro vazio)
+   - Renderiza fora da `<table>` quando 0 rows — visual consistente com outras pages
+
+2. `/settings/anchor-nav.tsx` NOVO — client component extraído com IntersectionObserver:
+   - rootMargin `'-100px 0px -60% 0px'`: section ativa quando entra terço superior viewport (não centro). Evita "flicker" entre seções
+   - threshold 0: dispara ao mais leve cruzamento
+   - Sort por `boundingClientRect.top`: pega a section mais alta visível como ativa
+   - Visual ativo: `var(--accent)` + border-bottom 2px + font-weight semibold
+   - Items com `href` external (Integrações ↗) excluídos do observer
+
+**Decisões pontuais:**
+
+1. **Empty state /pedidos contextual com 2 variants** — sem filtro educa lojista (ativação primeiros pedidos), com filtro orienta (limpar filtro). Empty state genérico desperdiça oportunidade pedagógica.
+
+2. **AnchorNav como client component separado** > inline JSX — preserva /settings como single page mas isola observer logic. 60 linhas, easy review/maintain.
+
+3. **rootMargin negativo top + bottom** — `-100px` top compensa altura sticky bar; `-60%` bottom força "active" só quando section ocupa terço superior, não quando começa entrar lá embaixo. Padrão MDN docs scroll-spy.
+
+**Tests admin 18/18.** Deploy admin disparado.
+
+**Próximo ciclo:**
+- Validar /pedidos + /settings active highlight live
+- Empty state /clientes (atualmente texto plano)
+- Empty state /products (já tem? verificar)
+- /pedidos breadcrumb sub-nav match Image #9
+
+**133 commits totais sessão**, **108 testes globais verdes**, **24 migrations prod**, **zero regressão**.
