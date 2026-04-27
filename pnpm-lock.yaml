@@ -138,6 +138,9 @@ importers:
       '@lojeo/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@lojeo/email':
+        specifier: workspace:*
+        version: link:../../packages/email
       '@lojeo/engine':
         specifier: workspace:*
         version: link:../../packages/engine

@@ -18,6 +18,7 @@
     "@auth/drizzle-adapter": "^1.7.4",
     "@lojeo/ai": "workspace:*",
     "@lojeo/db": "workspace:*",
+    "@lojeo/email": "workspace:*",
     "@lojeo/engine": "workspace:*",
     "@lojeo/logger": "workspace:*",
     "@lojeo/storage": "workspace:*",

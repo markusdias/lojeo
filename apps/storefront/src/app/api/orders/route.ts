@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db, orders, orderItems, orderEvents, coupons, calcCouponDiscountCents, emitSellerNotification } from '@lojeo/db';
 import { createMercadoPagoPreference } from '../../../lib/payments/mercado-pago';
+import { sendOrderConfirmationEmail } from '../../../lib/email/transactional';
 import { eq, and, sql } from 'drizzle-orm';
 import { checkRateLimit, getClientIp } from '../../../lib/rate-limit';
 
@@ -278,6 +279,27 @@ export async function POST(req: Request) {
         .update(orders)
         .set({ gatewayPaymentId: preference.id, paymentGateway: 'mercadopago' })
         .where(eq(orders.id, order.id));
+    }
+
+    if (body.customerEmail) {
+      void sendOrderConfirmationEmail({
+        storeName: process.env.STOREFRONT_STORE_NAME ?? 'Atelier',
+        storeFromEmail: process.env.STOREFRONT_FROM_EMAIL,
+        customerName: body.customerEmail.split('@')[0] ?? 'Cliente',
+        customerEmail: body.customerEmail,
+        orderCode: order.orderNumber,
+        items: body.items.map((it) => ({
+          name: it.productName,
+          detail: it.variantName ?? `${it.qty}×`,
+          price: `R$ ${(it.unitPriceCents / 100).toFixed(2).replace('.', ',')}`,
+        })),
+        subtotalCents,
+        shippingCents,
+        shippingLabel: `Frete (${body.shipping.label ?? body.shipping.carrier})`,
+        totalCents,
+        storeBaseUrl: baseUrl || 'https://lojeo.app',
+        orderId: order.id,
+      });
     }
 
     void emitSellerNotification({
