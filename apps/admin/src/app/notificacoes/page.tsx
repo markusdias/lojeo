@@ -60,7 +60,21 @@ export default async function NotificacoesPage({ searchParams }: { searchParams:
             {unreadCount > 0 && ` · ${unreadCount} não ${unreadCount === 1 ? 'lida' : 'lidas'}`}
           </p>
         </div>
-        <NotificacoesActions onlyUnread={onlyUnread} unreadCount={unreadCount} />
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <Link
+            href="/notificacoes/preferencias"
+            prefetch={false}
+            style={{
+              fontSize: 13,
+              color: 'var(--fg-secondary)',
+              textDecoration: 'none',
+              padding: '8px 12px',
+            }}
+          >
+            Preferências
+          </Link>
+          <NotificacoesActions onlyUnread={onlyUnread} unreadCount={unreadCount} />
+        </div>
       </header>
 
       <nav aria-label="Filtros" style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
