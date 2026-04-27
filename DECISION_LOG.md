@@ -3511,3 +3511,46 @@ V2: trocar por react-markdown + sanitizer quando implementar UGC blog/comentario
 - Roadmap remanescente Fase 1: GDPR basico, CDN Cloudflare, Resend Trigger.dev jobs (BLOQUEADO email key), modo degradado tests E2E, A/B test personalizacao homepage v2, Remove.bg upload, blog cover image upload (Storage R2), preview markdown ao vivo no editor admin
 - Trocar mockEmbedding por provider real quando ANTHROPIC_API_KEY/OpenAI key disponivel
 - Estudio criativo IA Sprint 11 (BLOQUEADO decisao provider geracao imagem)
+
+
+---
+
+## 2026-04-27 (continuacao) — Batch 5: live preview + cover upload + p-value real A/B
+
+**Commits:** 899cf04 (live preview + R2 upload), 1c5f413 (p-value z-test).
+
+**Sprint 12 — Markdown live preview no editor admin:**
+- Move `renderMarkdown` de `apps/storefront/src/lib/markdown.ts` para `packages/engine/src/markdown.ts` (e os tests). Storefront importa via `@lojeo/engine`. Reuso direto admin + storefront.
+- Novo componente `apps/admin/src/components/blog/markdown-editor.tsx` (client) com tabs Editor/Preview, render via `React.createElement` (engine puro). Helper text "Suporta ## H2, ### H3, **negrito**, - listas, [link](https://...)".
+- Integrado em `/conteudo/novo` + `/conteudo/[id]` substituindo o textarea direto. Reduz "blank page anxiety" + valida sintaxe antes de publicar.
+
+**Sprint 12 — Blog cover upload R2:**
+- API admin `POST /api/blog/cover-upload`: formData -> 8MB max -> isValidImageUpload (magic bytes anti-script) -> sharp resize 1600px webp q82 -> `getStorage().put()` -> URL publica. Rate-limit 30/15min/user. Audit `blog.cover_upload`.
+- Componente `cover-upload.tsx` (client): file picker (jpg/png/webp), URL fallback (cole link externo), preview 180x120, mensagens de erro acionaveis (file too large com MB, invalid signature, processing failed). Botoes Trocar/Remover. Substitui input URL puro.
+
+**Sprint 12 — A/B p-value real (z-test 2-prop):**
+- `packages/engine/src/experiments-stats.ts`: `variantSignificance(control, variant)` retorna `{zScore, pValue, liftAbs, liftPct, confidencePct, isSignificant, hasEnoughSample}`. Usa `normalCdf()` Abramowitz & Stegun aprox (erro ~7.5e-8). Trade-off Frequentist vs Bayesian: optei por z-test 2-prop por ser o que MEI espera ver e pra evitar lib externa. Bayesian elimina problema de "peeking" — Sprint 14+.
+- Confidence = `normalCdf(z)*100` (P(variante > controle | dados)) — NAO 1-pOneTailed que estava errado em variantes piores.
+- API `/api/experiments/[id]/results` cada variante recebe pValue + confidencePct + isSignificant. Controle com p=1.
+- UI `ConfidenceCard` recebe pValue/isSignificant reais. Mensagens substituem heuristica antiga: 4 estados (sig+lift+, sig+lift-, !sig+conf>=85, !sig+conf<85). Mostra p-value real "p=0.018".
+- Loop completo: storefront `homepage_personalization` self-seed cria experiment + emite exposure no GET /api/experiments + conversion no cart_add via CartAddConversionTracker. Admin agora mostra significancia real.
+
+**Validacoes:**
+- Tests engine 87/87 (+11 stats, +9 markdown). Storefront 22/22 (perdeu 9 markdown que viraram engine). Admin 40/40 active. db 14/14. Total 163.
+- Typecheck zero erros admin/storefront/db.
+- Lint zero warnings admin/storefront.
+- 0 regressao em features anteriores.
+
+**Migracao prod blog_posts:** PENDENTE — build EasyPanel ainda nao pegou commit 793217b apos 25min. Hipotese: cache de SHA antigo (concept easypanel-deploy-gotchas). Re-trigger 3x via webhook. Aguardar ou fresh deploy via tRPC API.
+
+**Status produção (2026-04-27 ~08:18):**
+- admin / 200, store-root 200 (build antigo 8b8d32a)
+- admin /conteudo 404, store /blog 404 (rotas novas ainda nao deployadas)
+- /api/migrate retornou 36 tabelas mas SEM blog_posts (route antiga)
+
+**Proximo ciclo:**
+- Validar deploy 1c5f413 chegou em prod, executar migration blog_posts
+- UX testing /blog producao: criar post via admin, validar render, schema.org, sitemap
+- Fresh deploy via API EasyPanel se webhook continuar cacheado
+- Modo degradado E2E (Resend, gateway, FaqZap fallback)
+- GDPR basico prep coffee internacional
