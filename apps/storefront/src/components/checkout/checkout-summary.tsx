@@ -25,13 +25,25 @@ export function CheckoutSummary({ subtotalCents, shippingCents = 0, discountCent
 
   return (
     <div style={{
+      background: 'var(--surface-sunken)',
       border: '1px solid var(--divider)', borderRadius: 8,
-      padding: 24, position: 'sticky', top: 100,
+      padding: 28, position: 'sticky', top: 100,
     }}>
-      <h3 style={{ fontSize: 15, marginBottom: 20 }}>Resumo ({count} {count === 1 ? 'item' : 'itens'})</h3>
+      <h3 style={{
+        fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 400,
+        margin: '0 0 6px',
+      }}>
+        Seu pedido
+      </h3>
+      <p style={{
+        fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase',
+        color: 'var(--text-secondary)', margin: '0 0 18px',
+      }}>
+        {count} {count === 1 ? 'peça' : 'peças'}
+      </p>
 
       {/* Items */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20, paddingBottom: 18, borderBottom: '1px solid var(--divider)' }}>
         {items.map(item => (
           <div key={item.id} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
             <div style={{
@@ -61,30 +73,32 @@ export function CheckoutSummary({ subtotalCents, shippingCents = 0, discountCent
       </div>
 
       {/* Totals */}
-      <div style={{ borderTop: '1px solid var(--divider)', paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+      <div style={{ paddingTop: 4, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
           <span style={{ color: 'var(--text-secondary)' }}>Subtotal</span>
           <span>{fmt(subtotalCents)}</span>
         </div>
         {discountCents > 0 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
             <span style={{ color: 'var(--text-secondary)' }}>Desconto</span>
-            <span style={{ color: '#1E6B22' }}>-{fmt(discountCents)}</span>
+            <span style={{ color: 'var(--success)' }}>-{fmt(discountCents)}</span>
           </div>
         )}
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
           <span style={{ color: 'var(--text-secondary)' }}>Frete</span>
-          <span style={{ color: freeShipping ? '#1E6B22' : 'var(--text-primary)' }}>
+          <span style={{ color: freeShipping ? 'var(--success)' : 'var(--text-primary)' }}>
             {shippingCents === undefined ? 'Calculado no próximo passo' :
               freeShipping ? 'Grátis' : fmt(effectiveShipping)}
           </span>
         </div>
         <div style={{
-          display: 'flex', justifyContent: 'space-between', fontSize: 16, fontWeight: 600,
+          display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
           borderTop: '1px solid var(--divider)', paddingTop: 12, marginTop: 4,
         }}>
-          <span>Total</span>
-          <span>{shippingCents === undefined ? fmt(subtotalCents) : fmt(total)}</span>
+          <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Total</span>
+          <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 400 }}>
+            {shippingCents === undefined ? fmt(subtotalCents) : fmt(total)}
+          </span>
         </div>
       </div>
 

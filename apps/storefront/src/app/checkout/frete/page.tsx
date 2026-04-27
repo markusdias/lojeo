@@ -79,8 +79,13 @@ export default function FretePage() {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 64, alignItems: 'start' }}>
       <form onSubmit={handleSubmit}>
-        <h2 style={{ marginBottom: 8, fontSize: 22 }}>Opções de frete</h2>
-        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 32 }}>
+        <h2 style={{
+          fontFamily: 'var(--font-display)', fontSize: 32, lineHeight: 1.1,
+          margin: '0 0 6px', fontWeight: 400,
+        }}>
+          Como prefere receber?
+        </h2>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 0, marginBottom: 28 }}>
           Entregando em: {state.address.street}, {state.address.number} — {state.address.city}/{state.address.state}, {state.address.postalCode}
         </p>
 
@@ -110,8 +115,8 @@ export default function FretePage() {
                 </p>
               </div>
               <span style={{
-                fontSize: 14, fontWeight: 600,
-                color: opt.priceCents === 0 ? '#1E6B22' : 'var(--text-primary)',
+                fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 400,
+                color: opt.priceCents === 0 ? 'var(--success)' : 'var(--text-primary)',
               }}>
                 {fmt(opt.priceCents)}
               </span>
