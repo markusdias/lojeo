@@ -41,6 +41,21 @@ const result: NextAuthResult = NextAuth({
     verificationTokensTable: verificationTokens,
   }),
   providers,
+  events: {
+    async createUser({ user }) {
+      // Welcome email — fire-and-forget. Falha NÃO derruba signup.
+      if (!user.email) return;
+      try {
+        const { sendWelcomeEmail } = await import('./lib/email/transactional');
+        await sendWelcomeEmail({
+          customerEmail: user.email,
+          customerName: user.name ?? user.email.split('@')[0] ?? 'Cliente',
+        });
+      } catch (err) {
+        console.warn('[auth.events.createUser] welcome email failed', err);
+      }
+    },
+  },
 });
 
 type SignInFn = NextAuthResult['signIn'];
