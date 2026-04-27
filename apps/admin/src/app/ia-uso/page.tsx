@@ -7,9 +7,27 @@ interface UsageData {
   month: string;
   totalCalls: number;
   cachedCalls: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
   totalCostUsd: number;
+  totalCostBrl: number;
+  brlPerUsd: number;
   byFeature: { feature: string; calls: number; cachedCalls: number; costUsd: number }[];
+  byModel: { model: string; calls: number; inputTokens: number; outputTokens: number; costUsd: number }[];
   daily: { day: string; calls: number; costUsd: number }[];
+  recent: {
+    id: string;
+    feature: string;
+    model: string;
+    cached: boolean;
+    inputTokens: number;
+    outputTokens: number;
+    costUsd: number;
+    durationMs: number;
+    success: boolean;
+    error: string | null;
+    createdAt: string;
+  }[];
 }
 
 interface BudgetData {
@@ -24,11 +42,18 @@ interface BudgetData {
   alertMessage: string;
 }
 
-const ALERT_STYLES: Record<BudgetData['alert'], { bg: string; border: string; text: string }> = {
-  ok:            { bg: '#F0FDF4', border: '#86EFAC', text: '#166534' },
-  warn:          { bg: '#FFF7ED', border: '#FED7AA', text: '#9A3412' },
-  over_forecast: { bg: '#FEF3C7', border: '#FCD34D', text: '#92400E' },
-  over:          { bg: '#FEF2F2', border: '#FCA5A5', text: '#991B1B' },
+const ALERT_BADGE: Record<BudgetData['alert'], string> = {
+  ok: 'lj-badge-success',
+  warn: 'lj-badge-warning',
+  over_forecast: 'lj-badge-warning',
+  over: 'lj-badge-error',
+};
+
+const ALERT_BAR: Record<BudgetData['alert'], string> = {
+  ok: 'var(--success)',
+  warn: 'var(--warning)',
+  over_forecast: 'var(--warning)',
+  over: 'var(--error)',
 };
 
 const FEATURE_LABELS: Record<string, string> = {
@@ -39,8 +64,24 @@ const FEATURE_LABELS: Record<string, string> = {
   'chatbot': 'Chatbot storefront',
 };
 
-function fmt(n: number) {
+function modelLabel(model: string) {
+  if (/haiku/i.test(model)) return 'Haiku';
+  if (/sonnet/i.test(model)) return 'Sonnet';
+  if (/opus/i.test(model)) return 'Opus';
+  return model;
+}
+
+function fmtUsd(n: number) {
   return n.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+}
+function fmtBrl(n: number) {
+  return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+function fmtInt(n: number) {
+  return n.toLocaleString('pt-BR');
+}
+function fmtDateTime(iso: string) {
+  return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 }
 
 export default function IaUsoPage() {
@@ -52,16 +93,26 @@ export default function IaUsoPage() {
     fetch('/api/ai-budget').then(r => r.json()).then(setBudget).catch(() => null);
   }, []);
 
-  if (!data) return <main className="p-8"><p className="text-neutral-500">Carregando…</p></main>;
+  if (!data) return <main style={{ padding: 'var(--space-8)' }}><p style={{ color: 'var(--fg-muted)' }}>Carregando…</p></main>;
 
   const cacheRate = data.totalCalls > 0 ? Math.round((data.cachedCalls / data.totalCalls) * 100) : 0;
   const maxDailyCost = Math.max(...data.daily.map(d => d.costUsd), 0.0001);
+  const totalTokens = data.totalInputTokens + data.totalOutputTokens;
 
   return (
-    <main style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }} className="space-y-6">
-      <header>
-        <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginBottom: 'var(--space-2)' }}>Uso de IA</h1>
-        <p className="body-s">Mês atual: {data.month}</p>
+    <main style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
+        <div>
+          <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginBottom: 'var(--space-2)' }}>Uso de IA</h1>
+          <p className="body-s" style={{ color: 'var(--fg-secondary)' }}>Mês atual: {data.month} · cotação estimada R$ {data.brlPerUsd.toFixed(2)}/USD</p>
+        </div>
+        <a
+          href="/settings#ia"
+          className="lj-btn-secondary"
+          style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}
+        >
+          Configurar limite
+        </a>
       </header>
 
       <div className="lj-ai-banner">
@@ -78,103 +129,118 @@ export default function IaUsoPage() {
 
       {/* Orçamento mensal */}
       {budget && budget.monthlyLimitUsd > 0 && (
-        <section
-          style={{
-            background: ALERT_STYLES[budget.alert].bg,
-            border: `1px solid ${ALERT_STYLES[budget.alert].border}`,
-            color: ALERT_STYLES[budget.alert].text,
-          }}
-          className="rounded-lg p-5"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold text-sm" style={{ display: 'inline-flex', alignItems: 'center' }}>
+        <section className="lj-card" style={{ padding: 'var(--space-5)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-3)' }}>
+            <h2 style={{ fontSize: 'var(--text-h4)', fontWeight: 'var(--w-semibold)', display: 'inline-flex', alignItems: 'center' }}>
               Orçamento mensal de IA
               <InfoTooltip text="Limite em USD. Acima do limite, IA bloqueia automaticamente até virar mês. 0 = ilimitado." />
             </h2>
-            <span className="text-xs">
-              Dia {budget.daysIntoMonth} de {budget.daysInMonth}
+            <span className={`lj-badge ${ALERT_BADGE[budget.alert]}`}>
+              Dia {budget.daysIntoMonth}/{budget.daysInMonth}
             </span>
           </div>
-          <div className="grid grid-cols-3 gap-4 text-sm">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-4)' }}>
             <div>
-              <p className="text-xs uppercase tracking-wide opacity-70">Limite</p>
-              <p className="text-lg font-semibold">${budget.monthlyLimitUsd.toFixed(2)}</p>
+              <p style={{ fontSize: 'var(--text-caption)', textTransform: 'uppercase', letterSpacing: 'var(--track-wide)', color: 'var(--fg-muted)' }}>Limite</p>
+              <p style={{ fontSize: 'var(--text-h4)', fontWeight: 'var(--w-semibold)' }}>${budget.monthlyLimitUsd.toFixed(2)}</p>
             </div>
             <div>
-              <p className="text-xs uppercase tracking-wide opacity-70">Gasto até hoje</p>
-              <p className="text-lg font-semibold">
-                ${budget.monthToDateUsd.toFixed(2)} <span className="text-xs opacity-70">({budget.utilizationPercent.toFixed(0)}%)</span>
+              <p style={{ fontSize: 'var(--text-caption)', textTransform: 'uppercase', letterSpacing: 'var(--track-wide)', color: 'var(--fg-muted)' }}>Gasto até hoje</p>
+              <p style={{ fontSize: 'var(--text-h4)', fontWeight: 'var(--w-semibold)' }}>
+                ${budget.monthToDateUsd.toFixed(2)}{' '}
+                <span style={{ fontSize: 'var(--text-caption)', color: 'var(--fg-muted)' }}>({budget.utilizationPercent.toFixed(0)}%)</span>
               </p>
             </div>
             <div>
-              <p className="text-xs uppercase tracking-wide opacity-70">Projeção fim do mês</p>
-              <p className="text-lg font-semibold">
-                ${budget.forecastEndOfMonthUsd.toFixed(2)} <span className="text-xs opacity-70">({budget.forecastUtilizationPercent.toFixed(0)}%)</span>
+              <p style={{ fontSize: 'var(--text-caption)', textTransform: 'uppercase', letterSpacing: 'var(--track-wide)', color: 'var(--fg-muted)' }}>Projeção fim do mês</p>
+              <p style={{ fontSize: 'var(--text-h4)', fontWeight: 'var(--w-semibold)' }}>
+                ${budget.forecastEndOfMonthUsd.toFixed(2)}{' '}
+                <span style={{ fontSize: 'var(--text-caption)', color: 'var(--fg-muted)' }}>({budget.forecastUtilizationPercent.toFixed(0)}%)</span>
               </p>
             </div>
           </div>
-          <div className="mt-3 h-2 bg-white/40 rounded overflow-hidden">
+          <div style={{ marginTop: 'var(--space-3)', height: 8, background: 'var(--neutral-50)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
             <div
-              className="h-full transition-all"
               style={{
                 width: `${Math.min(100, budget.utilizationPercent)}%`,
-                background: budget.alert === 'over' ? '#DC2626' : budget.alert === 'over_forecast' ? '#D97706' : budget.alert === 'warn' ? '#EA580C' : '#16A34A',
+                height: '100%',
+                background: ALERT_BAR[budget.alert],
+                transition: 'width 200ms ease',
               }}
             />
           </div>
-          <p className="text-xs mt-2">{budget.alertMessage}</p>
+          <p style={{ fontSize: 'var(--text-caption)', color: 'var(--fg-secondary)', marginTop: 'var(--space-2)' }}>{budget.alertMessage}</p>
         </section>
       )}
       {budget && budget.monthlyLimitUsd === 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded p-3 text-sm text-amber-800">
-          Sem limite mensal de IA configurado. Defina em <a href="/settings" className="underline">Configurações</a> para ativar alertas.
+        <div className="lj-card" style={{ padding: 'var(--space-4)', borderColor: 'var(--warning)', background: 'var(--warning-soft)', color: 'var(--warning)', fontSize: 'var(--text-body-s)' }}>
+          Sem limite mensal de IA configurado. Defina em <a href="/settings#ia" style={{ textDecoration: 'underline', color: 'inherit' }}>Configurações</a> para ativar alertas.
         </div>
       )}
 
-      {/* Cards de resumo */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white rounded-lg shadow p-5">
-          <p className="text-xs text-neutral-500 uppercase tracking-wide mb-1">Chamadas este mês</p>
-          <p className="text-2xl font-semibold">{data.totalCalls.toString()}</p>
+      {/* 4 Cards de resumo: chamadas / tokens / custo BRL / vs limite */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-4)' }}>
+        <div className="lj-card" style={{ padding: 'var(--space-5)' }}>
+          <p style={{ fontSize: 'var(--text-caption)', textTransform: 'uppercase', letterSpacing: 'var(--track-wide)', color: 'var(--fg-muted)', marginBottom: 'var(--space-1)' }}>Chamadas mês</p>
+          <p style={{ fontSize: 'var(--text-h3)', fontWeight: 'var(--w-semibold)' }}>{fmtInt(data.totalCalls)}</p>
+          <p style={{ fontSize: 'var(--text-caption)', color: 'var(--fg-secondary)', marginTop: 'var(--space-1)' }}>cache hit {cacheRate}%</p>
         </div>
-        <div className="bg-white rounded-lg shadow p-5">
-          <p className="text-xs text-neutral-500 uppercase tracking-wide mb-1" style={{ display: 'inline-flex', alignItems: 'center' }}>
-            Cache hit rate
-            <InfoTooltip text="% de chamadas servidas pelo cache (gratuitas). Acima de 60% indica boa otimização. Cache TTL é 30 dias para descrições, 90 para SEO." />
+        <div className="lj-card" style={{ padding: 'var(--space-5)' }}>
+          <p style={{ fontSize: 'var(--text-caption)', textTransform: 'uppercase', letterSpacing: 'var(--track-wide)', color: 'var(--fg-muted)', marginBottom: 'var(--space-1)', display: 'inline-flex', alignItems: 'center' }}>
+            Tokens
+            <InfoTooltip text="Total de tokens entrada + saída neste mês. Cache hits não contam tokens cobrados." />
           </p>
-          <p className="text-2xl font-semibold">{`${cacheRate}%`}</p>
+          <p style={{ fontSize: 'var(--text-h3)', fontWeight: 'var(--w-semibold)' }}>{fmtInt(totalTokens)}</p>
+          <p style={{ fontSize: 'var(--text-caption)', color: 'var(--fg-secondary)', marginTop: 'var(--space-1)' }}>in {fmtInt(data.totalInputTokens)} · out {fmtInt(data.totalOutputTokens)}</p>
         </div>
-        <div className="bg-white rounded-lg shadow p-5">
-          <p className="text-xs text-neutral-500 uppercase tracking-wide mb-1" style={{ display: 'inline-flex', alignItems: 'center' }}>
-            Custo estimado (USD)
-            <InfoTooltip text="Soma de input × output tokens × preço modelo. Haiku 4.5 = $0.80/MTok in + $4/MTok out. Sonnet 3.5 ~6× mais caro." />
+        <div className="lj-card" style={{ padding: 'var(--space-5)' }}>
+          <p style={{ fontSize: 'var(--text-caption)', textTransform: 'uppercase', letterSpacing: 'var(--track-wide)', color: 'var(--fg-muted)', marginBottom: 'var(--space-1)', display: 'inline-flex', alignItems: 'center' }}>
+            Custo BRL
+            <InfoTooltip text={`Estimativa BRL = USD × ${data.brlPerUsd.toFixed(2)}. Trocar por cotação real assim que houver integração de exchange-rate.`} />
           </p>
-          <p className="text-2xl font-semibold">{`$${fmt(data.totalCostUsd)}`}</p>
+          <p style={{ fontSize: 'var(--text-h3)', fontWeight: 'var(--w-semibold)' }}>{fmtBrl(data.totalCostBrl)}</p>
+          <p style={{ fontSize: 'var(--text-caption)', color: 'var(--fg-secondary)', marginTop: 'var(--space-1)' }}>${fmtUsd(data.totalCostUsd)} USD</p>
+        </div>
+        <div className="lj-card" style={{ padding: 'var(--space-5)' }}>
+          <p style={{ fontSize: 'var(--text-caption)', textTransform: 'uppercase', letterSpacing: 'var(--track-wide)', color: 'var(--fg-muted)', marginBottom: 'var(--space-1)' }}>vs Limite</p>
+          {budget && budget.monthlyLimitUsd > 0 ? (
+            <>
+              <p style={{ fontSize: 'var(--text-h3)', fontWeight: 'var(--w-semibold)' }}>{budget.utilizationPercent.toFixed(0)}%</p>
+              <p style={{ fontSize: 'var(--text-caption)', color: 'var(--fg-secondary)', marginTop: 'var(--space-1)' }}>
+                ${budget.monthToDateUsd.toFixed(2)} de ${budget.monthlyLimitUsd.toFixed(2)}
+              </p>
+            </>
+          ) : (
+            <>
+              <p style={{ fontSize: 'var(--text-h3)', fontWeight: 'var(--w-semibold)', color: 'var(--fg-muted)' }}>—</p>
+              <a href="/settings#ia" style={{ fontSize: 'var(--text-caption)', color: 'var(--accent)', textDecoration: 'underline' }}>Definir limite</a>
+            </>
+          )}
         </div>
       </div>
 
       {/* Por feature */}
       {data.byFeature.length > 0 && (
-        <section className="bg-white rounded-lg shadow p-6">
-          <h2 className="font-semibold text-base mb-4">Por feature</h2>
-          <table className="w-full text-sm">
+        <section className="lj-card" style={{ padding: 'var(--space-6)' }}>
+          <h2 style={{ fontSize: 'var(--text-h4)', fontWeight: 'var(--w-semibold)', marginBottom: 'var(--space-4)' }}>Por feature</h2>
+          <table style={{ width: '100%', fontSize: 'var(--text-body-s)' }}>
             <thead>
-              <tr className="border-b text-left text-neutral-500 text-xs uppercase">
-                <th className="pb-2 pr-4">Feature</th>
-                <th className="pb-2 pr-4 text-right">Chamadas</th>
-                <th className="pb-2 pr-4 text-right">Cache</th>
-                <th className="pb-2 text-right">Custo (USD)</th>
+              <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--fg-muted)', fontSize: 'var(--text-caption)', textTransform: 'uppercase' }}>
+                <th style={{ padding: 'var(--space-2) var(--space-3) var(--space-2) 0' }}>Feature</th>
+                <th style={{ padding: 'var(--space-2) var(--space-3) var(--space-2) 0', textAlign: 'right' }}>Chamadas</th>
+                <th style={{ padding: 'var(--space-2) var(--space-3) var(--space-2) 0', textAlign: 'right' }}>Cache</th>
+                <th style={{ padding: 'var(--space-2) 0 var(--space-2) 0', textAlign: 'right' }}>Custo (USD)</th>
               </tr>
             </thead>
             <tbody>
               {data.byFeature.map(r => (
-                <tr key={r.feature} className="border-b last:border-0">
-                  <td className="py-2 pr-4 font-medium">{FEATURE_LABELS[r.feature] ?? r.feature}</td>
-                  <td className="py-2 pr-4 text-right">{r.calls}</td>
-                  <td className="py-2 pr-4 text-right text-green-600">
+                <tr key={r.feature} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: 'var(--space-2) var(--space-3) var(--space-2) 0', fontWeight: 'var(--w-medium)' }}>{FEATURE_LABELS[r.feature] ?? r.feature}</td>
+                  <td style={{ padding: 'var(--space-2) var(--space-3) var(--space-2) 0', textAlign: 'right' }}>{r.calls}</td>
+                  <td style={{ padding: 'var(--space-2) var(--space-3) var(--space-2) 0', textAlign: 'right', color: 'var(--success)' }}>
                     {r.calls > 0 ? `${Math.round((r.cachedCalls / r.calls) * 100)}%` : '—'}
                   </td>
-                  <td className="py-2 text-right">${fmt(r.costUsd)}</td>
+                  <td style={{ padding: 'var(--space-2) 0', textAlign: 'right' }}>${fmtUsd(r.costUsd)}</td>
                 </tr>
               ))}
             </tbody>
@@ -182,34 +248,109 @@ export default function IaUsoPage() {
         </section>
       )}
 
-      {/* Gráfico diário (barras ASCII/inline) */}
+      {/* Por modelo (Haiku vs Sonnet etc) */}
+      {data.byModel.length > 0 && (
+        <section className="lj-card" style={{ padding: 'var(--space-6)' }}>
+          <h2 style={{ fontSize: 'var(--text-h4)', fontWeight: 'var(--w-semibold)', marginBottom: 'var(--space-4)', display: 'inline-flex', alignItems: 'center' }}>
+            Por modelo
+            <InfoTooltip text="Distribuição de chamadas e custo por modelo. Haiku ~6× mais barato que Sonnet — escolher Haiku quando qualidade for suficiente." />
+          </h2>
+          <table style={{ width: '100%', fontSize: 'var(--text-body-s)' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--fg-muted)', fontSize: 'var(--text-caption)', textTransform: 'uppercase' }}>
+                <th style={{ padding: 'var(--space-2) var(--space-3) var(--space-2) 0' }}>Modelo</th>
+                <th style={{ padding: 'var(--space-2) var(--space-3) var(--space-2) 0', textAlign: 'right' }}>Chamadas</th>
+                <th style={{ padding: 'var(--space-2) var(--space-3) var(--space-2) 0', textAlign: 'right' }}>Tokens (in/out)</th>
+                <th style={{ padding: 'var(--space-2) 0', textAlign: 'right' }}>Custo (USD)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.byModel.map(r => (
+                <tr key={r.model} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: 'var(--space-2) var(--space-3) var(--space-2) 0', fontWeight: 'var(--w-medium)' }}>
+                    <span className="lj-badge lj-badge-info" style={{ marginRight: 'var(--space-2)' }}>{modelLabel(r.model)}</span>
+                    <span style={{ color: 'var(--fg-muted)', fontSize: 'var(--text-caption)' }}>{r.model}</span>
+                  </td>
+                  <td style={{ padding: 'var(--space-2) var(--space-3) var(--space-2) 0', textAlign: 'right' }}>{r.calls}</td>
+                  <td style={{ padding: 'var(--space-2) var(--space-3) var(--space-2) 0', textAlign: 'right' }}>{fmtInt(r.inputTokens)} / {fmtInt(r.outputTokens)}</td>
+                  <td style={{ padding: 'var(--space-2) 0', textAlign: 'right' }}>${fmtUsd(r.costUsd)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
+
+      {/* Gráfico diário */}
       {data.daily.length > 0 && (
-        <section className="bg-white rounded-lg shadow p-6">
-          <h2 className="font-semibold text-base mb-4">Custo diário — últimos 30 dias</h2>
-          <div className="flex items-end gap-1 h-24">
+        <section className="lj-card" style={{ padding: 'var(--space-6)' }}>
+          <h2 style={{ fontSize: 'var(--text-h4)', fontWeight: 'var(--w-semibold)', marginBottom: 'var(--space-4)' }}>Custo diário — últimos 30 dias</h2>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 96 }}>
             {data.daily.map(d => {
-              const height = Math.max(4, Math.round((d.costUsd / maxDailyCost) * 96));
+              const height = Math.max(4, Math.round((d.costUsd / maxDailyCost) * 88));
               return (
-                <div key={d.day} className="flex-1 flex flex-col items-center gap-0.5" title={`${d.day}: $${fmt(d.costUsd)}`}>
-                  <div
-                    style={{ height }}
-                    className="w-full bg-blue-500 rounded-t opacity-70 hover:opacity-100 transition-opacity"
-                  />
+                <div key={d.day} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }} title={`${d.day}: $${fmtUsd(d.costUsd)}`}>
+                  <div style={{ height, width: '100%', background: 'var(--accent)', opacity: 0.7, borderTopLeftRadius: 'var(--radius-sm)', borderTopRightRadius: 'var(--radius-sm)' }} />
                 </div>
               );
             })}
           </div>
-          <div className="flex justify-between text-xs text-neutral-400 mt-1">
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-caption)', color: 'var(--fg-muted)', marginTop: 'var(--space-1)' }}>
             <span>{data.daily[0]?.day?.slice(5)}</span>
             <span>{data.daily[data.daily.length - 1]?.day?.slice(5)}</span>
           </div>
         </section>
       )}
 
+      {/* Últimas 50 chamadas */}
+      {data.recent.length > 0 && (
+        <section className="lj-card" style={{ padding: 'var(--space-6)' }}>
+          <h2 style={{ fontSize: 'var(--text-h4)', fontWeight: 'var(--w-semibold)', marginBottom: 'var(--space-4)' }}>Últimas chamadas ({data.recent.length})</h2>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', fontSize: 'var(--text-body-s)', minWidth: 720 }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--fg-muted)', fontSize: 'var(--text-caption)', textTransform: 'uppercase' }}>
+                  <th style={{ padding: 'var(--space-2) var(--space-3) var(--space-2) 0' }}>Quando</th>
+                  <th style={{ padding: 'var(--space-2) var(--space-3) var(--space-2) 0' }}>Feature</th>
+                  <th style={{ padding: 'var(--space-2) var(--space-3) var(--space-2) 0' }}>Modelo</th>
+                  <th style={{ padding: 'var(--space-2) var(--space-3) var(--space-2) 0', textAlign: 'right' }}>Tokens</th>
+                  <th style={{ padding: 'var(--space-2) var(--space-3) var(--space-2) 0', textAlign: 'right' }}>Custo</th>
+                  <th style={{ padding: 'var(--space-2) 0', textAlign: 'center' }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.recent.map(r => (
+                  <tr key={r.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: 'var(--space-2) var(--space-3) var(--space-2) 0', color: 'var(--fg-secondary)', whiteSpace: 'nowrap' }}>{fmtDateTime(r.createdAt)}</td>
+                    <td style={{ padding: 'var(--space-2) var(--space-3) var(--space-2) 0' }}>{FEATURE_LABELS[r.feature] ?? r.feature}</td>
+                    <td style={{ padding: 'var(--space-2) var(--space-3) var(--space-2) 0' }}>
+                      <span className="lj-badge lj-badge-neutral">{modelLabel(r.model)}</span>
+                    </td>
+                    <td style={{ padding: 'var(--space-2) var(--space-3) var(--space-2) 0', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                      {fmtInt(r.inputTokens)}/{fmtInt(r.outputTokens)}
+                    </td>
+                    <td style={{ padding: 'var(--space-2) var(--space-3) var(--space-2) 0', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>${fmtUsd(r.costUsd)}</td>
+                    <td style={{ padding: 'var(--space-2) 0', textAlign: 'center' }}>
+                      {r.cached ? (
+                        <span className="lj-badge lj-badge-info" title="Servido pelo cache (custo zero)">cache</span>
+                      ) : r.success ? (
+                        <span className="lj-badge lj-badge-success">ok</span>
+                      ) : (
+                        <span className="lj-badge lj-badge-error" title={r.error ?? ''}>erro</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
       {data.totalCalls === 0 && (
-        <div className="bg-neutral-50 rounded-lg p-8 text-center text-neutral-500">
-          <p className="text-base">Nenhuma chamada de IA registrada este mês.</p>
-          <p className="text-sm mt-2">Use "Gerar com IA" em qualquer produto para ver o uso aparecer aqui.</p>
+        <div className="lj-empty-state">
+          <p className="lj-empty-state__title">Nenhuma chamada de IA registrada este mês.</p>
+          <p className="lj-empty-state__body">Use &quot;Gerar com IA&quot; em qualquer produto para ver o uso aparecer aqui.</p>
         </div>
       )}
     </main>
