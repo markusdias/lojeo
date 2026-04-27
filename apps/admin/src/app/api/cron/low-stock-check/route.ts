@@ -6,10 +6,10 @@ import {
   productVariants,
   products,
   sellerNotifications,
-  emitSellerNotification,
 } from '@lojeo/db';
 import { TENANT_ID } from '../../../../lib/roles';
 import { authorizeCronRequest } from '../../../../lib/cron-auth';
+import { emitMultichannelNotification } from '../../../../lib/notifications/multichannel';
 
 export const dynamic = 'force-dynamic';
 
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
     }
 
     const available = Math.max(0, r.qty - r.reserved);
-    const result = await emitSellerNotification({
+    const result = await emitMultichannelNotification({
       tenantId: tid,
       type: 'inventory.low_stock',
       severity: available === 0 ? 'critical' : 'warning',
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
       entityId: r.variantId,
       metadata: { available, threshold: r.threshold, productId: r.productId },
     });
-    if (result) emitted++;
+    if (result.inappId) emitted++;
   }
 
   return NextResponse.json({ ok: true, scanned: rows.length, emitted, skipped });

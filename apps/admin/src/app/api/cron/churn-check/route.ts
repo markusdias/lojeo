@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { and, desc, eq, gte, sql } from 'drizzle-orm';
 import { scoreChurnBatch, type ChurnInput } from '@lojeo/engine';
-import { db, orders, sellerNotifications, emitSellerNotification } from '@lojeo/db';
+import { db, orders, sellerNotifications } from '@lojeo/db';
 import { TENANT_ID } from '../../../../lib/roles';
 import { authorizeCronRequest } from '../../../../lib/cron-auth';
+import { emitMultichannelNotification } from '../../../../lib/notifications/multichannel';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest) {
     }
 
     const days = p.daysSinceLastOrder ?? 0;
-    const result = await emitSellerNotification({
+    const result = await emitMultichannelNotification({
       tenantId: tid,
       type: 'churn.alert',
       severity: p.churnRisk === 'critical' ? 'critical' : 'warning',
@@ -80,7 +81,7 @@ export async function POST(req: NextRequest) {
       entityType: 'customer',
       metadata: { email: p.email, daysSinceLastOrder: days, orderCount: p.orderCount, churnRisk: p.churnRisk },
     });
-    if (result) emitted++;
+    if (result.inappId) emitted++;
   }
 
   return NextResponse.json({

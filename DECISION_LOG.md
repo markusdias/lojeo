@@ -5865,3 +5865,29 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - P5.V — dogfood DB-real CI (GitHub Actions service postgres).
 - Migrar low-stock-check + churn-check pra usar emitMultichannelNotification.
 - Endpoint POST /api/nps + cron survey D+7.
+
+---
+
+## 2026-04-27 (continuacao) — Batch 54: Migrar low-stock + churn pra multichannel
+
+**Commits:** (a registrar nesta sessao).
+
+**Refactor:**
+- `apps/admin/src/app/api/cron/low-stock-check/route.ts`: troca `emitSellerNotification` → `emitMultichannelNotification`. Severity warning/critical. Auto dispara Slack/Discord (warning+) + Email (critical) baseado em tenant config.
+- `apps/admin/src/app/api/cron/churn-check/route.ts`: idem. Severity warning/critical. churnRisk='critical' → email lojista admin.
+- `result.inappId` substitui `result` boolean do helper antigo (multichannel retorna `{ inappId, tried }`).
+
+**Trade-offs arquiteturais:**
+- 2 emit hooks adicionais (5/9 ainda usam emitSellerNotification direto): order.created (storefront usa direto, fraud severity dinâmica), order.paid, review.pending, return.requested, restock.demand, fiscal.failed, ticket.assigned. V2 migrar todos pra multichannel quando configuração tenant.config.notifications estável.
+- Não criou tests específicos do refactor — multichannel.ts já tem coverage isolada (slack/discord helpers tests).
+- Comportamento default preservado: severity='warning' → in-app + slack/discord. severity='critical' → in-app + slack/discord + email. Sem config tenant: degrade pra apenas in-app (mocked silently).
+
+**Validações:**
+- pnpm -r typecheck zero erro.
+- 514 passing total. Zero regressao em 148+25+173 tests admin/engine/storefront.
+- pnpm -r lint admin/storefront limpo.
+
+**Próximo ciclo:**
+- Migrar restante hooks emit (order.created/paid, review.pending, return.requested, restock.demand, fiscal.failed, ticket.assigned).
+- P5.V — dogfood DB-real CI (GitHub Actions service postgres).
+- Endpoint POST /api/nps + cron survey D+7.
