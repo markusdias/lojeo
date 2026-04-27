@@ -442,6 +442,9 @@ export async function POST(req: NextRequest) {
       degraded: false,
       iterations,
       toolsUsed: Array.from(new Set(toolsUsed)),
+      tokensIn: totalTokensIn,
+      tokensOut: totalTokensOut,
+      model: SONNET_MODEL,
     });
   } catch (err) {
     logger.error({ err }, 'ai-analyst: falha na chamada Claude API');
@@ -450,6 +453,9 @@ export async function POST(req: NextRequest) {
       degraded: true,
       iterations: 0,
       toolsUsed: [],
+      tokensIn: 0,
+      tokensOut: 0,
+      model: SONNET_MODEL,
     });
   }
 }

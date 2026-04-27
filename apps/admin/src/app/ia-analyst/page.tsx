@@ -7,17 +7,48 @@ interface ChatMessage {
   content: string;
   toolsUsed?: string[];
   degraded?: boolean;
+  tokensIn?: number;
+  tokensOut?: number;
+  model?: string;
 }
 
 const STORAGE_KEY = 'lojeo-ia-analyst-history-v1';
 
-const STARTER_QUESTIONS = [
-  'Receita últimos 30 dias?',
-  'Top 5 produtos?',
-  'Onde estou perdendo conversão?',
-  'Clientes em risco de churn?',
-  'Quantos viram produto na última semana?',
+interface StarterQuestion {
+  label: string;
+  prompt: string;
+  hint: string;
+}
+
+const STARTER_QUESTIONS: StarterQuestion[] = [
+  { label: 'Por que vendas caíram?', prompt: 'Por que minhas vendas caíram nos últimos 7 dias comparado com a semana anterior?', hint: 'diagnóstico' },
+  { label: 'Clientes em risco de churn', prompt: 'Quais clientes estão prestes a churnar e o que eles têm em comum?', hint: 'retenção' },
+  { label: 'Estoque zerado ou crítico', prompt: 'Quais produtos estão com estoque zerado ou crítico que vale repor agora?', hint: 'operação' },
+  { label: 'Receita vs semana anterior', prompt: 'Compare a receita desta semana com a semana anterior e destaque o que mudou.', hint: 'receita' },
+  { label: 'Onde perdo conversão?', prompt: 'Em qual etapa do funil estou perdendo mais clientes e por quê?', hint: 'funil' },
+  { label: 'Top 5 produtos', prompt: 'Quais são meus top 5 produtos por receita nos últimos 30 dias?', hint: 'produtos' },
 ];
+
+// Sonnet 4.5 pricing: $3/Mtok input, $15/Mtok output. Convert to BRL cents (~R$ 5.00 / USD).
+function estimateCostCents(tokensIn: number, tokensOut: number): number {
+  const usd = (tokensIn / 1_000_000) * 3 + (tokensOut / 1_000_000) * 15;
+  const brl = usd * 5.0;
+  return Math.round(brl * 100); // centavos R$
+}
+
+function formatCost(cents: number): string {
+  if (cents < 1) return '< R$ 0,01';
+  if (cents < 100) return `~R$ 0,${String(cents).padStart(2, '0')}`;
+  return `~R$ ${(cents / 100).toFixed(2).replace('.', ',')}`;
+}
+
+function formatModelLabel(model?: string): string {
+  if (!model) return 'Claude';
+  if (model.includes('sonnet')) return 'Sonnet';
+  if (model.includes('haiku')) return 'Haiku';
+  if (model.includes('opus')) return 'Opus';
+  return 'Claude';
+}
 
 const TOOL_LABELS: Record<string, string> = {
   revenue_by_period: 'receita',
@@ -134,6 +165,7 @@ export default function IaAnalystPage() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastPrompt, setLastPrompt] = useState<string>('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -165,6 +197,7 @@ export default function IaAnalystPage() {
     if (!trimmed || loading) return;
 
     setError(null);
+    setLastPrompt(trimmed);
     const next: ChatMessage[] = [...messages, { role: 'user', content: trimmed }];
     setMessages(next);
     setInput('');
@@ -178,7 +211,7 @@ export default function IaAnalystPage() {
           messages: next.map(m => ({ role: m.role, content: m.content })),
         }),
       });
-      const data = (await res.json()) as { response?: string; error?: string; toolsUsed?: string[]; degraded?: boolean };
+      const data = (await res.json()) as { response?: string; error?: string; toolsUsed?: string[]; degraded?: boolean; tokensIn?: number; tokensOut?: number; model?: string };
 
       if (!res.ok) {
         setError(data.error ?? 'Falha ao consultar o IA Analyst');
@@ -192,6 +225,9 @@ export default function IaAnalystPage() {
           content: data.response ?? '(resposta vazia)',
           toolsUsed: data.toolsUsed,
           degraded: data.degraded,
+          tokensIn: data.tokensIn,
+          tokensOut: data.tokensOut,
+          model: data.model,
         },
       ]);
     } catch (err) {
@@ -238,31 +274,45 @@ export default function IaAnalystPage() {
       </header>
 
       {messages.length === 0 && (
-        <section className="lj-card" style={{ padding: 'var(--space-4)', marginBottom: 'var(--space-4)', flexShrink: 0 }}>
-          <p style={{ fontSize: 12, color: 'var(--neutral-500)', textTransform: 'uppercase', letterSpacing: 'var(--track-wide)', marginBottom: 10 }}>
+        <section className="lj-card" style={{ padding: 'var(--space-5)', marginBottom: 'var(--space-4)', flexShrink: 0 }}>
+          <p style={{ fontSize: 12, color: 'var(--neutral-500)', textTransform: 'uppercase', letterSpacing: 'var(--track-wide)', marginBottom: 12, fontWeight: 600 }}>
             Comece com uma destas perguntas
           </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10 }}>
             {STARTER_QUESTIONS.map(q => (
               <button
-                key={q}
-                onClick={() => sendMessage(q)}
+                key={q.label}
+                onClick={() => sendMessage(q.prompt)}
                 disabled={loading}
+                className="ia-suggestion-card"
                 style={{
-                  padding: '6px 12px',
+                  padding: '12px 14px',
                   fontSize: 13,
-                  background: 'var(--neutral-50)',
+                  background: 'var(--bg-elevated)',
                   border: '1px solid var(--border)',
-                  borderRadius: 999,
+                  borderRadius: 'var(--radius-md, 8px)',
                   color: 'var(--fg)',
                   cursor: loading ? 'not-allowed' : 'pointer',
-                  transition: 'background var(--dur-fast) var(--ease-out)',
+                  textAlign: 'left',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 4,
+                  transition: 'all var(--dur-fast) var(--ease-out)',
                 }}
               >
-                {q}
+                <span style={{ fontWeight: 500, lineHeight: 1.35 }}>{q.label}</span>
+                <span style={{ fontSize: 11, color: 'var(--neutral-500)', textTransform: 'uppercase', letterSpacing: 'var(--track-wide)' }}>
+                  {q.hint}
+                </span>
               </button>
             ))}
           </div>
+          <style jsx>{`
+            .ia-suggestion-card:hover:not(:disabled) {
+              border-color: var(--neutral-400);
+              background: var(--neutral-50);
+            }
+          `}</style>
         </section>
       )}
 
@@ -310,23 +360,86 @@ export default function IaAnalystPage() {
                 ))}
               </div>
             )}
+            {m.role === 'assistant' && (m.tokensIn !== undefined || m.tokensOut !== undefined) && (
+              <div style={{
+                marginTop: 10,
+                paddingTop: 8,
+                borderTop: '1px solid var(--border)',
+                fontSize: 10,
+                color: 'var(--neutral-500)',
+                display: 'flex',
+                gap: 8,
+                flexWrap: 'wrap',
+                alignItems: 'center',
+              }}>
+                <span>✦ {formatModelLabel(m.model)}</span>
+                <span style={{ color: 'var(--neutral-300)' }}>·</span>
+                <span>{(m.tokensIn ?? 0) + (m.tokensOut ?? 0)} tokens</span>
+                <span style={{ color: 'var(--neutral-300)' }}>·</span>
+                <span>{formatCost(estimateCostCents(m.tokensIn ?? 0, m.tokensOut ?? 0))}</span>
+              </div>
+            )}
           </div>
         ))}
 
         {loading && (
           <div className="lj-card" style={{ padding: 'var(--space-4)', alignSelf: 'flex-start', maxWidth: '88%' }}>
-            <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 'var(--track-wide)', marginBottom: 6, color: 'var(--neutral-500)', fontWeight: 600 }}>
+            <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 'var(--track-wide)', marginBottom: 8, color: 'var(--neutral-500)', fontWeight: 600 }}>
               IA Analyst
             </div>
-            <div style={{ fontSize: 14, color: 'var(--neutral-500)' }}>
-              Consultando dados…
+            <div style={{ fontSize: 14, color: 'var(--neutral-500)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="ia-typing">
+                <span className="ia-dot" />
+                <span className="ia-dot" />
+                <span className="ia-dot" />
+              </span>
+              <span>Consultando dados</span>
             </div>
+            <style jsx>{`
+              .ia-typing {
+                display: inline-flex;
+                gap: 3px;
+                align-items: center;
+              }
+              .ia-dot {
+                width: 6px;
+                height: 6px;
+                background: var(--neutral-400);
+                border-radius: 999px;
+                animation: ia-bounce 1.2s infinite ease-in-out;
+              }
+              .ia-dot:nth-child(2) { animation-delay: 0.15s; }
+              .ia-dot:nth-child(3) { animation-delay: 0.3s; }
+              @keyframes ia-bounce {
+                0%, 80%, 100% { opacity: 0.3; transform: translateY(0); }
+                40% { opacity: 1; transform: translateY(-3px); }
+              }
+            `}</style>
           </div>
         )}
 
         {error && (
-          <div style={{ padding: 12, background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: 6, color: '#991B1B', fontSize: 13 }}>
-            {error}
+          <div style={{ padding: 12, background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: 6, color: '#991B1B', fontSize: 13, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <span>{error}</span>
+            {lastPrompt && (
+              <button
+                onClick={() => sendMessage(lastPrompt)}
+                disabled={loading}
+                style={{
+                  alignSelf: 'flex-start',
+                  padding: '4px 10px',
+                  fontSize: 12,
+                  background: '#FFFFFF',
+                  border: '1px solid #FCA5A5',
+                  borderRadius: 4,
+                  color: '#991B1B',
+                  cursor: 'pointer',
+                  fontWeight: 500,
+                }}
+              >
+                Tentar novamente
+              </button>
+            )}
           </div>
         )}
       </div>
