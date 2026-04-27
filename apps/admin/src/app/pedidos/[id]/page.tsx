@@ -4,6 +4,7 @@ import { db, orders, orderItems, orderEvents } from '@lojeo/db';
 import { eq, and, asc, not, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { scoreCustomers, SEGMENT_LABELS, type RfmSegment } from '@lojeo/engine';
+import { IssueInvoiceButton } from './issue-invoice-button';
 
 const STATUS_LABEL: Record<string, string> = {
   pending:   'Aguardando pagamento',
@@ -440,6 +441,11 @@ export default async function PedidoDetailPage({ params }: PageProps) {
                   )}
                 </dd>
               </div>
+              <IssueInvoiceButton
+                orderId={order.id}
+                hasInvoice={Boolean(order.invoiceKey)}
+                status={currentStatus}
+              />
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <dt style={{ color: 'var(--fg-secondary)' }}>Transportadora</dt>
                 <dd style={{ margin: 0 }}>{carrierLabel}</dd>
