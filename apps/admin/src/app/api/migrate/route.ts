@@ -558,6 +558,22 @@ export async function POST(req: NextRequest) {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_returns_customer_email ON return_requests(tenant_id, customer_email)`);
     results.push('return_requests: ok');
 
+    // Sprint 12 — product_redirects (SEO 301 para slug renomeado / produto arquivado)
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS product_redirects (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL,
+        old_slug varchar(200) NOT NULL,
+        new_slug varchar(200),
+        product_id uuid,
+        reason varchar(32) NOT NULL,
+        created_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_product_redirects_tenant_old ON product_redirects(tenant_id, old_slug)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_product_redirects_product ON product_redirects(product_id)`);
+    results.push('product_redirects: ok');
+
     return NextResponse.json({ ok: true, results });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

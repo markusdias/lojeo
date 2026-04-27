@@ -5,6 +5,7 @@ import { useCart } from '../../components/cart/cart-provider';
 import { Icon } from '../../components/ui/icon';
 import { useTracker } from '../../components/tracker-provider';
 import { FrequentlyBoughtTogetherCart } from '../../components/products/fbt-cart';
+import { YouMayAlsoLikeCart } from '../../components/products/you-may-also-like-cart';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -397,12 +398,18 @@ export default function CartPage() {
         </div>
       </div>
 
-      {/* FBT carrinho — Sprint 11 v2 (paridade ref Cart.jsx YouMayAlsoLike) */}
+      {/* FBT carrinho — pares de pedidos pagos */}
       <FrequentlyBoughtTogetherCart
         cartProductIds={items.map(i => i.productId)}
-        eyebrow="Slot · Sprint 11"
-        title="Você também pode gostar"
+        eyebrow="Frequentemente comprados juntos"
+        title="Combina com seu carrinho"
         marginTop={120}
+      />
+
+      {/* YouMayAlsoLike — afinidade por coleção/categoria */}
+      <YouMayAlsoLikeCart
+        cartProductIds={items.map(i => i.productId)}
+        marginTop={64}
       />
     </div>
   );

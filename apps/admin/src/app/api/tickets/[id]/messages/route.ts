@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db, ticketMessages, supportTickets } from '@lojeo/db';
 import { eq, and, asc } from 'drizzle-orm';
 import { auth } from '../../../../../auth';
+import { recordAuditLog } from '../../../../../lib/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -69,6 +70,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         eq(supportTickets.status, 'open'),
       ));
   }
+
+  // Audit log — distingue resposta pública vs nota interna
+  await recordAuditLog({
+    session,
+    action: body.isInternal ? 'ticket.note_added' : 'ticket.reply_sent',
+    entityType: 'ticket',
+    entityId: id,
+    after: { messageId: msg?.id, isInternal: body.isInternal ?? false, length: body.body.trim().length },
+  });
 
   return NextResponse.json({ message: msg }, { status: 201 });
 }

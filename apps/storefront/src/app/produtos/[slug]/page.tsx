@@ -1,6 +1,6 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import type { Metadata } from 'next';
-import { db, products, productVariants, productImages, inventoryStock, behaviorEvents, productReviews } from '@lojeo/db';
+import { db, products, productVariants, productImages, inventoryStock, behaviorEvents, productReviews, productRedirects } from '@lojeo/db';
 import { eq, and, gte, sql, inArray, countDistinct, avg, count } from 'drizzle-orm';
 import { getActiveTemplate } from '../../../template';
 import { PDPClient } from './pdp-client';
@@ -49,7 +49,18 @@ export default async function PDPPage({ params }: PDPProps) {
   const product = await db.query.products.findFirst({
     where: and(eq(products.tenantId, tid), eq(products.slug, slug), eq(products.status, 'active')),
   });
-  if (!product) notFound();
+  if (!product) {
+    const redirectRow = await db.query.productRedirects.findFirst({
+      where: and(eq(productRedirects.tenantId, tid), eq(productRedirects.oldSlug, slug)),
+    });
+    if (redirectRow?.newSlug) {
+      permanentRedirect(`/produtos/${redirectRow.newSlug}`);
+    }
+    if (redirectRow && !redirectRow.newSlug) {
+      redirect('/produtos');
+    }
+    notFound();
+  }
 
   const [variants, images] = await Promise.all([
     db.select().from(productVariants)

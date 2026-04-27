@@ -123,6 +123,26 @@ export const productCollections = pgTable(
   (t) => [index('idx_pc_collection').on(t.collectionId), index('idx_pc_product').on(t.productId)],
 );
 
+export const productRedirects = pgTable(
+  'product_redirects',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
+    oldSlug: varchar('old_slug', { length: 200 }).notNull(),
+    newSlug: varchar('new_slug', { length: 200 }),
+    productId: uuid('product_id').references(() => products.id, { onDelete: 'set null' }),
+    reason: varchar('reason', { length: 32 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex('idx_product_redirects_tenant_old').on(t.tenantId, t.oldSlug),
+    index('idx_product_redirects_product').on(t.productId),
+  ],
+);
+
 export type Product = typeof products.$inferSelect;
 export type NewProduct = typeof products.$inferInsert;
 export type ProductVariant = typeof productVariants.$inferSelect;
+export type ProductRedirect = typeof productRedirects.$inferSelect;

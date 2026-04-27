@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
-import { db, products } from '@lojeo/db';
+import { db, products, productRedirects } from '@lojeo/db';
 import { slugify } from '@lojeo/engine';
 
 const UpdateProductSchema = z.object({
@@ -56,6 +56,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     data.publishedAt = new Date();
   }
 
+  const previous = await db.query.products.findFirst({
+    where: and(eq(products.id, id), eq(products.tenantId, tid)),
+    columns: { slug: true, status: true },
+  });
+
   const updated = await db
     .update(products)
     .set(data)
@@ -64,7 +69,41 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   if (updated.length === 0) {
     return NextResponse.json({ error: 'not_found' }, { status: 404 });
   }
-  return NextResponse.json({ product: updated[0] });
+
+  const next = updated[0]!;
+  if (previous) {
+    const slugChanged = data.slug && previous.slug !== next.slug;
+    const archived = data.status === 'archived' && previous.status !== 'archived';
+    if (slugChanged) {
+      await db
+        .insert(productRedirects)
+        .values({
+          tenantId: tid,
+          oldSlug: previous.slug,
+          newSlug: next.slug,
+          productId: next.id,
+          reason: 'slug_changed',
+        })
+        .onConflictDoUpdate({
+          target: [productRedirects.tenantId, productRedirects.oldSlug],
+          set: { newSlug: next.slug, productId: next.id, reason: 'slug_changed' },
+        });
+    }
+    if (archived) {
+      await db
+        .insert(productRedirects)
+        .values({
+          tenantId: tid,
+          oldSlug: previous.slug,
+          newSlug: null,
+          productId: next.id,
+          reason: 'archived',
+        })
+        .onConflictDoNothing({ target: [productRedirects.tenantId, productRedirects.oldSlug] });
+    }
+  }
+
+  return NextResponse.json({ product: next });
 }
 
 export const PATCH = PUT;
