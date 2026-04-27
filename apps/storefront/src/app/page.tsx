@@ -5,6 +5,7 @@ import { getActiveTemplate } from '../template';
 import { ProductCard } from '../components/ui/product-card';
 import { PersonalizedHero } from '../components/marketing/personalized-hero';
 import { RecommendedForYouSection } from '../components/products/recommended-for-you';
+import { ContinueWhereLeftOffSection } from '../components/products/continue-where-left-off';
 import { AnonAffinitySection } from '../components/products/anon-affinity-section';
 import { UgcGallery } from '../components/ugc/ugc-gallery';
 
@@ -140,6 +141,9 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
+
+      {/* ── CONTINUE DE ONDE PAROU (cliente logado, último product_view) ── */}
+      <ContinueWhereLeftOffSection currency={tpl.currency} />
 
       {/* ── PARA VOCÊ (cliente logado recorrente, server) ── */}
       <RecommendedForYouSection currency={tpl.currency} />

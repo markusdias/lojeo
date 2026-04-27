@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { db, orders, orderItems, productVariants, products, productCollections } from '@lojeo/db';
+import { db, orders, orderItems, productVariants, products, productCollections, recommendationOverrides } from '@lojeo/db';
 import { eq, and, inArray, ne, desc, sql } from 'drizzle-orm';
 import { auth } from '../../auth';
 
@@ -77,16 +77,45 @@ export async function RecommendedForYou(): Promise<Suggestion[] | null> {
       .from(productCollections)
       .where(inArray(productCollections.collectionId, collectionIds));
 
+    // Recommendation overrides do lojista (Sprint 11):
+    // pin → força aparição no topo; exclude → bloqueia.
+    // Aplicamos overrides cujo source product (productId) esteja entre os
+    // produtos comprados pelo cliente, para alinhar com o "estilo" inferido.
+    const overrideRows = await db
+      .select({
+        recommendedProductId: recommendationOverrides.recommendedProductId,
+        overrideType: recommendationOverrides.overrideType,
+      })
+      .from(recommendationOverrides)
+      .where(and(
+        eq(recommendationOverrides.tenantId, TENANT_ID),
+        inArray(recommendationOverrides.productId, Array.from(purchasedIds)),
+      ));
+
+    const pinIds = new Set(
+      overrideRows.filter(o => o.overrideType === 'pin').map(o => o.recommendedProductId)
+    );
+    const excludeIds = new Set(
+      overrideRows.filter(o => o.overrideType === 'exclude').map(o => o.recommendedProductId)
+    );
+
     const candidateIds = Array.from(new Set(
       candidatesRows
         .map(r => r.productId)
-        .filter(id => !purchasedIds.has(id)),
+        .filter(id => !purchasedIds.has(id) && !excludeIds.has(id)),
     ));
+
+    // Inclui pins que não estavam nos candidatos (vêm de overrides explícitos)
+    for (const pid of pinIds) {
+      if (!purchasedIds.has(pid) && !excludeIds.has(pid) && !candidateIds.includes(pid)) {
+        candidateIds.push(pid);
+      }
+    }
 
     if (candidateIds.length === 0) return null;
 
-    // Resolve product detail, ordena por created_at DESC, limita 4
-    const suggestions = await db
+    // Resolve product detail; ordena pins primeiro, depois novidades. Limita 4.
+    const rows = await db
       .select({
         id: products.id,
         name: products.name,
@@ -101,7 +130,11 @@ export async function RecommendedForYou(): Promise<Suggestion[] | null> {
         ne(products.id, ''),
       ))
       .orderBy(desc(products.createdAt))
-      .limit(4);
+      .limit(8);
+
+    const pinned = rows.filter(r => pinIds.has(r.id));
+    const rest = rows.filter(r => !pinIds.has(r.id));
+    const suggestions = [...pinned, ...rest].slice(0, 4);
 
     return suggestions.length > 0 ? suggestions : null;
   } catch {

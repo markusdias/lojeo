@@ -26,25 +26,29 @@ interface SegmentCopy {
 /**
  * Cópia personalizada do hero por segmento RFM.
  * Mantém tom editorial do template jewelry-v1, varia mensagem por contexto.
+ *
+ * Headline pode conter `{firstName}` — substituído pelo primeiro nome do
+ * cliente logado quando disponível, ou removido (com pontuação ajustada)
+ * em caso contrário.
  */
 const SEGMENT_COPY: Record<string, SegmentCopy> = {
   champions: {
-    headline: 'De volta ao ateliê.',
+    headline: 'De volta ao ateliê{firstNameComma}.',
     subheadline: 'Suas peças mais recentes inspiraram novas criações. Veja primeiro o que ainda nem entrou na coleção pública.',
     cta: { label: 'Ver novidades exclusivas', href: '/produtos?ordenar=novidades' },
   },
   loyal: {
-    headline: 'Bem-vinda de volta.',
+    headline: 'Bem-vinda de volta{firstNameComma}.',
     subheadline: 'Continue a coleção com peças que combinam com o que você já tem. Ouro 18k e prata 925, finalizadas à mão.',
     cta: { label: 'Ver para você', href: '#para-voce' },
   },
   at_risk: {
-    headline: 'Sentimos sua falta.',
+    headline: 'Sentimos sua falta{firstNameComma}.',
     subheadline: 'Selecionamos algumas peças novas no seu estilo. Frete grátis acima de R$ 500 e devolução em 30 dias.',
     cta: { label: 'Ver coleção atual', href: '/produtos' },
   },
   lost: {
-    headline: 'Voltou.',
+    headline: 'Voltou{firstNameComma}.',
     subheadline: 'Joalheria contemporânea continua sendo nosso foco. Peças finalizadas à mão no nosso ateliê em São Paulo.',
     cta: { label: 'Reconhecer o ateliê', href: '/sobre' },
   },
@@ -68,15 +72,30 @@ const SEGMENT_COPY: Record<string, SegmentCopy> = {
  * Modo degradado: try/catch em cada step → defaults gerais quando DB falha
  * ou cliente é anônimo/sem pedidos.
  */
+/**
+ * Aplica firstName na headline templated. Quando `firstName` existe,
+ * substitui `{firstNameComma}` por `, {firstName}`. Quando ausente,
+ * remove o placeholder mantendo pontuação coerente.
+ */
+function interpolateName(headline: string, firstName?: string): string {
+  if (firstName && firstName.trim().length > 0) {
+    return headline.replace('{firstNameComma}', `, ${firstName.trim()}`);
+  }
+  return headline.replace('{firstNameComma}', '');
+}
+
 export async function PersonalizedHero({
   defaultHeadline,
   defaultSubheadline,
   defaultCta,
 }: PersonalizedHeroProps) {
   let email: string | undefined;
+  let firstName: string | undefined;
   try {
     const session = await auth();
     email = session?.user?.email?.toLowerCase();
+    const fullName = session?.user?.name?.trim();
+    if (fullName) firstName = fullName.split(/\s+/)[0];
   } catch {
     // sem session — usa defaults
   }
@@ -143,7 +162,7 @@ export async function PersonalizedHero({
 
     return (
       <HeroExperiment
-        defaultHeadline={copy.headline}
+        defaultHeadline={interpolateName(copy.headline, firstName)}
         defaultSubheadline={copy.subheadline}
         defaultCta={copy.cta}
       />
