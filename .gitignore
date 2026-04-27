@@ -60,3 +60,4 @@ secrets/
 /*.jpg
 /*.jpeg
 .playwright-mcp/
+.claude/worktrees/
