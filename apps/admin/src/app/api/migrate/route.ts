@@ -526,6 +526,35 @@ export async function POST(req: NextRequest) {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_reviews_user ON product_reviews(user_id)`);
     results.push('product_reviews: ok');
 
+    // Migration 0025 — return_requests (Sprint 6 trocas/devoluções)
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS return_requests (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL,
+        order_id uuid NOT NULL,
+        order_item_id uuid,
+        user_id uuid,
+        customer_email varchar(300),
+        type varchar(20) NOT NULL,
+        reason varchar(60) NOT NULL,
+        reason_details text,
+        status varchar(20) DEFAULT 'requested' NOT NULL,
+        resolution_notes text,
+        refund_cents integer,
+        approved_at timestamptz,
+        rejected_at timestamptz,
+        received_at timestamptz,
+        finalized_at timestamptz,
+        created_at timestamptz DEFAULT now() NOT NULL,
+        updated_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_returns_tenant_status ON return_requests(tenant_id, status)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_returns_tenant_order ON return_requests(tenant_id, order_id)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_returns_user ON return_requests(user_id)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_returns_customer_email ON return_requests(tenant_id, customer_email)`);
+    results.push('return_requests: ok');
+
     return NextResponse.json({ ok: true, results });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
