@@ -13,10 +13,19 @@ interface Ticket {
   priority: string;
   source: string;
   orderId: string | null;
+  assignedToUserId: string | null;
   slaDeadlineAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
+
+interface AssignableUser {
+  userId: string;
+  email: string;
+  role: string;
+}
+
+const ASSIGNABLE_ROLES = ['owner', 'admin', 'operador', 'atendimento'];
 
 const STATUS_LABEL: Record<string, string> = {
   open: 'Aberto',
@@ -89,16 +98,47 @@ const FILTERS: { id: string; label: string; match: (t: Ticket) => boolean }[] = 
 
 export default function TicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [users, setUsers] = useState<AssignableUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('todos');
+  const [assigningId, setAssigningId] = useState<string | null>(null);
 
-  useEffect(() => {
+  async function reload() {
     setLoading(true);
-    fetch('/api/tickets')
-      .then(r => r.json())
-      .then((d: { tickets: Ticket[] }) => { setTickets(d.tickets ?? []); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, []);
+    try {
+      const [r1, r2] = await Promise.all([
+        fetch('/api/tickets'),
+        fetch('/api/users').then((r) => r.ok ? r.json() : { users: [] }).catch(() => ({ users: [] })),
+      ]);
+      const d1 = await r1.json();
+      setTickets(d1.tickets ?? []);
+      const fetchedUsers: AssignableUser[] = (r2.users ?? [])
+        .filter((u: AssignableUser) => ASSIGNABLE_ROLES.includes(u.role));
+      setUsers(fetchedUsers);
+    } catch { /* keep state */ }
+    finally { setLoading(false); }
+  }
+
+  useEffect(() => { void reload(); }, []);
+
+  const userById = useMemo(() => {
+    const m = new Map<string, AssignableUser>();
+    for (const u of users) m.set(u.userId, u);
+    return m;
+  }, [users]);
+
+  async function handleAssign(ticketId: string, userId: string | null) {
+    setAssigningId(null);
+    try {
+      const r = await fetch(`/api/tickets/${ticketId}/assign`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+      if (!r.ok) return;
+      setTickets((prev) => prev.map((t) => t.id === ticketId ? { ...t, assignedToUserId: userId } : t));
+    } catch { /* swallow */ }
+  }
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { todos: tickets.length };
@@ -125,6 +165,9 @@ export default function TicketsPage() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
+          <Link href="/tickets/rules" className="lj-btn-secondary" style={{ textDecoration: 'none' }}>
+            Regras
+          </Link>
           <Link href="/tickets/templates" className="lj-btn-secondary" style={{ textDecoration: 'none' }}>
             Templates
           </Link>
@@ -270,6 +313,69 @@ export default function TicketsPage() {
 
                 {/* Meta */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
+                  {/* Atribuído a */}
+                  <div
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setAssigningId(assigningId === t.id ? null : t.id); }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={t.assignedToUserId ? `Atribuído a ${userById.get(t.assignedToUserId)?.email ?? t.assignedToUserId}` : 'Não atribuído'}
+                    style={{
+                      position: 'relative',
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      padding: '3px 8px', borderRadius: 999,
+                      border: `1px dashed ${t.assignedToUserId ? 'var(--accent)' : 'var(--border)'}`,
+                      background: t.assignedToUserId ? 'var(--accent-soft)' : 'transparent',
+                      color: t.assignedToUserId ? 'var(--accent)' : 'var(--fg-muted)',
+                      fontSize: 11, cursor: 'pointer', minWidth: 110,
+                    }}
+                  >
+                    {t.assignedToUserId
+                      ? (userById.get(t.assignedToUserId)?.email?.split('@')[0] ?? 'Atribuído')
+                      : 'Atribuir'}
+                    {assigningId === t.id && (
+                      <div
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                        style={{
+                          position: 'absolute', top: '100%', right: 0, marginTop: 4,
+                          background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                          borderRadius: 'var(--radius-sm)', padding: 4,
+                          boxShadow: 'var(--shadow-sm)', zIndex: 10, minWidth: 200,
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => handleAssign(t.id, null)}
+                          style={{
+                            display: 'block', width: '100%', textAlign: 'left',
+                            padding: '6px 10px', fontSize: 12, color: 'var(--fg-secondary)',
+                            background: 'transparent', border: 'none', cursor: 'pointer', borderRadius: 4,
+                          }}
+                        >
+                          — Sem atribuição —
+                        </button>
+                        {users.map((u) => (
+                          <button
+                            key={u.userId}
+                            type="button"
+                            onClick={() => handleAssign(t.id, u.userId)}
+                            style={{
+                              display: 'block', width: '100%', textAlign: 'left',
+                              padding: '6px 10px', fontSize: 12, color: 'var(--fg)',
+                              background: t.assignedToUserId === u.userId ? 'var(--accent-soft)' : 'transparent',
+                              border: 'none', cursor: 'pointer', borderRadius: 4,
+                            }}
+                          >
+                            {u.email}
+                          </button>
+                        ))}
+                        {users.length === 0 && (
+                          <div style={{ padding: '6px 10px', fontSize: 11, color: 'var(--fg-muted)' }}>
+                            Sem usuários atribuíveis
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--fg-secondary)', minWidth: 140 }}>
                     <div style={{
                       width: 24, height: 24, borderRadius: 999,

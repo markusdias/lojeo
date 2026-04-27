@@ -15,3 +15,4 @@ export * from './experiments';
 export * from './recommendations';
 export * from './coupons';
 export * from './returns';
+export * from './competitors';

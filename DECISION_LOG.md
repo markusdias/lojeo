@@ -3368,3 +3368,40 @@ UI checkout pagamento:
 **164 commits totais sessão**, **120 testes globais verdes**, **25 migrations prod**, **zero regressão**.
 
 **Próximo ciclo:** Sprint 9 Trigger.dev mocks + UX validation /ia-uso + privacy live.
+
+---
+
+## 2026-04-27 — Audits visuais + paridade /colecoes + Sprint 11/12/13 batch
+
+**Commits:** 8ea8f85
+
+**Audits visuais (subagents Explore paralelos):**
+- `docs/audits/2026-04-27-storefront-parity.md` — score 6.8/10, 10 patches priorizados
+- `docs/audits/2026-04-27-admin-parity.md` — score 5.5/10, 10 patches priorizados
+- Verificações pós-audit: muitos "gaps" (ex: UrgencyBadge, customer detail, ticket detail) já estavam implementados; Audit superestimou. Apenas 1 fix real (audit log POST /api/tickets/[id]/messages)
+
+**Paridade /colecoes (subagent general-purpose):**
+- `apps/storefront/src/app/colecoes/page.tsx` reescrita aderente PLP.jsx (sidebar filtros, sort, grid, pagination, breadcrumb)
+- `apps/storefront/src/app/colecoes/_components/colecoes-grid.tsx` novo (client) com filtros etiqueta/tamanho, sort dropdown, pagination, CollectionCard estilo PLP.jsx
+- `apps/storefront/src/app/colecoes/[slug]/page.tsx` redirect server pra `/produtos?colecao={slug}`
+- Tokens design system, zero hex hardcoded (exceto placeholder cremoso)
+
+**Sprint 11 — YouMayAlsoLike no carrinho:**
+- `apps/storefront/src/components/products/you-may-also-like-cart.tsx` novo: heurística afinidade via `/api/products/related` (coleção/categoria), distinto do FBT (pares orders), tracking `recommendation_impression`/`click` source `ymal_cart`, dedup vs cart items + IDs FBT exibidos
+- /carrinho integra YouMayAlsoLikeCart abaixo do FBT
+
+**Sprint 12 — Redirects 301 produto arquivado/URL mudada:**
+- Schema `productRedirects` (tenantId, oldSlug unique, newSlug nullable, productId, reason) — `packages/db/src/schema/products.ts`
+- Migration via `apps/admin/src/app/api/migrate/route.ts` (CREATE TABLE IF NOT EXISTS + indexes)
+- Hook em `PUT /api/products/[id]` admin: grava redirect quando slug muda (slug_changed) ou status=archived (archived) com onConflict idempotente
+- PDP `/produtos/[slug]/page.tsx` consulta `productRedirects` no notFound → `permanentRedirect()` 308 quando há newSlug; arquivado redireciona /produtos
+
+**Sprint 13 — Rate limit + Sanitização Zod expandida:**
+- `apps/storefront/package.json`: zod ^3.24.1 adicionado às deps
+- `/api/track`: validação Zod TrackPayloadSchema (max 100 events/req, fields tamanhos limitados) + rate-limit 240 evts/min/anonId
+- `/api/restock-notify`: Zod RestockSchema (uuid, email) + rate-limit 10/15min/email+ip
+- `/api/reviews POST`: Zod ReviewSchema + rate-limit 5/h/email+ip (anti-fake-reviews)
+
+**Validações:** Tests engine 44/44, db 7/7. Typecheck admin/storefront/db zero erros. Lint admin/storefront zero warnings.
+
+**Próximo ciclo (em background):** Competitive monitoring scraping mock + Atribuição automática/manual de tickets (subagent paralelo a90efcceadc98a7a8).

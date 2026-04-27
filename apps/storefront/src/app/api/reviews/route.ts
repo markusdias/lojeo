@@ -1,8 +1,19 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { db, productReviews } from '@lojeo/db';
 import { eq, and, desc } from 'drizzle-orm';
+import { checkRateLimit, getClientIp } from '../../../lib/rate-limit';
 
 const tenantId = () => process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
+
+const ReviewSchema = z.object({
+  productId: z.string().uuid(),
+  rating: z.number().int().min(1).max(5),
+  title: z.string().max(200).optional(),
+  body: z.string().max(2000).optional(),
+  name: z.string().min(1).max(100),
+  email: z.string().email().max(300).optional(),
+});
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -32,30 +43,40 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  let raw: unknown;
   try {
-    const body = await req.json() as {
-      productId?: string;
-      rating?: number;
-      title?: string;
-      body?: string;
-      name?: string;
-      email?: string;
-    };
+    raw = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'invalid_json' }, { status: 400 });
+  }
+  const parsed = ReviewSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'invalid_payload', issues: parsed.error.issues }, { status: 400 });
+  }
 
-    if (!body.productId) return NextResponse.json({ error: 'productId obrigatório' }, { status: 400 });
-    if (!body.rating || body.rating < 1 || body.rating > 5) {
-      return NextResponse.json({ error: 'rating deve ser entre 1 e 5' }, { status: 400 });
-    }
-    if (!body.name?.trim()) return NextResponse.json({ error: 'Nome obrigatório' }, { status: 400 });
+  const ip = getClientIp(req);
+  const emailKey = parsed.data.email?.toLowerCase() ?? ip;
+  const rl = checkRateLimit({
+    key: `review:${emailKey}:${ip}`,
+    max: 5,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: 'rate_limited' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } },
+    );
+  }
 
+  try {
     await db.insert(productReviews).values({
       tenantId: tenantId(),
-      productId: body.productId,
-      rating: body.rating,
-      title: body.title?.slice(0, 200) ?? null,
-      body: body.body?.slice(0, 2000) ?? null,
-      anonymousName: body.name.trim().slice(0, 100),
-      anonymousEmail: body.email?.slice(0, 300) ?? null,
+      productId: parsed.data.productId,
+      rating: parsed.data.rating,
+      title: parsed.data.title ?? null,
+      body: parsed.data.body ?? null,
+      anonymousName: parsed.data.name.trim(),
+      anonymousEmail: parsed.data.email ?? null,
       status: 'pending',
       verifiedPurchase: false,
     });

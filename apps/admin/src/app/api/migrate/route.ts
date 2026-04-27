@@ -574,6 +574,59 @@ export async function POST(req: NextRequest) {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_product_redirects_product ON product_redirects(product_id)`);
     results.push('product_redirects: ok');
 
+    // Sprint 8 — competitive monitoring (cadastro URL concorrente + histórico de preço)
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS competitor_products (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL,
+        name varchar(200) NOT NULL,
+        product_url text NOT NULL,
+        our_product_id uuid,
+        last_price_cents integer,
+        last_in_stock boolean,
+        last_checked_at timestamptz,
+        last_error text,
+        created_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_competitors_tenant ON competitor_products(tenant_id)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_competitors_tenant_our_product ON competitor_products(tenant_id, our_product_id)`);
+    results.push('competitor_products: ok');
+
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS competitor_price_history (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL,
+        competitor_product_id uuid NOT NULL,
+        price_cents integer NOT NULL,
+        in_stock boolean NOT NULL,
+        captured_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_competitor_history_competitor_captured ON competitor_price_history(competitor_product_id, captured_at)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_competitor_history_tenant ON competitor_price_history(tenant_id)`);
+    results.push('competitor_price_history: ok');
+
+    // Sprint 9 — ticket_assignment_rules (atribuição automática keyword + round_robin)
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS ticket_assignment_rules (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL,
+        name varchar(200) NOT NULL,
+        rule_type varchar(30) NOT NULL,
+        keyword varchar(200),
+        target_user_id uuid,
+        priority integer DEFAULT 100 NOT NULL,
+        active boolean DEFAULT true NOT NULL,
+        metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+        created_at timestamptz DEFAULT now() NOT NULL,
+        updated_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_ticket_rules_tenant_active ON ticket_assignment_rules(tenant_id, active)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_ticket_rules_priority ON ticket_assignment_rules(tenant_id, priority)`);
+    results.push('ticket_assignment_rules: ok');
+
     return NextResponse.json({ ok: true, results });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

@@ -10,3 +10,4 @@ export * from './warranty';
 export * from './market-basket';
 export * from './file-signature';
 export * from './customer-ltv';
+export * from './competitive-pricing';

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db, supportTickets } from '@lojeo/db';
 import { eq, and, desc } from 'drizzle-orm';
 import { auth } from '../../../auth';
+import { applyAutoAssignment } from '../../../lib/ticket-assignment';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,5 +66,13 @@ export async function POST(req: Request) {
     slaDeadlineAt,
   }).returning();
 
-  return NextResponse.json({ ticket }, { status: 201 });
+  // Sprint 9 — auto-assignment via regras configuráveis. Falha aqui não derruba criação.
+  let assignedToUserId: string | null = null;
+  if (ticket?.id) {
+    assignedToUserId = await applyAutoAssignment(ticket.id, ticket.subject, '');
+  }
+
+  return NextResponse.json({
+    ticket: assignedToUserId ? { ...ticket, assignedToUserId } : ticket,
+  }, { status: 201 });
 }

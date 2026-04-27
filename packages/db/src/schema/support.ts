@@ -6,6 +6,7 @@ import {
   integer,
   boolean,
   timestamp,
+  jsonb,
   index,
 } from 'drizzle-orm/pg-core';
 import { tenants } from './tenants';
@@ -86,6 +87,40 @@ export const ticketTemplates = pgTable(
   ],
 );
 
+// ── Ticket assignment rules (Sprint 9) ────────────────────────────────────────
+//
+// Regras configuráveis para auto-atribuição de tickets criados.
+// Aplicadas em ordem crescente de `priority` na criação (POST /api/support/tickets);
+// primeira regra que casar define o assignedToUserId.
+//
+// ruleType:
+//   'keyword'     → keyword (case-insensitive) presente em subject/body → targetUserId
+//   'round_robin' → distribui ciclicamente entre users (metadata.userIds[]).
+//                   targetUserId guarda o "último" para próxima rodada.
+
+export const ticketAssignmentRules = pgTable(
+  'ticket_assignment_rules',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+    name: varchar('name', { length: 200 }).notNull(),
+    ruleType: varchar('rule_type', { length: 30 }).notNull(), // 'keyword' | 'round_robin'
+    keyword: varchar('keyword', { length: 200 }),
+    targetUserId: uuid('target_user_id'),
+    priority: integer('priority').default(100).notNull(),
+    active: boolean('active').default(true).notNull(),
+    metadata: jsonb('metadata').default({}).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index('idx_ticket_rules_tenant_active').on(t.tenantId, t.active),
+    index('idx_ticket_rules_priority').on(t.tenantId, t.priority),
+  ],
+);
+
 export type SupportTicket = typeof supportTickets.$inferSelect;
 export type TicketMessage = typeof ticketMessages.$inferSelect;
 export type TicketTemplate = typeof ticketTemplates.$inferSelect;
+export type TicketAssignmentRule = typeof ticketAssignmentRules.$inferSelect;
+export type NewTicketAssignmentRule = typeof ticketAssignmentRules.$inferInsert;
