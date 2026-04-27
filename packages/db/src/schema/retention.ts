@@ -5,6 +5,7 @@ import {
   integer,
   text,
   timestamp,
+  jsonb,
   index,
 } from 'drizzle-orm/pg-core';
 import { tenants } from './tenants';
@@ -92,7 +93,50 @@ export const recentlyViewedItems = pgTable(
   ],
 );
 
+// ── Abandoned carts (recuperação de receita) ─────────────────────────────────
+// Cron `/api/cron/abandoned-cart-check` agrega behaviorEvents `cart_add` sem
+// `checkout_complete` subsequente em > 1h, persiste snapshot do carrinho aqui
+// e dispara email RecoverCart + WhatsApp stub. Dedup 24h via `lastNotifiedAt`.
+
+export const abandonedCarts = pgTable(
+  'abandoned_carts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+    sessionId: uuid('session_id'),
+    anonymousId: varchar('anonymous_id', { length: 64 }).notNull(),
+    userId: uuid('user_id'),
+    contactEmail: varchar('contact_email', { length: 300 }),
+    contactPhone: varchar('contact_phone', { length: 30 }),
+    items: jsonb('items').default([]).notNull(),
+    subtotalCents: integer('subtotal_cents').default(0).notNull(),
+    status: varchar('status', { length: 20 }).default('active').notNull(),
+    recoveredOrderId: uuid('recovered_order_id'),
+    lastEventAt: timestamp('last_event_at', { withTimezone: true }).notNull(),
+    lastNotifiedAt: timestamp('last_notified_at', { withTimezone: true }),
+    notifyChannelsTried: jsonb('notify_channels_tried').default([]).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index('idx_abandoned_carts_tenant_status').on(t.tenantId, t.status),
+    index('idx_abandoned_carts_tenant_event').on(t.tenantId, t.lastEventAt),
+    index('idx_abandoned_carts_anon').on(t.anonymousId),
+    index('idx_abandoned_carts_user').on(t.userId),
+  ],
+);
+
 export type WishlistItem = typeof wishlistItems.$inferSelect;
 export type RestockNotification = typeof restockNotifications.$inferSelect;
 export type GiftCard = typeof giftCards.$inferSelect;
 export type RecentlyViewedItem = typeof recentlyViewedItems.$inferSelect;
+export type AbandonedCart = typeof abandonedCarts.$inferSelect;
+export type NewAbandonedCart = typeof abandonedCarts.$inferInsert;
+export interface AbandonedCartItem {
+  productId: string;
+  variantId?: string | null;
+  name: string;
+  qty: number;
+  priceCents: number;
+  imageUrl?: string | null;
+}

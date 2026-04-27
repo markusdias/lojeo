@@ -4957,3 +4957,60 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - Plug formatMoney em PLP/PDP/cart substituindo formatBRL hardcoded.
 - tokens.css strategy (data-template selector OR conditional import build-time).
 - DHL real fetch implementation (V2 priority).
+
+---
+
+## 2026-04-27 (continuacao) — Batch 35: Abandoned cart recovery (P1.A)
+
+**Commits:** (a registrar nesta sessao).
+
+**Schema `abandoned_carts` em `packages/db/src/schema/retention.ts`:**
+- Campos: tenantId, sessionId, anonymousId, userId, contactEmail, contactPhone, items jsonb (snapshot {productId, name, qty, priceCents, imageUrl}), subtotalCents, status (active|recovered|expired|dismissed), recoveredOrderId, lastEventAt, lastNotifiedAt, notifyChannelsTried jsonb, createdAt, updatedAt.
+- Indexes (tenantId, status), (tenantId, lastEventAt), anonymousId, userId.
+- Migration idempotente em `apps/admin/src/app/api/migrate/route.ts` (Fase 1.2 marker).
+
+**Cron `/api/cron/abandoned-cart-check`:**
+- Auth via `authorizeCronRequest` (cookie sessao OU `x-cron-secret`).
+- Lookback 25h, abandono apos 60min sem `checkout_complete`.
+- Query 1: behaviorEvents recentes (cart_add + checkout_complete) por tenant.
+- Query 2: products + product_images IN entityIds (resolve nome/preco/imagem).
+- Helper puro `aggregateAbandonedCarts(events, productsMap)` consolida items por sessao com qty somada.
+- Query 3: users IN userIds (resolve email + name).
+- Upsert manual (SELECT por session_id → UPDATE OR INSERT) — Drizzle nao tem ON CONFLICT cross-driver bonito.
+- `shouldNotify(email, lastNotifiedAt, now, 24h)` decide envio. Dedup 24h.
+- sendRecoverCartEmail + sendWhatsapp (degraded sem keys). notifyChannelsTried append-jsonb.
+
+**Email template `RecoverCart` em `packages/email/src/templates/recover-cart.tsx`:**
+- React Email seguindo `_shell.tsx` (jewelry-v1 mood) + atoms `Line`, `btnPrimary`.
+- Bilingual baseado em currency: BRL→pt-BR copy, USD/EUR→en-US copy.
+- Items list + subtotal + CTA "Continuar minha compra"/"Continue checkout".
+- Helper `sendRecoverCartEmail` em `apps/admin/src/lib/email/transactional.ts` (degraded sem RESEND_API_KEY).
+
+**WhatsApp helper `apps/admin/src/lib/whatsapp.ts`:**
+- `sendWhatsapp({ to, body })` via FaqZap API. Sem `FAQZAP_API_KEY`+`FAQZAP_INSTANCE_ID`: retorna `{ ok: false, mocked: true }` (modo degradado).
+- Constant-time compare evitado — body vai POST direto.
+
+**Helpers puros testaveis em `apps/admin/src/lib/abandoned-cart.ts`:**
+- `detectAbandonedSessions(events)` — Map<sessionId, lastCartAddAt>.
+- `aggregateAbandonedCarts(events, productsMap)` — items consolidados por session.
+- `shouldNotify(email, lastNotifiedAt, now, dedupHours)`.
+
+**13 tests vitest (`apps/admin/src/lib/abandoned-cart.test.ts`):**
+- detectAbandonedSessions: 4 cenarios (sozinho cart_add / cart_add+checkout_complete posterior / checkout_complete antes de cart_add (novo carrinho) / sessoes distintas).
+- aggregateAbandonedCarts: 4 cenarios (qty somada / produto deletado / default qty=1 / vazio quando todas concluiram).
+- shouldNotify: 5 cenarios (sem email / null lastNotified / <24h / >24h / dedupHours custom).
+
+**Trade-offs arquiteturais:**
+- Helper isolado em apps/admin (nao engine) porque `BehaviorEvent` ja vive em `@lojeo/db` e o cron consome direto. Mover pra engine exigiria redefinir tipos. V2 quando split engine-pure/engine-server (P5.T): mover detectAbandoned para engine-pure.
+- Upsert manual SELECT+UPDATE/INSERT em vez de `ON CONFLICT (tenant_id, session_id)` — DB schema atual nao tem unique constraint nesses cols. V2: adicionar constraint + upsert nativo.
+- WhatsApp tentativa apenas se userInfo.phone presente — mas `users` schema atual nao tem phone column. Casts seguros via `as unknown` resultam em sempre-undefined. Funciona em production sem quebrar; aguarda extensao schema users.phone V2.
+
+**Validacoes:**
+- pnpm -r typecheck zero erro.
+- pnpm -r test: 335+ passing. apps/admin 90/90 (+13 abandoned-cart). 0 regressao.
+- pnpm -r lint: zero warning admin/storefront. 2 warnings pre-existentes em packages/db (numeric/uniqueIndex unused — nao introduzidos aqui).
+
+**Proximo ciclo:**
+- P1.B: Plug Stripe payment em POST /api/orders quando template.currency != BRL.
+- Hook `cart_add` event no storefront em pdp-client.tsx ja persiste; verifica se metadata.qty esta sendo emitido (se nao, fix).
+- Migration prod aplicar via POST /api/migrate apos deploy.

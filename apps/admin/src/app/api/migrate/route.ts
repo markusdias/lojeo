@@ -737,6 +737,33 @@ export async function POST(req: NextRequest) {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_push_subs_tenant_user ON push_subscriptions(tenant_id, user_id)`);
     results.push('push_subscriptions: ok');
 
+    // Fase 1.2 — abandoned_carts (recuperação de carrinho via cron)
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS abandoned_carts (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL,
+        session_id uuid,
+        anonymous_id varchar(64) NOT NULL,
+        user_id uuid,
+        contact_email varchar(300),
+        contact_phone varchar(30),
+        items jsonb DEFAULT '[]'::jsonb NOT NULL,
+        subtotal_cents integer DEFAULT 0 NOT NULL,
+        status varchar(20) DEFAULT 'active' NOT NULL,
+        recovered_order_id uuid,
+        last_event_at timestamptz NOT NULL,
+        last_notified_at timestamptz,
+        notify_channels_tried jsonb DEFAULT '[]'::jsonb NOT NULL,
+        created_at timestamptz DEFAULT now() NOT NULL,
+        updated_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_abandoned_carts_tenant_status ON abandoned_carts(tenant_id, status)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_abandoned_carts_tenant_event ON abandoned_carts(tenant_id, last_event_at)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_abandoned_carts_anon ON abandoned_carts(anonymous_id)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_abandoned_carts_user ON abandoned_carts(user_id)`);
+    results.push('abandoned_carts: ok');
+
     // Sprint 9 — seller_notifications (alertas in-app pro lojista)
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS seller_notifications (

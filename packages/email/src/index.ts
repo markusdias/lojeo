@@ -18,3 +18,8 @@ export {
   type ShippedStatus,
 } from './templates/shipped';
 export { TradeApproved, type TradeApprovedProps } from './templates/trade-approved';
+export {
+  RecoverCart,
+  type RecoverCartProps,
+  type RecoverCartItem,
+} from './templates/recover-cart';
