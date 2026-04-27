@@ -3405,3 +3405,60 @@ UI checkout pagamento:
 **Validações:** Tests engine 44/44, db 7/7. Typecheck admin/storefront/db zero erros. Lint admin/storefront zero warnings.
 
 **Próximo ciclo (em background):** Competitive monitoring scraping mock + Atribuição automática/manual de tickets (subagent paralelo a90efcceadc98a7a8).
+
+---
+
+## 2026-04-27 (continuação) — Batch 2: Competitive + Tickets + Zod APIs
+
+**Commits:** 24c525a (batch 2) · ecb03c1 (sidebar) · f485bfc (batch 3)
+
+**Sprint 8 — Competitive monitoring (subagent a90efcceadc98a7a8):**
+- Schema `competitor_products` (tenantId, name, productUrl, ourProductId nullable, lastPriceCents, lastInStock, lastCheckedAt) + `competitor_price_history`
+- API admin `/api/competitors` GET/POST/DELETE + `/api/competitors/[id]/scrape` mock variação ±5%
+- UI `/competitors` cards + sparkline SVG 30d + form inline + delete
+- Engine puro `competitive-pricing.ts` com `computePriceGap()` + 4 testes
+- Sidebar nav adicionado item Concorrentes em IA & Conteúdo
+
+**Sprint 9 — Atribuição tickets (subagent a90efcceadc98a7a8):**
+- Schema `ticket_assignment_rules` (ruleType keyword | round_robin, keyword nullable, targetUserId, priority, active)
+- Helper `apps/admin/src/lib/ticket-assignment.ts`: `applyAutoAssignment(subject, body, rules, lastAssigned)` — keyword case-insensitive em subject/body OR round_robin circular
+- API `/api/tickets/rules` GET/POST + `/api/tickets/rules/[id]` PATCH/DELETE
+- API `/api/tickets/[id]/assign` POST atribuição manual com audit `ticket.assigned`
+- Hook integrado em POST `/api/tickets` na criação
+- UI `/tickets/rules` tabela + form + toggle ativo
+- 9 testes vitest
+
+**Sprint 13 — Zod sanitization storefront APIs:**
+- zod ^3.24.1 adicionado deps storefront
+- `/api/track`: TrackPayloadSchema + rate-limit 240evts/min/anonId
+- `/api/restock-notify`: RestockSchema + rate-limit 10/15min/email+ip (anti-spam)
+- `/api/reviews POST`: ReviewSchema + rate-limit 5/h/email+ip (anti-fake-reviews)
+
+**Sprint 8 v2 — IA Analyst cache + rate limit (subagent a13891b891c3b2409):**
+- Schema `ai_analyst_cache` (tenant+queryHash unique, response, toolCalls, hitCount) TTL 24h
+- Helper `apps/admin/src/lib/ai-analyst-cache.ts` SHA-256 hash + lookup + store onConflictDoNothing
+- API `/api/ai-analyst`: rate-limit antes do cache (config `tenants.config.aiAnalystRateLimit` defaults 10/min 200/dia), X-Cache HIT/MISS header
+- UI `/settings` aba IA: campos perMinute/perDay
+- 9 testes vitest
+
+**Sprint 10 — UGC editor canvas drag-drop tags (subagent a3ff0c3505ed51c94):**
+- `apps/admin/src/components/ugc/tag-editor.tsx`: modal canvas, pins via pointer events (mouse/touch/pen), picker produto autocomplete, fallback teclado sliders X/Y, role=dialog ARIA
+- `/ugc/page.tsx`: botão "Editar tags" em posts approved
+- `/api/ugc/[id]`: refatorado Zod PatchSchema + TaggedProductSchema (max 20 tags, x/y 0-100, productId UUID), audit `ugc.tags_updated`
+
+**Sprint 12 — pgvector embeddings + busca semântica preparation (subagent a0dfd65618ab30824):**
+- Schema `product_embeddings` (productId PK, tenantId, embedding text JSON, model, dimensions 256)
+- Engine `packages/engine/src/embeddings.ts`: mockEmbedding determinístico FNV-1a + tf-weighted projection L2-normalized, cosineSimilarity, encode/decode
+- API admin `/api/embeddings` POST upsert + audit `embeddings.recomputed`; GET ?productId=X
+- API storefront `/api/search/semantic` GET varredura linear cosine + fallback ilike automático
+- Migrate `CREATE EXTENSION IF NOT EXISTS vector` (try/catch graceful)
+- 13 testes vitest
+
+**Tests: engine 61/61, admin 36/36 active, storefront 14/14, db 7/7.** Typecheck + lint zero erros (admin/storefront/db). 4 commits sessão (8ea8f85, 24c525a, ecb03c1, f485bfc), 0 regressão.
+
+**Migrations prod aplicadas:** product_redirects (já em prod). Pendentes próxima rodada após build EasyPanel: competitor_products, competitor_price_history, ticket_assignment_rules, ai_analyst_cache, product_embeddings.
+
+**Próximo ciclo:**
+- Roadmap remanescente Fase 1: GDPR básico, CDN Cloudflare, Resend Trigger.dev jobs (BLOQUEADO email key), modo degradado tests, E2E completos, A/B test personalização, blog/conteúdo nativo, redirects 301 sitemap, hreflang, Remove.bg upload
+- Trocar mockEmbedding por provider real quando ANTHROPIC_API_KEY/OpenAI key disponível
+- pgvector index ivfflat real após CREATE EXTENSION confirmar funcionar em prod
