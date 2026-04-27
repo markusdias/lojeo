@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
+import { ManageCookiesButton } from '../../components/marketing/manage-cookies-button';
 
 export const metadata: Metadata = {
   title: 'Privacidade · LGPD — Atelier',
@@ -75,6 +77,45 @@ export default function PrivacidadePage() {
           </p>
         </div>
       ))}
+
+      {/* Direitos do titular — CTAs LGPD acionáveis (art. 18) */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '200px 1fr',
+          gap: 60,
+          padding: '32px 0',
+          borderTop: '1px solid var(--divider)',
+        }}
+      >
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 28, margin: 0 }}>
+          Exercer direitos
+        </h3>
+        <div style={{ maxWidth: 580 }}>
+          <p style={{ margin: '0 0 20px', color: 'var(--text-secondary)', fontSize: 16, lineHeight: 1.7 }}>
+            Você pode acessar, exportar e excluir seus dados a qualquer momento na área da sua conta,
+            ou ajustar suas preferências de cookies.
+          </p>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <Link
+              href="/conta/privacidade"
+              style={{
+                display: 'inline-block',
+                padding: '10px 20px',
+                background: 'var(--text-primary)',
+                color: 'var(--text-on-dark, #FAFAF6)',
+                fontSize: 14,
+                fontWeight: 500,
+                borderRadius: 4,
+                textDecoration: 'none',
+              }}
+            >
+              Direitos do titular (exportar / excluir)
+            </Link>
+            <ManageCookiesButton />
+          </div>
+        </div>
+      </div>
 
       <div style={{ height: 80 }} />
     </div>

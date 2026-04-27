@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { setConsent } from '@lojeo/tracking/client';
+import { setConsent, getConsent } from '@lojeo/tracking/client';
 
 const CONSENT_KEY = 'lojeo_consent';
 
@@ -15,8 +15,10 @@ interface PreferenceState {
 /**
  * Cookie banner LGPD — consent granular (essential, analytics, marketing).
  *
- * - Mostrado apenas em primeira visita (até `lojeo_consent` existir em localStorage)
+ * - Mostrado em primeira visita (até `lojeo_consent` existir em localStorage)
  * - 3 ações: aceitar todos / apenas essenciais / personalizar
+ * - Reabertura: dispatchar `window.dispatchEvent(new Event('lojeo:open-cookie-banner'))`
+ *   (usado pelo footer "Gerenciar cookies" para o titular revogar consent — direito LGPD art. 8 §5)
  * - Estilo discreto, fixed bottom, usa tokens jewelry-v1
  */
 export function CookieBanner() {
@@ -27,6 +29,15 @@ export function CookieBanner() {
     if (typeof localStorage === 'undefined') return;
     const raw = localStorage.getItem(CONSENT_KEY);
     if (!raw) setMode('banner');
+
+    // Reabertura via evento custom (footer / link em /privacidade)
+    function onOpen() {
+      const current = getConsent();
+      setPrefs({ analytics: current.analytics, marketing: current.marketing });
+      setMode('custom');
+    }
+    window.addEventListener('lojeo:open-cookie-banner', onOpen);
+    return () => window.removeEventListener('lojeo:open-cookie-banner', onOpen);
   }, []);
 
   if (mode === 'hidden') return null;
@@ -138,6 +149,7 @@ export function CookieBanner() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-3, 12px)' }}>
             <PreferenceRow
+              id="essential"
               label="Essenciais"
               description="Necessários para login, carrinho e funcionamento da loja."
               checked
@@ -145,12 +157,14 @@ export function CookieBanner() {
               onChange={() => {}}
             />
             <PreferenceRow
+              id="analytics"
               label="Analíticos"
               description="Ajudam a entender como a loja é usada (medição agregada)."
               checked={prefs.analytics}
               onChange={(v) => setPrefs((p) => ({ ...p, analytics: v }))}
             />
             <PreferenceRow
+              id="marketing"
               label="Marketing"
               description="Permitem anúncios personalizados em outras plataformas."
               checked={prefs.marketing}
@@ -180,6 +194,7 @@ export function CookieBanner() {
 }
 
 interface PreferenceRowProps {
+  id: string;
   label: string;
   description: string;
   checked: boolean;
@@ -187,7 +202,8 @@ interface PreferenceRowProps {
   onChange: (next: boolean) => void;
 }
 
-function PreferenceRow({ label, description, checked, disabled, onChange }: PreferenceRowProps) {
+function PreferenceRow({ id, label, description, checked, disabled, onChange }: PreferenceRowProps) {
+  const descId = `consent-${id}`;
   return (
     <label
       style={{
@@ -204,12 +220,12 @@ function PreferenceRow({ label, description, checked, disabled, onChange }: Pref
         disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}
         style={{ marginTop: 3, accentColor: 'var(--accent, #B8956A)' }}
-        aria-describedby={`consent-${label.toLowerCase()}`}
+        aria-describedby={descId}
       />
       <span style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
         <span style={{ color: 'var(--text-primary, #1A1612)', fontWeight: 500 }}>{label}</span>
         <span
-          id={`consent-${label.toLowerCase()}`}
+          id={descId}
           style={{ color: 'var(--text-secondary, #6B6055)', fontSize: 'var(--fs-caption, 12px)' }}
         >
           {description}

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { NewsletterForm } from './newsletter-form';
+import { ManageCookiesButton } from '../marketing/manage-cookies-button';
 
 export function Footer({ storeName }: { storeName: string }) {
   return (
@@ -67,6 +68,7 @@ export function Footer({ storeName }: { storeName: string }) {
               {l.label}
             </Link>
           ))}
+          <ManageCookiesButton variant="footer" />
         </div>
 
         {/* Newsletter stub */}
