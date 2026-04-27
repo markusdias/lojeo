@@ -8,9 +8,21 @@ import { useTracker } from '../../../components/tracker-provider';
 import { HeartButton } from '../../../components/wishlist/heart-button';
 import { useTrackRecentlyViewed } from '../../../components/products/recently-viewed';
 import { trackPixelEvent } from '../../../components/marketing/pixel-events';
-import { VariantPicker } from './variant-picker';
+import { VariantPicker, detectJewelryKind } from './variant-picker';
 import { StickyBuyBar } from './sticky-buy-bar';
 import { ShippingCalc } from './shipping-calc';
+
+/**
+ * Mapa kind (jewelry detection) → categoria slug + label.
+ * Usado em breadcrumb (Home > Categoria > Produto) e eyebrow,
+ * espelhando ref jewelry-v1 PDP.jsx (Breadcrumbs + eyebrow categoria).
+ * Slugs casam com PLP (/produtos?categoria=<slug>) — aneis/colares/brincos.
+ */
+const CATEGORY_FROM_KIND: Record<string, { slug: string; label: string }> = {
+  anel: { slug: 'aneis', label: 'Anéis' },
+  colar: { slug: 'colares', label: 'Colares' },
+  brinco: { slug: 'brincos', label: 'Brincos' },
+};
 
 type UrgencyKind = 'none' | 'viewing' | 'low-stock';
 
@@ -460,14 +472,25 @@ export function PDPClient({ product, variants, images, urgency, viewersNow, tota
   }
 
   const customFields = product.customFields;
+  // Categoria detectada a partir de customFields/slug — match ref jewelry-v1 (Breadcrumbs + eyebrow).
+  // Reaproveita detectJewelryKind (testado em variant-picker.test.ts).
+  const jewelryKind = detectJewelryKind(product.slug, customFields);
+  const category = jewelryKind !== 'unknown' ? CATEGORY_FROM_KIND[jewelryKind] : null;
 
   return (
     <div ref={scrollRef} style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '32px var(--container-pad) 80px' }}>
-      {/* Breadcrumbs */}
+      {/* Breadcrumbs — Home > Categoria > Produto (match ref jewelry-v1).
+          Quando categoria não identificada, fallback para link genérico /produtos. */}
       <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 32, display: 'flex', gap: 8 }}>
         <Link href="/" style={{ color: 'var(--text-muted)' }}>Home</Link>
         <span style={{ color: 'var(--text-muted)' }}>·</span>
-        <Link href="/produtos" style={{ color: 'var(--text-muted)' }}>Produtos</Link>
+        {category ? (
+          <Link href={`/produtos?categoria=${category.slug}`} style={{ color: 'var(--text-muted)' }}>
+            {category.label}
+          </Link>
+        ) : (
+          <Link href="/produtos" style={{ color: 'var(--text-muted)' }}>Produtos</Link>
+        )}
         <span style={{ color: 'var(--text-muted)' }}>·</span>
         <span>{product.name}</span>
       </div>
@@ -529,12 +552,35 @@ export function PDPClient({ product, variants, images, urgency, viewersNow, tota
                 -{discount}%
               </span>
             )}
+            {/* Zoom button — affordance visual absoluto bottom-right (match ref jewelry-v1).
+                Só aparece quando há imagem real. Click é capturado pelo wrapper com onClick acima. */}
+            {images[imgIdx] && (
+              <button
+                type="button"
+                aria-label="Ampliar imagem"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  tracker?.track({ type: 'gallery_open', entityType: 'product', entityId: product.id });
+                }}
+                style={{
+                  position: 'absolute', bottom: 16, right: 16,
+                  width: 44, height: 44, borderRadius: 999,
+                  background: 'rgba(255,255,255,0.95)', border: 'none',
+                  cursor: 'pointer', color: 'var(--text-primary)',
+                  display: 'grid', placeItems: 'center',
+                  boxShadow: '0 2px 8px rgba(26,22,18,0.08)',
+                }}
+              >
+                <Icon name="zoom" size={18} />
+              </button>
+            )}
           </div>
         </div>
 
         {/* ── INFO ── */}
         <div>
-          <p className="eyebrow" style={{ marginBottom: 8 }}>Joias Atelier</p>
+          {/* Eyebrow — categoria detectada (match ref jewelry-v1) ou fallback "Atelier". */}
+          <p className="eyebrow" style={{ marginBottom: 8 }}>{category?.label ?? 'Atelier'}</p>
           <h1 style={{ margin: '0 0 16px', lineHeight: 1.05 }}>{product.name}</h1>
 
           {/* Avaliações — só exibe quando houver reviews aprovados (telemetria real) */}
