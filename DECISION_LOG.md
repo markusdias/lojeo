@@ -4571,3 +4571,50 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - Trigger.dev cron real (substitui botões manuais low-stock/churn).
 - CPF capture checkout (completa Boleto real).
 - Audit visual subagent comparando prod vs UI kits oficial após mudanças.
+
+
+---
+
+## 2026-04-27 (continuacao) — Batch 27: Captura CPF + nome no checkout — Boleto real 100%
+
+**Commits:** ff4b2d0.
+
+**CheckoutState ganha customerName + customerCpf:**
+- `apps/storefront/src/components/checkout/checkout-provider.tsx`:
+  - Interface CheckoutState +2 fields, initialState '', reducer +2 cases (SET_CUSTOMER_NAME/CPF), CheckoutContextValue +2 setters.
+  - Persistência sessionStorage existente já cobre — F5 recovery automático.
+
+**/checkout/endereco UI:**
+- Novo Field "CPF (opcional, exigido para Boleto)" entre Email e Nome destinatário.
+- Input com `formatCpf` mask 999.999.999-99 (cap 11 digits, inputMode=numeric).
+- Não validation obrigatória (opcional para Pix/cartão; Boleto rejeita silencioso server-side se ausente).
+- handleSubmit propaga setCustomerName(form.recipientName) + setCustomerCpf(cpf).
+
+**POST /api/orders integra:**
+- Interface CreateOrderBody +2 fields (customerName, customerCpf).
+- Pix payment: passa payerName=customerName.
+- Boleto payment: passa payerName + payerCpf — MP recebe CPF cleaned 11 digits no identification.type=CPF (helper já lida).
+
+**Sprint 3 BR checkout — coverage final:**
+- ✓ MP Preference (cartão)
+- ✓ MP Payment direto Pix (QR + nome real)
+- ✓ MP Payment direto Boleto (CPF capturado + PDF + barcode) — **100% real-mode**
+- ✓ Webhook real-mode + emit notification
+- ✓ /checkout/confirmacao QR/PDF + polling 5s
+- ✓ /checkout/falha
+- ✓ MP-redirect-flow cross-session
+
+**Trade-offs:**
+- CPF input opcional pra reduzir fricção Pix/cartão. Lojista precisa educar cliente que Boleto exige CPF (label do field já indica).
+- formatCpf simples — não valida dígito verificador. MP valida server-side (rejeita CPF inválido).
+- customerName = recipientName: assumimos pagador = destinatário. V2: separar pagador (CPF + nome) de destinatário (entrega) quando feature presente expandir.
+
+**Validações:**
+- Tests storefront 53/53, admin 77/77 verde. Typecheck/lint zero.
+- 0 regressão.
+- Deploy storefront disparado.
+
+**Próximo ciclo:**
+- Validation CPF dígito verificador client-side (algoritmo módulo 11) — UX feedback antes server.
+- Email template Boleto dedicado (PDF link destacado, expira em 3d badge).
+- Coffee-v1 Fase 1.2 começa.
