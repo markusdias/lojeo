@@ -5733,3 +5733,47 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - UI admin /afiliados list + form CRUD.
 - P5.T — engine split (server vs pure) refactor.
 - P3.K UI warranty filter chips.
+
+---
+
+## 2026-04-27 (continuacao) — Batch 51: Warranty filters UI + endpoint (P3.K)
+
+**Commits:** (a registrar nesta sessao).
+
+**Helper `apps/admin/src/lib/warranty/aggregate.ts`:**
+- `aggregateWarrantiesByCustomer(inputs, daysWindow, now)` agrupa items expiring por customerEmail.
+- Filtra: skip null email / warrantyMonths<=0 / status='expired' / expiresAt > cutoff.
+- Retorna sorted by earliestExpiresAt ascending pra UI priorizar urgente.
+
+**8 tests vitest cobrem vazio/window incluído/excluído/expired skip/zero months/null email/multi items/sort.**
+
+**Endpoint `/api/customers/warranties-expiring?days=30|60|90`:**
+- Auth via authorizeCronRequest.
+- JOIN orders + order_items + product_variants + products pra obter warrantyMonths.
+- startsAt = deliveredAt > paidAt > createdAt (preferência cliente delivered).
+- Whitelist days [30, 60, 90] — outros valores caem em 30.
+- Aggregate via helper, retorna `{ daysWindow, total, customers[] }`.
+
+**UI client component `apps/admin/src/app/clientes/warranty-filters.tsx`:**
+- Filter chips 30d / 60d / 90d (toggle, click novamente desativa).
+- Loading state + empty state + lista (top 20 + truncate).
+- Cada cliente link para `/clientes/[email]`.
+- Mostra `itemCount` + `daysRemaining` do primeiro item a vencer.
+- Plug em `/clientes/page.tsx` antes da `ClientesTable`.
+
+**Trade-offs arquiteturais:**
+- UI client-side fetch — não pre-rendered no server-side. Trade-off pra evitar carregar warranty calc pra todos clientes na SSR sempre. V2: pré-cache server-side se latência crescer.
+- Top 20 hardcoded — V2 paginação ou virtualização se tenant tem >100 clientes com warranty expiring.
+- `daysRemaining` mostra primeiro item — se cliente tem múltiplos items expirando em datas diferentes, não diferencia. V2 expandir UI showing item list.
+- whitelist days [30, 60, 90] previne user input arbitrário (DoS via huge window). V2 input flexível com cap.
+- Endpoint usa `authorizeCronRequest` que aceita session OR cron secret. Lojista admin clica filter → fetch com cookie session.
+
+**Validações:**
+- pnpm -r typecheck zero erro.
+- admin 123/123 (+8 warranty/aggregate). Total 510 passing. Zero regressao.
+- pnpm -r lint admin/storefront limpo.
+
+**Próximo ciclo:**
+- P5.T — engine split server vs pure (refactor risco médio).
+- UI admin /afiliados list + form.
+- Endpoint POST /api/nps + email survey D+7.

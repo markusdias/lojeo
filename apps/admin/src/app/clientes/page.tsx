@@ -4,6 +4,7 @@ import { sql } from 'drizzle-orm';
 import { scoreCustomers } from '@lojeo/engine';
 import { ClientesTable } from './clientes-table';
 import { ChurnScanButton } from './churn-scan-button';
+import { WarrantyFilters } from './warranty-filters';
 
 const TENANT_ID = process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
 
@@ -53,6 +54,7 @@ export default async function ClientesPage() {
         </div>
         <ChurnScanButton />
       </header>
+      <WarrantyFilters />
       <ClientesTable customers={profiles} />
     </div>
   );
