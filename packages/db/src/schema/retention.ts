@@ -3,6 +3,7 @@ import {
   uuid,
   varchar,
   integer,
+  text,
   timestamp,
   index,
 } from 'drizzle-orm/pg-core';
@@ -64,6 +65,9 @@ export const giftCards = pgTable(
     status: varchar('status', { length: 20 }).default('active').notNull(),
     buyerUserId: uuid('buyer_user_id'),
     recipientEmail: varchar('recipient_email', { length: 300 }),
+    senderName: varchar('sender_name', { length: 200 }),
+    recipientName: varchar('recipient_name', { length: 200 }),
+    message: text('message'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [

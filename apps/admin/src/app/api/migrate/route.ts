@@ -501,6 +501,10 @@ export async function POST(req: NextRequest) {
     `);
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_giftcard_code ON gift_cards(code)`);
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_giftcard_tenant ON gift_cards(tenant_id)`);
+    // Sprint 5 follow-up: sender/recipient/message para email branded
+    await db.execute(sql`ALTER TABLE gift_cards ADD COLUMN IF NOT EXISTS sender_name varchar(200)`);
+    await db.execute(sql`ALTER TABLE gift_cards ADD COLUMN IF NOT EXISTS recipient_name varchar(200)`);
+    await db.execute(sql`ALTER TABLE gift_cards ADD COLUMN IF NOT EXISTS message text`);
     results.push('gift_cards: ok');
 
     // Migration 0024 — product_reviews

@@ -348,9 +348,9 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 
 **Gift card / vale-presente digital:**
 - [x] Schema: `gift_cards` (code, initial_value, current_balance, expires_at, status, buyer_id, recipient_email) + migration 0003
-- [ ] Compra de gift card como produto especial no storefront
-- [ ] Email automático para destinatário com código + design branded
-- [ ] Aplicação no checkout como meio de pagamento (parcial ou total)
+- [x] Compra de gift card como produto especial no storefront — `/presente` com hero + form (preset 50/100/200/500 + custom + recipientEmail + recipientName + senderName + message 500 chars), `POST /api/gift-card/purchase` (Zod validation, retry 3× em colisão de code, modo `MOCK_PAYMENT=true` cria active sem MP), `/presente/sucesso/[code]` (código mono grande, copy button, dados + mensagem destacada). Header desktop+mobile linka "Presente"/"Vale-presente". Schema gift_cards expandido com sender_name/recipient_name/message via ALTER TABLE IF NOT EXISTS no /api/migrate.
+- [ ] Email automático para destinatário com código + design branded — BLOQUEADO: Resend API key (template Handlebars + sender/message já no schema)
+- [x] `GET /api/gift-card/purchase?code=X` valida saldo público — pronto para integração checkout v2 (apply parcial/total). Engine puro `generateGiftCode()` em `code.ts` (alfabeto sem 0/1/I/L/O ambíguos), 4 testes vitest (formato, banned chars, variação, RNG injetado determinístico)
 - [x] Painel no admin: emitidos, resgatados, saldo total, expiração — `/wishlist` admin (tab gift-cards) com 4 metric cards summary (em circulação SUM(balance ativos), resgatados mês SUM(initial - balance), cards ativos count, expirando 30d count) + tabela últimos 50 cards com status inferido (active/partial/used/expired)
 
 **Back-in-stock:**

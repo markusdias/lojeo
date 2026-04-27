@@ -4,6 +4,32 @@ Decisões técnicas relevantes registradas com data e justificativa.
 
 ---
 
+## 2026-04-27 — Batch 7: Gift card storefront /presente
+
+**Contexto:** Sprint 5 listava 3 itens pendentes de gift card. Schema + admin overview já existiam, faltava UX cliente final.
+
+**Implementado:**
+
+1. **Schema gift_cards expandido** — adicionadas colunas `sender_name`, `recipient_name`, `message` via `ALTER TABLE IF NOT EXISTS` no `/api/migrate` (idempotente). Permite carta personalizada + identificação correta no email (Resend pendente).
+
+2. **Engine puro `generateGiftCode()`** — `apps/storefront/src/app/api/gift-card/purchase/code.ts`. Alfabeto `ABCDEFGHJKMNPQRSTUVWXYZ23456789` exclui chars ambíguos (0/O, 1/I/L). Formato `GIFT-XXXX-YYYY` (31⁸ ≈ 850B combinações, colisão prática zero). RNG injetável → testável determinístico. 4 testes vitest cobrem formato, banned chars, variação, determinismo.
+
+3. **API POST /api/gift-card/purchase** — Zod schema (valor 50–5.000 BRL, email obrigatório, opcional nome/sender/mensagem 500 chars). Retry 3× em UNIQUE collision. Variável `GIFT_CARD_MOCK_PAYMENT` (default `true`): cria `status=active` direto em dev/staging; quando MP conectar (Sprint 3 desbloqueio), trocar para `pending_payment` + webhook gateway promove. Padrão consistente com checkout existente.
+
+4. **API GET /api/gift-card/purchase?code=X** — validação pública para futuro apply no checkout (saldo, expiração, status). Pronta pra integrar quando checkout v2 aceitar gift card como payment method (parcial ou total).
+
+5. **Storefront `/presente`** — hero editorial + 4-step explainer (esquerda) + form (direita) com presets 50/100/200/500 + custom input + email + nome destinatário/remetente + mensagem 500 chars. Tokens jewelry-v1 (`var(--accent)`, `var(--font-display)`, `var(--surface)`). Erro inline (role=alert), busy state, validação client-side antes do POST.
+
+6. **Storefront `/presente/sucesso/[code]`** — confirmação com código mono 28px, botão "Copiar código" (client component), grid 2×2 (valor/saldo/validade/status), blockquote da mensagem com author. CTAs "Explorar produtos" (primário) + "Comprar outro".
+
+7. **Navegação** — links "Presente" no header desktop e "Vale-presente" no menu mobile. Feature deixou de ser órfã.
+
+**Justificativa CFO:** Gift card é alavanca de receita assimétrica — paga antes da entrega, ~30% nunca é resgatado (breakage), aumenta ticket médio quando aplicado parcial. ROI alto, custo dev baixo (1 page + 1 API + ALTER TABLE). Persistência sender/message destrava email branded assim que Resend conectar.
+
+**Padrão a replicar:** sempre que rota `route.ts` precisar exportar helper testável, criar arquivo vizinho (`code.ts`, `_lib.ts`) e importar — Next 15 whitelist em `route.ts` quebra qualquer outro export.
+
+---
+
 ## 2026-04-27 — Batch 6: CI fix + ChatWidget storefront + alt text a11y
 
 **Contexto:** CI quebrado em 5 commits consecutivos. Auditoria visual storefront identificou ChatbotFAB ausente (Sprint 9 widget) e alt text vazio em blog (a11y).

@@ -112,6 +112,7 @@ export function Header({ storeName }: { storeName: string }) {
           ))}
           <Link href="/colecoes" style={{ color: 'var(--text-secondary)' }}>Coleções</Link>
           <Link href="/blog" style={{ color: 'var(--text-secondary)' }}>Blog</Link>
+          <Link href="/presente" style={{ color: 'var(--text-secondary)' }}>Presente</Link>
         </nav>
 
         {/* Logo centro */}
@@ -302,6 +303,13 @@ export function Header({ storeName }: { storeName: string }) {
             style={{ padding: '10px 0', fontSize: 16, color: 'var(--text-primary)', borderBottom: '1px solid var(--divider)' }}
           >
             Blog
+          </Link>
+          <Link
+            href="/presente"
+            onClick={() => setMobileOpen(false)}
+            style={{ padding: '10px 0', fontSize: 16, color: 'var(--text-primary)', borderBottom: '1px solid var(--divider)' }}
+          >
+            Vale-presente
           </Link>
         </nav>
       )}
