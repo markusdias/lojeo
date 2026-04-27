@@ -8,7 +8,7 @@ import { sendMetaPurchase } from '../../../lib/pixels/conversions-api';
 import { eq, and, sql } from 'drizzle-orm';
 import { checkRateLimit, getClientIp } from '../../../lib/rate-limit';
 import { getActiveTemplate } from '../../../template';
-import { asSupportedCurrency } from '@lojeo/engine';
+import { asSupportedCurrency, computeFraudScore, isDisposableEmail, isPhoneSuspicious } from '@lojeo/engine';
 
 const tenantId = () => process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
 const FREE_SHIPPING_ABOVE = 50000;
@@ -421,12 +421,64 @@ export async function POST(req: Request) {
       });
     }
 
+    // Fraud score — sinais simples sem provider externo. Threshold > 70 emit critical.
+    const customerEmailLower = body.customerEmail?.toLowerCase().trim() ?? null;
+    let priorOrdersAllTime = 0;
+    let priorOrdersLast24h = 0;
+    if (customerEmailLower) {
+      try {
+        const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const allRows = await db
+          .select({ count: sql<number>`COUNT(*)::int` })
+          .from(orders)
+          .where(and(eq(orders.tenantId, tid), eq(orders.customerEmail, customerEmailLower)));
+        priorOrdersAllTime = Math.max(0, Number(allRows[0]?.count ?? 0) - 1); // exclui o just-criado
+        const recentRows = await db
+          .select({ count: sql<number>`COUNT(*)::int` })
+          .from(orders)
+          .where(
+            and(
+              eq(orders.tenantId, tid),
+              eq(orders.customerEmail, customerEmailLower),
+              sql`${orders.createdAt} >= ${since24h}`,
+            ),
+          );
+        priorOrdersLast24h = Math.max(0, Number(recentRows[0]?.count ?? 0) - 1);
+      } catch {
+        // Falha em count: assume novato — score conservador.
+      }
+    }
+
+    const couponBps = couponDiscountCents > 0 && subtotalCents > 0
+      ? Math.round((couponDiscountCents / subtotalCents) * 10000)
+      : 0;
+
+    const fraudResult = computeFraudScore({
+      newEmail: priorOrdersAllTime === 0,
+      orderTotalCents: totalCents,
+      aggressiveCouponDiscountBps: couponBps,
+      ordersLast24h: priorOrdersLast24h,
+      ordersAllTime: priorOrdersAllTime,
+      emailIsDisposable: customerEmailLower ? isDisposableEmail(customerEmailLower) : false,
+      phoneSuspicious: isPhoneSuspicious(body.shippingAddress?.phone),
+    });
+
+    if (fraudResult.score > 0) {
+      try {
+        await db.update(orders).set({ fraudScore: fraudResult.score }).where(eq(orders.id, order.id));
+      } catch {
+        // best-effort: nao quebra response.
+      }
+    }
+
     void emitSellerNotification({
       tenantId: tid,
       type: 'order.created',
-      severity: 'info',
-      title: `Novo pedido #${order.orderNumber}`,
-      body: `R$ ${(totalCents / 100).toFixed(2).replace('.', ',')} · ${body.paymentMethod} · ${body.customerEmail ?? 'sem email'}`,
+      severity: fraudResult.score >= 70 ? 'critical' : 'info',
+      title: fraudResult.score >= 70
+        ? `[FRAUD ${fraudResult.score}/100] Pedido #${order.orderNumber}`
+        : `Novo pedido #${order.orderNumber}`,
+      body: `R$ ${(totalCents / 100).toFixed(2).replace('.', ',')} · ${body.paymentMethod} · ${body.customerEmail ?? 'sem email'}${fraudResult.score >= 70 ? ` · ${fraudResult.recommendation.toUpperCase()}` : ''}`,
       link: `/pedidos/${order.id}`,
       entityType: 'order',
       entityId: order.id,
@@ -434,6 +486,10 @@ export async function POST(req: Request) {
         orderNumber: order.orderNumber,
         totalCents,
         paymentMethod: body.paymentMethod,
+        fraudScore: fraudResult.score,
+        fraudLevel: fraudResult.level,
+        fraudRecommendation: fraudResult.recommendation,
+        fraudSignals: fraudResult.signals,
       },
     });
 

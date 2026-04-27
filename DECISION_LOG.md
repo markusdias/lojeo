@@ -5444,3 +5444,64 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - P4.R — programa afiliados (schema affiliate_links + UI admin + tracking ?ref cookie 30d).
 - P4.S — fraudScore engine (sinais email/valor/IP/primeiros pedidos).
 - P3.M — endereço adaptativo intl (BR CEP / US ZIP+state / UK postcode).
+
+---
+
+## 2026-04-27 (continuacao) — Batch 45: Fraud detection score (P4.S)
+
+**Commits:** (a registrar nesta sessao).
+
+**Engine `packages/engine/src/fraud.ts` — heurística pura auditável:**
+- `computeFraudScore(signals)` retorna `{ score, level, signals[], recommendation }`.
+- Sinais e pontos:
+  - `new_email`: 10
+  - `high_value` (>= R$2k/200USD): 12
+  - `very_high_value` (>= R$5k/500USD): 25
+  - `aggressive_coupon` (>= 30% off): 8
+  - `velocity_24h` (>= 3 pedidos): 20
+  - `first_order_high_value` (combo new email + zero history + high value): 15
+  - `ip_country_mismatch`: 18
+  - `ip_vpn_or_proxy`: 22
+  - `email_disposable` (mailinator/yopmail/etc.): 30 — sinal mais forte
+  - `phone_suspicious` (digits iguais, sequência): 8
+  - `billing_shipping_mismatch`: 6
+- Score capped 100. Levels:
+  - `< 25` → low / approve
+  - `25-49` → medium / review
+  - `50-79` → high / review
+  - `>= 80` → high / block
+- `isDisposableEmail(email)` — whitelist 9 dominios conhecidos (V2 expandir).
+- `isPhoneSuspicious(phone)` — < 8 digits / todos iguais / 12345678.
+
+**19 tests vitest (`fraud.test.ts`):**
+- 10 cenarios computeFraudScore: low score, sinais individuais (new_email, high_value, very_high_value, velocity, first_order_combo, IP VPN, disposable email), combos high (>=50) e critical (>=80), score capped 100.
+- 3 isDisposableEmail (whitelist match case-insensitive, real domains, malformed).
+- 5 isPhoneSuspicious (null, < 8 digits, todos iguais, sequência, phone real BR).
+
+**Hook em `/api/orders/route.ts`:**
+- Após criar order, query 2 counts: `priorOrdersAllTime` (exclui o just-criado) + `priorOrdersLast24h`.
+- Calcula `couponBps = (couponDiscountCents / subtotalCents) * 10000`.
+- `computeFraudScore` com sinais newEmail/orderTotal/coupon/velocity/disposable/phone.
+- Persiste `orders.fraudScore` quando > 0 (best-effort, nao quebra response).
+- emitSellerNotification:
+  - severity: `critical` se score >= 70, `info` caso contrario.
+  - title: `[FRAUD 85/100] Pedido #LJ-...` quando critical.
+  - body: inclui recommendation (REVIEW / BLOCK).
+  - metadata: persisteSignals + level + recommendation pra audit.
+
+**Trade-offs arquiteturais:**
+- Heurística simples sem provider externo (Sift/Riskified/MaxMind). Score 0-100 facilita ML supervisado V2 (treinar threshold com chargebacks reais).
+- IP signals (country mismatch, VPN/proxy) ainda não detectados — exige integração GeoIP (V2). Por agora retornam undefined no caller.
+- billingShippingMismatch ainda não detectado — schema atual não persiste billing separado consistente.
+- aggressive_coupon (30%) só dispara em cupons explícitos via couponCode; gift card/Pix discount não conta como sinal.
+- Hook NÃO bloqueia a criação do order — apenas flagga via notification critical. UI admin deve mostrar fraud_score em /pedidos pra revisão manual. V2: middleware bloqueia paymentIntent quando recommendation='block'.
+
+**Validações:**
+- pnpm -r typecheck zero erro.
+- engine 126/126 (+19 fraud). Total 420 passing. Zero regressao.
+- pnpm -r lint admin/storefront limpo.
+
+**Próximo ciclo:**
+- P4.R — programa afiliados (schema + UI + tracking ?ref cookie 30d).
+- P5.U — email retry exponential 3 tries.
+- P3.M — endereço adaptativo intl.

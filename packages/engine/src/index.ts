@@ -17,3 +17,4 @@ export * from './markdown';
 export * from './experiments-stats';
 export * from './cpf';
 export * from './currency';
+export * from './fraud';
