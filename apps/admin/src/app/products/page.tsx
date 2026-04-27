@@ -9,6 +9,7 @@ import {
 } from '@lojeo/db';
 import { and, eq, gte, inArray, sql } from 'drizzle-orm';
 import Link from 'next/link';
+import { EmptyState, IconPackage } from '../../components/ui/empty-state';
 
 export const dynamic = 'force-dynamic';
 
@@ -328,12 +329,13 @@ export default async function ProductsPage() {
       </div>
 
       {totalCount === 0 ? (
-        <div className="lj-card" style={{ padding: 'var(--space-12)', textAlign: 'center' }}>
-          <p className="body" style={{ marginBottom: 'var(--space-2)' }}>
-            Nenhum produto cadastrado.
-          </p>
-          <p className="body-s">Crie produtos via API ou importe via CSV.</p>
-        </div>
+        <EmptyState
+          icon={<IconPackage />}
+          title="Sem produtos ainda"
+          description="Comece cadastrando seu primeiro produto — leva 2 minutinhos. Ou suba uma planilha CSV se já tiver catálogo."
+          action={{ label: '+ Novo produto', href: '/products/new' }}
+          secondaryAction={{ label: 'Importar CSV', href: '/products/import' }}
+        />
       ) : (
         <div className="lj-card" style={{ overflow: 'hidden' }}>
           <table
