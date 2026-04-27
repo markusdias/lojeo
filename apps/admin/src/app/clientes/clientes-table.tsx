@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { EmptyState, IconUsers } from '../../components/ui/empty-state';
 
 export type RfmSegment = 'champions' | 'loyal' | 'at_risk' | 'lost' | 'new' | 'promising' | 'other';
 
@@ -84,6 +85,20 @@ export function ClientesTable({ customers }: { customers: CustomerRow[] }) {
         })}
       </div>
 
+      {visible.length === 0 ? (
+        <EmptyState
+          icon={<IconUsers />}
+          title={filter === 'all' ? 'Nenhum cliente ainda' : `Nenhum cliente no segmento "${SEGMENT_LABELS[filter]}"`}
+          description={filter === 'all'
+            ? 'Vão chegar com os primeiros pedidos — com histórico, segmentação RFM e tags prontas pra campanhas.'
+            : 'Conforme cliente avança no ciclo (pedidos novos / inatividade), entra automaticamente nesse segmento.'
+          }
+          action={filter === 'all'
+            ? { label: 'Compartilhar storefront', href: '/aparencia' }
+            : { label: 'Ver todos clientes', href: '/clientes' }
+          }
+        />
+      ) : (
       <div className="lj-card" style={{ overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-body-s)' }}>
           <thead>
@@ -128,16 +143,10 @@ export function ClientesTable({ customers }: { customers: CustomerRow[] }) {
                 <td className="numeric" style={{ padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)' }}>{c.rfm.monetary}</td>
               </tr>
             ))}
-            {visible.length === 0 && (
-              <tr>
-                <td colSpan={8} style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--fg-secondary)' }}>
-                  Nenhum cliente neste segmento.
-                </td>
-              </tr>
-            )}
           </tbody>
         </table>
       </div>
+      )}
     </>
   );
 }
