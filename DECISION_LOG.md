@@ -2780,3 +2780,44 @@ User pediu **agregar features extras (insights funil, ia-analyst, etc), não jog
 - /pedidos breadcrumb sub-nav
 
 **130 commits totais sessão**, **108 testes globais verdes**, **24 migrations prod**, **zero regressão**.
+
+---
+
+## 2026-04-26 — /settings anchor nav sticky match Settings.jsx hierarquia
+
+**Commit:** 59703d2
+
+**Gap detectado:** Settings.jsx ref tem 7 sub-tabs organizados em 3 grupos (Loja: Identidade; Vendas: Pagamentos/Frete/Fiscal; Comunicação: E-mail/Pixels; Inteligência: IA). /settings atual era single-page form com 6 seções stack vertical sem navegação rápida.
+
+**Decisão arquitetural:**
+
+Não migrei pra page-by-tab nem refactorei o form. Usei anchor nav sticky no topo (z-index 10, bg overlay) com 6 anchor links + 1 link externo /integracoes. Razões:
+
+1. **Pagamentos/Frete/Fiscal/Email são integrações OAuth bloqueadas** — `/integracoes` já tem cards completos de Mercado Pago, Bling, Melhor Envio, Resend, Anthropic, R2, FaqZap, Trigger.dev com status connected/partial/disconnected. Migrar pra sub-tabs em /settings duplicaria UI.
+
+2. **Form unificado preserva semântica salvar-tudo** — `handleSave` faz PATCH `/api/settings` num único request. Splitar em sub-pages forçaria multiple PATCHs ou state global.
+
+3. **scrollMarginTop: 80** nas sections garante que anchor link scrollado não fica embaixo do sticky bar.
+
+**Mapeamento Settings.jsx ref → anchor strip:**
+
+| Ref tab | Implementação |
+|---|---|
+| Loja: Identidade | `#identidade` (Identidade da loja) + `#aparencia` (Aparência storefront) |
+| Vendas: Gateways | `/integracoes` external link (Mercado Pago, Stripe) |
+| Vendas: Frete | `/integracoes` external link (Melhor Envio) |
+| Vendas: Fiscal | `/integracoes` external link (Bling NF-e) |
+| Comunicação: E-mail | `/integracoes` external link (Resend) |
+| Comunicação: Pixels | `#pixels` (GTM/GA4/Meta/TikTok/Clarity/Ads) |
+| Inteligência: IA | `#brand-guide` (tom, vocabulário, exemplos) + `/integracoes` (Anthropic key) |
+| (extra) Comercial | `#comercial` (políticas: pix discount, frete grátis, parcelas, garantia) |
+| (extra) SEO | `#robots` (robots.txt configurável) |
+
+**Tests admin 18/18.** Deploy admin disparado.
+
+**Próximo ciclo:**
+- UX test /settings anchor nav live
+- Empty state /pedidos quando filtro retorna 0 rows
+- Audit hierarquia sub-pages /settings/users /settings/2fa /settings/audit /settings/onboarding (já existem, link nav já presente)
+
+**131 commits totais sessão**, **108 testes globais verdes**, **24 migrations prod**, **zero regressão**.
