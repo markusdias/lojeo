@@ -106,6 +106,7 @@ async function runSeed() {
       createdAt: new Date(now.getTime() - Math.floor(Math.random() * 30) * DAY),
     }));
   });
+  const errors: Record<string, string> = {};
   let wishlistInserted = 0;
   try {
     if (wishlistData.length > 0) {
@@ -113,6 +114,7 @@ async function runSeed() {
       wishlistInserted = r.length;
     }
   } catch (e) {
+    errors.wishlist = String(e);
     console.error('seed wishlist failed', e);
   }
 
@@ -140,6 +142,7 @@ async function runSeed() {
       });
       giftCardsInserted++;
     } catch (e) {
+      errors.giftCard = String(e);
       console.error('seed gift_card failed', g.code, e);
     }
   }
@@ -168,6 +171,7 @@ async function runSeed() {
       restockInserted = r.length;
     }
   } catch (e) {
+    errors.restock = String(e);
     console.error('seed restock failed', e);
   }
 
@@ -191,6 +195,7 @@ async function runSeed() {
     const r = await db.insert(ugcPosts).values(ugcData).returning({ id: ugcPosts.id });
     ugcInserted = r.length;
   } catch (e) {
+    errors.ugc = String(e);
     console.error('seed ugc failed', e);
   }
 
@@ -232,6 +237,7 @@ async function runSeed() {
     const r = await db.insert(productReviews).values(reviewsData).returning({ id: productReviews.id });
     reviewsInserted = r.length;
   } catch (e) {
+    errors.reviews = String(e);
     console.error('seed reviews failed', e);
   }
 
@@ -272,6 +278,7 @@ async function runSeed() {
         });
       }
     } catch (e) {
+      errors.ticket = String(e);
       console.error('seed ticket failed', t.subject, e);
     }
   }
@@ -286,6 +293,7 @@ async function runSeed() {
       reviews: reviewsInserted,
       tickets: ticketsInserted,
     },
+    errors,
   });
 }
 
