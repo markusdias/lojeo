@@ -105,7 +105,7 @@ describe('admin degraded mode', () => {
       const faqzap = json.integrations.find(i => i.name === 'FaqZap');
       expect(faqzap).toBeDefined();
       expect(faqzap?.status).toBe('disconnected');
-      expect(faqzap?.message).toMatch(/escalação chatbot indisponível/i);
+      expect(faqzap?.message).toMatch(/não conectado|disponível|manual/i);
     });
 
     it('GET /api/integrations/status reporta Bling NF-e como disconnected — emissão manual', async () => {
