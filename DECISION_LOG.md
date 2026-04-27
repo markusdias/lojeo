@@ -2913,3 +2913,40 @@ Tabela renderiza condicional `{visible.length === 0 ? <EmptyState /> : <table />
 **Tests 11/11 packages verde, 24 migrations prod, zero regressão funcional.**
 
 **Próximo ciclo:** UX testing live storefront PDP/Cart/Checkout/Conta + Dashboard/Experiments admin pós-deploy fixed.
+
+---
+
+## 2026-04-26 — /settings refactor sidebar lateral match Settings.jsx ref Image #28
+
+**Commit:** [feat settings sidebar 8 tabs]
+
+**Problema honesto:** ciclo anterior entreguei anchor nav horizontal sticky como pragmatic shortcut. User confrontou com screenshot Image #28 mostrando layout REAL do ref: sidebar lateral 240px + 4 grupos + view splittada com Integration cards. Refactor full agora.
+
+**Arquivos:**
+
+1. `apps/admin/src/app/settings/sidebar-tabs.tsx` NOVO — `<SettingsSidebar>` 240px com 11 tabs (8 ref + 3 extras: Aparência/Comercial/Robots) em 6 grupos. Lucide-style icons 16x16 stroke 1.5. Active highlight: bg neutral-100 + semibold + fg primary. Hook `useTabHash` sincroniza URL (`#identidade` etc) via hashchange listener.
+
+2. `apps/admin/src/app/settings/integration-cards.tsx` NOVO — `<IntegrationCard>` reusable: logo 48x48 colored bg, name semibold, desc caption, status pill (connected/partial/disconnected/optional → success-soft/warning-soft/error-soft/neutral-100), account mono. Ações: connected → Ressincronizar+Gerenciar; disconnected → Conectar primary. 4 funções pre-config: GatewaysCards (MP/Pagar.me/Stripe/PayPal), FreteCards (Melhor Envio/Correios/DHL/FedEx), FiscalCards (Bling/Olist), EmailCards (Resend/SendGrid).
+
+3. `apps/admin/src/app/settings/page.tsx` — refactor render:
+   - Layout 2-col: `<SettingsSidebar>` esquerda + content direita
+   - Header dinâmico: H1+sub mudam por tab
+   - Tabs cards-only renderizam Integration cards fora do form
+   - Tabs form (Identidade/Aparência/Comercial/IA/Pixels/Robots) filtram seções via `display:none` quando inactive (preserva form único + handleSave atomic)
+   - `useTabHash` mantém URL sincronizada
+
+**Decisões:**
+
+1. **Display:none > unmount** — sections form filtradas via inline style preservam state input quando user troca tab e volta (vs remount perderia digitação não-salva).
+
+2. **Cards integração mock status='disconnected' default** — refletir prod real (sem OAuth conectado). Stripe/PayPal/Correios/etc 'optional' (pra fase 2). Quando OAuth real conectar, status virá de `/api/integrations/status`.
+
+3. **Equipe → link external** /settings/users — não é form, é page separada existente. Sidebar item com `href` em vez de `onChange`.
+
+4. **3 tabs extras** (Aparência/Comercial/Robots) preservam funcionalidade existente que não estava em Settings.jsx ref mas é valor real (aparência loja, políticas pix/frete grátis, robots.txt configurável).
+
+**Tests admin 18/18.** Deploy admin disparado.
+
+**Próximo ciclo:** UX validation /settings live + storefront PDP UX validation full.
+
+**135 commits totais sessão**, **108 testes globais verdes**, **24 migrations prod**, **zero regressão**.
