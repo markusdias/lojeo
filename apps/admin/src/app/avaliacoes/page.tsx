@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { EmptyState, IconStar } from '../../components/ui/empty-state';
 
 interface Review {
   id: string;
@@ -105,7 +106,21 @@ export default function AvaliacoesPage() {
       {loading && <p className="text-sm text-neutral-500">Carregando…</p>}
 
       {!loading && reviews.length === 0 && (
-        <p className="text-sm text-neutral-500">Nenhuma avaliação {TAB_LABELS[tab].toLowerCase()}.</p>
+        tab === 'pending' ? (
+          <EmptyState
+            icon={<IconStar />}
+            title="Nenhuma avaliação ainda"
+            description="Convide quem comprou nos últimos 7 dias — costuma render 3× mais resposta que pedidos automáticos pós-30 dias."
+            action={{ label: 'Enviar convite', href: '/clientes' }}
+            secondaryAction={{ label: 'Configurar automação', href: '/settings' }}
+          />
+        ) : (
+          <EmptyState
+            icon={<IconStar />}
+            title={`Sem avaliações ${TAB_LABELS[tab].toLowerCase()}`}
+            description={tab === 'approved' ? 'Aprovações aparecem aqui após você aprovar na aba Pendentes.' : 'Avaliações rejeitadas ficam neste histórico para auditoria.'}
+          />
+        )
       )}
 
       {!loading && reviews.length > 0 && (

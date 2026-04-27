@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { EmptyState, IconImage } from '../../components/ui/empty-state';
 
 interface UgcPost {
   id: string;
@@ -131,7 +132,13 @@ export default function UgcModerationPage() {
       {loading ? (
         <p className="body-s">Carregando...</p>
       ) : posts.length === 0 ? (
-        <p className="body-s" style={{ color: 'var(--fg-secondary)' }}>Nenhuma foto encontrada com este filtro.</p>
+        <EmptyState
+          icon={<IconImage />}
+          title="Sem fotos da comunidade ainda"
+          description="Ative o badge 'compartilhe sua peça' nos emails pós-entrega — nas primeiras semanas, conversão de UGC sobe rápido com 1 incentivo simples."
+          action={{ label: 'Configurar email pós-entrega', href: '/settings' }}
+          secondaryAction={{ label: 'Importar do Instagram', href: '/integracoes' }}
+        />
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 'var(--space-4)' }}>
           {posts.map(p => {

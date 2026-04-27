@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { EmptyState } from '../../components/ui/empty-state';
+import { EmptyState, IconReturn } from '../../components/ui/empty-state';
 
 interface ReturnRequest {
   id: string;
@@ -201,9 +201,10 @@ export default function DevolucoesPage() {
         </div>
       ) : list.length === 0 ? (
         <EmptyState
-          icon="↩"
-          title="Nenhuma devolução"
-          description="Solicitações de troca/devolução abertas pelo cliente aparecerão aqui. Os filtros atuais não retornaram resultados."
+          icon={<IconReturn />}
+          title="Nenhuma devolução por aqui"
+          description="Solicitações de troca/devolução do cliente aparecem nesta fila. Pode ser sinal positivo — ou apenas que os filtros estão restritos."
+          action={{ label: 'Configurar política de troca', href: '/settings' }}
         />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

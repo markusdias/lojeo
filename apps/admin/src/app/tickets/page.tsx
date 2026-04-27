@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { EmptyState } from '../../components/ui/empty-state';
+import { EmptyState, IconHeadset } from '../../components/ui/empty-state';
 
 interface Ticket {
   id: string;
@@ -118,7 +118,7 @@ export default function TicketsPage() {
 
       {!loading && tickets.length === 0 && (
         <EmptyState
-          icon="💬"
+          icon={<IconHeadset />}
           title="Nenhum ticket encontrado"
           description="Tickets criados pelo cliente via storefront, chatbot ou WhatsApp aparecerão aqui."
           action={{ label: 'Configurar chatbot', href: '/chatbot' }}

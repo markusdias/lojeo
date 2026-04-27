@@ -36,7 +36,7 @@ export default async function PedidosPage({ searchParams }: PageProps) {
 
   const sp = await searchParams;
   const statusFilter = sp['status'] ?? '';
-  const days = parseInt(sp['days'] ?? '30', 10);
+  const days = parseInt(sp['days'] ?? '90', 10);
   const page = Math.max(1, parseInt(sp['page'] ?? '1', 10));
   const PAGE_SIZE = 25;
   const tid = process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
