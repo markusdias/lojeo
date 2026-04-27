@@ -3070,3 +3070,44 @@ Tabela renderiza condicional `{visible.length === 0 ? <EmptyState /> : <table />
 **150 commits totais sessão**, **108 testes globais verdes**, **24 migrations prod**, **zero regressão**.
 
 **Próximo ciclo:** Emails.jsx (4 templates email) + States.jsx (loading/error states) + Screens.jsx (admin gaps remanescentes) + visualization /experiments live.
+
+---
+
+## 2026-04-26 — 4 subagentes worktree paralelos: States+Emails+Screens+PDP polish
+
+**Commits:** 86d2aa6 (States.jsx) · 7bfe8d7 (Emails.jsx) · 9db2519 (Screens.jsx) · dcebc84 (PDP polish)
+
+**States.jsx (worktree a1f29fdc) — 7 arquivos novos, 557 linhas:**
+- `app/loading.tsx` SkeletonPageHeader + SkeletonGrid 4 cols
+- `app/error.tsx` StateError + retry + digest mono
+- `app/not-found.tsx` eyebrow "ERRO 404" + display 64px Cormorant + CTAs
+- `app/global-error.tsx` resilient com CSS inline
+- `components/ui/state-empty.tsx` + `state-error.tsx` + `state-skeleton.tsx`
+
+**Emails.jsx (worktree ac8c1e36) — 4 templates novos:**
+- `_tokens.ts` jewelry-v1 spelhados (paper-warm, ink, champagne, fonts serif/sans)
+- `_shell.tsx` EmailShell table-based + atoms Line/Step/btnPrimary
+- `order-confirmation.tsx` (subtotal/frete/total + steps)
+- `pix.tsx` (QR code + copia-cola + valor/desconto/expira)
+- `shipped.tsx` (rastreio + trajeto done/current/future)
+- `trade-approved.tsx` (etiqueta reversa + steps Imprima/Embale/Leve)
+- `welcome.tsx` migrado pra EmailShell preservando API
+- 6 testes via @react-email/render
+
+**Screens.jsx (worktree a3f9e07d) — 3 arquivos:**
+- `/login` reescrito 235 linhas: logo SVG + Google btn 44px branded + divider "ou com e-mail" + dev-login preservado + footer "Crie a sua em 2 minutos"
+- /products chip count font-mono size 10 opacity 0.85/0.65
+- /pedidos/[id] code BEMVINDA10 padding 1px 5px borderRadius 4
+
+**PDP polish (worktree a734ca0a) — pdp-client.tsx +50/-4:**
+- Breadcrumb dinâmico Home > Categoria (Anéis/Colares/Brincos) > Produto via CATEGORY_FROM_KIND map reusando detectJewelryKind
+- Eyebrow dinâmico (category.label) — descarta "Joias Atelier" hardcode
+- Botão zoom 44x44 circular bottom-right + tracker.track('gallery_open')
+
+**Tests engine 44/44 + admin 18/18 + storefront 14/14 + email 6/6 verde. 11/11 packages.**
+
+**Caveat Emails:** ref oficial Emails.jsx tem 4 templates (order/pix/shipped/trade) — briefing pediu order/shipping/NPS/password mas subagente priorizou ref. NPS + password recovery deferred até Claude Design entregar refs.
+
+**155 commits totais sessão**, **114 testes globais verdes** (+6 email), **24 migrations prod**, **zero regressão**.
+
+**Próximo ciclo:** UX validation /login + /not-found + emails preview + paridade visual final remanescente (PLP filtros tipo joia + admin /aparencia preview live).
