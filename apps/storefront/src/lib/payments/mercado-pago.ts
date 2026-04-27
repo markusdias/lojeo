@@ -115,6 +115,101 @@ export interface MpPayment {
   payment_type_id: string;
 }
 
+export interface PixPaymentInput {
+  orderId: string;
+  orderNumber: string;
+  totalCents: number;
+  payerEmail: string;
+  payerName?: string;
+  description?: string;
+  notificationUrl?: string;
+}
+
+export interface PixPaymentResult {
+  paymentId: string;
+  qrCode: string;            // copia-e-cola string ("00020126...")
+  qrCodeBase64: string;      // PNG base64 pra embed em img src
+  ticketUrl: string | null;  // URL fallback no painel MP
+  source: 'mp' | 'mock';
+}
+
+/**
+ * Cria payment Pix direto via MP API. Retorna QR + copia-e-cola pra render
+ * em /checkout/confirmacao e enviar via email PixGenerated.
+ *
+ * Sem token: mock — QR inline placeholder + copia-cola "MOCK-{orderId}".
+ */
+export async function createMercadoPagoPixPayment(input: PixPaymentInput): Promise<PixPaymentResult> {
+  const token = process.env.MERCADO_PAGO_ACCESS_TOKEN;
+  if (!token) {
+    return {
+      paymentId: `mock-pix-${input.orderId}`,
+      qrCode: `MOCK-PIX-${input.orderNumber}-${Math.floor(input.totalCents / 100)}BRL`,
+      qrCodeBase64: '',
+      ticketUrl: null,
+      source: 'mock',
+    };
+  }
+
+  const [firstName, ...rest] = (input.payerName ?? input.payerEmail.split('@')[0] ?? 'Cliente').split(' ');
+  const payload = {
+    transaction_amount: input.totalCents / 100,
+    description: input.description ?? `Pedido ${input.orderNumber}`,
+    payment_method_id: 'pix',
+    external_reference: input.orderId,
+    notification_url: input.notificationUrl,
+    payer: {
+      email: input.payerEmail,
+      first_name: firstName ?? 'Cliente',
+      last_name: rest.join(' ') || undefined,
+    },
+  };
+
+  try {
+    const r = await fetch(`${MP_BASE}/v1/payments`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${token}`,
+        'x-idempotency-key': input.orderId,
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) {
+      const text = await r.text();
+      logger.warn({ status: r.status, body: text.slice(0, 500) }, 'mp pix payment failed');
+      throw new Error(`mp_pix_failed_${r.status}`);
+    }
+    const data = (await r.json()) as {
+      id: number | string;
+      point_of_interaction?: {
+        transaction_data?: {
+          qr_code?: string;
+          qr_code_base64?: string;
+          ticket_url?: string;
+        };
+      };
+    };
+    const td = data.point_of_interaction?.transaction_data ?? {};
+    return {
+      paymentId: String(data.id),
+      qrCode: td.qr_code ?? '',
+      qrCodeBase64: td.qr_code_base64 ?? '',
+      ticketUrl: td.ticket_url ?? null,
+      source: 'mp',
+    };
+  } catch (err) {
+    logger.error({ err: err instanceof Error ? err.message : err }, 'mp pix payment threw');
+    return {
+      paymentId: `mock-pix-fallback-${input.orderId}`,
+      qrCode: `MOCK-PIX-FALLBACK-${input.orderNumber}`,
+      qrCodeBase64: '',
+      ticketUrl: null,
+      source: 'mock',
+    };
+  }
+}
+
 export async function fetchMercadoPagoPayment(paymentId: string): Promise<MpPayment | null> {
   const token = process.env.MERCADO_PAGO_ACCESS_TOKEN;
   if (!token) return null;

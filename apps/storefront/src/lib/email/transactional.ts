@@ -3,10 +3,55 @@
 // Sem RESEND_API_KEY: sendEmail loga e retorna {delivered: false} (mock).
 // Com key: send real via Resend API.
 
-import { sendEmail, render, OrderConfirmation, Welcome, getStoreEmailConfig, type OrderItem } from '@lojeo/email';
+import { sendEmail, render, OrderConfirmation, Welcome, PixGenerated, getStoreEmailConfig, type OrderItem } from '@lojeo/email';
 import { logger } from '@lojeo/logger';
 
 function cfg() { return getStoreEmailConfig(); }
+
+interface PixEmailInput {
+  customerEmail: string;
+  orderCode: string;
+  amountCents: number;
+  qrCodeBase64: string;
+  pixCopyPaste: string;
+  expiresInLabel?: string;
+}
+
+function fmtBrlAmount(cents: number): string {
+  return (cents / 100).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    maximumFractionDigits: 2,
+  });
+}
+
+export async function sendPixGeneratedEmail(input: PixEmailInput): Promise<{ ok: boolean }> {
+  if (!input.customerEmail) return { ok: false };
+  try {
+    const html = await render(
+      PixGenerated({
+        storeName: cfg().storeName,
+        qrImageUrl: input.qrCodeBase64
+          ? `data:image/png;base64,${input.qrCodeBase64}`
+          : '',
+        pixCopyPaste: input.pixCopyPaste,
+        amount: fmtBrlAmount(input.amountCents),
+        expiresInLabel: input.expiresInLabel ?? '30 minutos',
+        supportEmail: cfg().fromEmail,
+      }),
+    );
+    const result = await sendEmail({
+      to: input.customerEmail,
+      from: cfg().fromEmail,
+      subject: `Seu Pix · ${input.orderCode}`,
+      html,
+    });
+    return { ok: result.delivered };
+  } catch (err) {
+    logger.warn({ err: err instanceof Error ? err.message : err }, 'sendPixGeneratedEmail failed');
+    return { ok: false };
+  }
+}
 
 interface OrderEmailInput {
   storeName: string;

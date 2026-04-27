@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db, orders, orderItems, orderEvents, coupons, calcCouponDiscountCents, emitSellerNotification } from '@lojeo/db';
-import { createMercadoPagoPreference } from '../../../lib/payments/mercado-pago';
-import { sendOrderConfirmationEmail } from '../../../lib/email/transactional';
+import { createMercadoPagoPreference, createMercadoPagoPixPayment } from '../../../lib/payments/mercado-pago';
+import { sendOrderConfirmationEmail, sendPixGeneratedEmail } from '../../../lib/email/transactional';
 import { eq, and, sql } from 'drizzle-orm';
 import { checkRateLimit, getClientIp } from '../../../lib/rate-limit';
 
@@ -281,6 +281,31 @@ export async function POST(req: Request) {
         .where(eq(orders.id, order.id));
     }
 
+    // Pix direto: cria payment com QR + copia-e-cola, dispara email com QR.
+    let pixData: { qrCode: string; qrCodeBase64: string; ticketUrl: string | null } | null = null;
+    if (body.paymentMethod === 'pix' && body.customerEmail) {
+      const pix = await createMercadoPagoPixPayment({
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        totalCents,
+        payerEmail: body.customerEmail,
+      });
+      pixData = { qrCode: pix.qrCode, qrCodeBase64: pix.qrCodeBase64, ticketUrl: pix.ticketUrl };
+      if (pix.source === 'mp') {
+        await db
+          .update(orders)
+          .set({ gatewayPaymentId: pix.paymentId, gatewayStatus: 'pending' })
+          .where(eq(orders.id, order.id));
+      }
+      void sendPixGeneratedEmail({
+        customerEmail: body.customerEmail,
+        orderCode: order.orderNumber,
+        amountCents: totalCents,
+        qrCodeBase64: pix.qrCodeBase64,
+        pixCopyPaste: pix.qrCode,
+      });
+    }
+
     if (body.customerEmail) {
       void sendOrderConfirmationEmail({
         storeName: process.env.STOREFRONT_STORE_NAME ?? 'Atelier',
@@ -327,6 +352,7 @@ export async function POST(req: Request) {
         provider: preference.source,
         preferenceId: preference.id,
         initPoint: preference.initPoint,
+        pix: pixData,
       },
     }, { status: 201 });
   } catch (err) {

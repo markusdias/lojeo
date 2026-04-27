@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   isMercadoPagoConfigured,
   createMercadoPagoPreference,
+  createMercadoPagoPixPayment,
   mpStatusToOrderStatus,
   fetchMercadoPagoPayment,
 } from './mercado-pago';
@@ -85,6 +86,59 @@ describe('mercado-pago helper', () => {
       });
       expect(result.source).toBe('mock');
       expect(result.id).toContain('mock-fallback-');
+    });
+  });
+
+  describe('createMercadoPagoPixPayment', () => {
+    const sampleInput = {
+      orderId: 'order-pix-1',
+      orderNumber: 'LJ-PIX-1',
+      totalCents: 5000,
+      payerEmail: 'cliente@example.com',
+      payerName: 'João Silva',
+    };
+
+    it('retorna mock pix sem token', async () => {
+      const result = await createMercadoPagoPixPayment(sampleInput);
+      expect(result.source).toBe('mock');
+      expect(result.qrCode).toContain('MOCK-PIX');
+      expect(result.qrCodeBase64).toBe('');
+      expect(result.paymentId).toContain('mock-pix-');
+    });
+
+    it('chama API real com idempotency key + retorna QR data', async () => {
+      process.env.MERCADO_PAGO_ACCESS_TOKEN = 'APP_USR-fake';
+      let capturedHeaders: Record<string, string> = {};
+      global.fetch = (async (url: string, init?: RequestInit) => {
+        capturedHeaders = init?.headers as Record<string, string>;
+        return new Response(JSON.stringify({
+          id: 12345,
+          status: 'pending',
+          point_of_interaction: {
+            transaction_data: {
+              qr_code: '00020126580014BR.GOV.BCB.PIX',
+              qr_code_base64: 'iVBORw0KGgoAAAANSUhEUgAA',
+              ticket_url: 'https://www.mercadopago.com.br/payments/12345/ticket',
+            },
+          },
+        }), { status: 200 });
+      }) as typeof fetch;
+
+      const result = await createMercadoPagoPixPayment(sampleInput);
+      expect(result.source).toBe('mp');
+      expect(result.paymentId).toBe('12345');
+      expect(result.qrCode).toContain('BR.GOV.BCB.PIX');
+      expect(result.qrCodeBase64).toContain('iVBORw');
+      expect(result.ticketUrl).toContain('mercadopago.com.br');
+      expect(capturedHeaders['x-idempotency-key']).toBe('order-pix-1');
+    });
+
+    it('cai para mock se API falha', async () => {
+      process.env.MERCADO_PAGO_ACCESS_TOKEN = 'APP_USR-fake';
+      global.fetch = (async () => new Response('error', { status: 500 })) as typeof fetch;
+      const result = await createMercadoPagoPixPayment(sampleInput);
+      expect(result.source).toBe('mock');
+      expect(result.paymentId).toContain('mock-pix-fallback');
     });
   });
 
