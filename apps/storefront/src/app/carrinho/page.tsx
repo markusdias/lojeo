@@ -139,16 +139,16 @@ export default function CartPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
             {items.map((item, idx) => (
               <div key={item.id} style={{
-                display: 'grid', gridTemplateColumns: '88px 1fr',
+                display: 'grid', gridTemplateColumns: '120px 1fr',
                 gap: 20, padding: '24px 0',
                 borderTop: idx === 0 ? '1px solid var(--divider)' : undefined,
                 borderBottom: '1px solid var(--divider)',
               }}>
-                {/* Image */}
+                {/* Image — paridade ref Cart.jsx: 120px 1:1 com fundo cremoso */}
                 <Link href={`/produtos/${item.slug}`}>
                   <div style={{
-                    aspectRatio: '3/4', borderRadius: 4,
-                    background: 'var(--surface-sunken)', overflow: 'hidden',
+                    aspectRatio: '1/1', borderRadius: 6,
+                    background: '#F4F1E9', overflow: 'hidden',
                   }}>
                     {item.imageUrl ? (
                       <img src={item.imageUrl} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -168,16 +168,16 @@ export default function CartPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <Link href={`/produtos/${item.slug}`} style={{ color: 'var(--text-primary)', textDecoration: 'none' }}>
-                      <p style={{ fontWeight: 500, margin: 0, fontSize: 15 }}>{item.name}</p>
+                      <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, margin: 0, fontSize: 22, lineHeight: 1.15 }}>{item.name}</h3>
                     </Link>
-                    <p style={{ fontSize: 15, fontWeight: 500, margin: 0, flexShrink: 0, marginLeft: 16 }}>
+                    <p style={{ fontSize: 16, fontFamily: 'var(--font-display)', margin: 0, flexShrink: 0, marginLeft: 16 }}>
                       {formatPrice(item.priceCents * item.qty)}
                     </p>
                   </div>
 
                   {item.options && Object.keys(item.options).length > 0 && (
-                    <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '2px 0 0' }}>
-                      {Object.entries(item.options).map(([k, v]) => `${k}: ${v}`).join(' · ')}
+                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '6px 0 0' }}>
+                      {Object.entries(item.options).map(([, v]) => String(v).replace(/-/g, ' ')).join(' · ')}
                     </p>
                   )}
 
@@ -397,8 +397,13 @@ export default function CartPage() {
         </div>
       </div>
 
-      {/* FBT carrinho — Sprint 11 v2 */}
-      <FrequentlyBoughtTogetherCart cartProductIds={items.map(i => i.productId)} />
+      {/* FBT carrinho — Sprint 11 v2 (paridade ref Cart.jsx YouMayAlsoLike) */}
+      <FrequentlyBoughtTogetherCart
+        cartProductIds={items.map(i => i.productId)}
+        eyebrow="Slot · Sprint 11"
+        title="Você também pode gostar"
+        marginTop={120}
+      />
     </div>
   );
 }

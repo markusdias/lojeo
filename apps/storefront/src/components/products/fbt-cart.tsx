@@ -20,8 +20,14 @@ function fmt(cents: number): string {
  */
 export function FrequentlyBoughtTogetherCart({
   cartProductIds,
+  eyebrow = 'Que tal levar também',
+  title = 'Combina com seu carrinho',
+  marginTop = 32,
 }: {
   cartProductIds: string[];
+  eyebrow?: string;
+  title?: string;
+  marginTop?: number;
 }) {
   const [items, setItems] = useState<RecommendedProduct[] | null>(null);
   const primaryId = cartProductIds[0];
@@ -75,14 +81,14 @@ export function FrequentlyBoughtTogetherCart({
     <section style={{
       padding: '32px 0',
       borderTop: '1px solid var(--divider)',
-      marginTop: 32,
+      marginTop,
     }}>
-      <div style={{ marginBottom: 20 }}>
-        <p style={{ fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8 }}>
-          Que tal levar também
+      <div style={{ marginBottom: 24 }}>
+        <p style={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-secondary)', margin: '0 0 8px' }}>
+          {eyebrow}
         </p>
-        <h3 style={{ fontSize: 20, fontWeight: 400, fontFamily: 'var(--font-display)' }}>
-          Combina com seu carrinho
+        <h3 style={{ fontSize: 28, fontWeight: 400, fontFamily: 'var(--font-display)', margin: 0, lineHeight: 1.1 }}>
+          {title}
         </h3>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
