@@ -3,12 +3,10 @@
 // Sem RESEND_API_KEY: sendEmail loga e retorna {delivered: false} (mock).
 // Com key: send real via Resend API.
 
-import { sendEmail, render, OrderConfirmation, Welcome, type OrderItem } from '@lojeo/email';
+import { sendEmail, render, OrderConfirmation, Welcome, getStoreEmailConfig, type OrderItem } from '@lojeo/email';
 import { logger } from '@lojeo/logger';
 
-const STORE_NAME = process.env.STOREFRONT_STORE_NAME ?? 'Atelier';
-const FROM_EMAIL = process.env.STOREFRONT_FROM_EMAIL ?? 'no-reply@lojeo.app';
-const STOREFRONT_BASE = process.env.STOREFRONT_PUBLIC_URL ?? 'https://lojeo.app';
+function cfg() { return getStoreEmailConfig(); }
 
 interface OrderEmailInput {
   storeName: string;
@@ -43,16 +41,16 @@ export async function sendWelcomeEmail(input: WelcomeEmailInput): Promise<{ ok: 
   try {
     const html = await render(
       Welcome({
-        storeName: STORE_NAME,
+        storeName: cfg().storeName,
         customerName: input.customerName,
-        loginUrl: `${STOREFRONT_BASE}/conta`,
-        supportEmail: FROM_EMAIL,
+        loginUrl: `${cfg().storefrontBase}/conta`,
+        supportEmail: cfg().fromEmail,
       }),
     );
     const result = await sendEmail({
       to: input.customerEmail,
-      from: FROM_EMAIL,
-      subject: `Bem-vinda à ${STORE_NAME}`,
+      from: cfg().fromEmail,
+      subject: `Bem-vinda à ${cfg().storeName}`,
       html,
     });
     return { ok: result.delivered };

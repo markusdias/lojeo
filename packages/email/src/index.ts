@@ -1,4 +1,5 @@
 export { sendEmail, type SendEmailInput, type SendResult } from './client';
+export { getStoreEmailConfig, type StoreEmailConfig } from './store-config';
 export { render } from '@react-email/components';
 
 // Templates jewelry-v1 (espelham docs/design-system-jewelry-v1/.../Emails.jsx)

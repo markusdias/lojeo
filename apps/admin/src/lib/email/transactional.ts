@@ -1,11 +1,9 @@
 // Transactional emails admin-side — render React Email + sendEmail dual mode.
 
-import { sendEmail, render, ShippingNotification, TradeApproved } from '@lojeo/email';
+import { sendEmail, render, ShippingNotification, TradeApproved, getStoreEmailConfig } from '@lojeo/email';
 import { logger } from '@lojeo/logger';
 
-const STORE_NAME = process.env.STOREFRONT_STORE_NAME ?? 'Atelier';
-const FROM_EMAIL = process.env.STOREFRONT_FROM_EMAIL ?? 'no-reply@lojeo.app';
-const STOREFRONT_BASE = process.env.STOREFRONT_PUBLIC_URL ?? 'https://lojeo.app';
+function cfg() { return getStoreEmailConfig(); }
 
 interface ShippingEmailInput {
   customerEmail: string;
@@ -21,22 +19,22 @@ export async function sendShippingNotificationEmail(input: ShippingEmailInput): 
     const today = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
     const html = await render(
       ShippingNotification({
-        storeName: STORE_NAME,
+        storeName: cfg().storeName,
         estimatedDelivery: input.estimatedDelivery,
         trackingCode: input.trackingCode,
-        trackingUrl: `${STOREFRONT_BASE}/rastreio?order=${input.orderId}`,
+        trackingUrl: `${cfg().storefrontBase}/rastreio?order=${input.orderId}`,
         stops: [
           { status: 'done', label: 'Pedido enviado', date: today },
           { status: 'current', label: 'Em trânsito', date: '—' },
           { status: 'future', label: 'Saiu para entrega', date: '—' },
           { status: 'future', label: 'Entregue', date: '—' },
         ],
-        supportEmail: FROM_EMAIL,
+        supportEmail: cfg().fromEmail,
       }),
     );
     const result = await sendEmail({
       to: input.customerEmail,
-      from: FROM_EMAIL,
+      from: cfg().fromEmail,
       subject: `Seu pedido foi enviado · ${input.orderCode}`,
       html,
     });
@@ -60,14 +58,14 @@ export async function sendTradeApprovedEmail(input: TradeApprovedEmailInput): Pr
     const typeLabel = input.type === 'exchange' ? 'Troca' : input.type === 'warranty' ? 'Garantia' : 'Devolução';
     const html = await render(
       TradeApproved({
-        storeName: STORE_NAME,
-        labelPdfUrl: input.labelPdfUrl ?? `${STOREFRONT_BASE}/conta`,
-        supportEmail: FROM_EMAIL,
+        storeName: cfg().storeName,
+        labelPdfUrl: input.labelPdfUrl ?? `${cfg().storefrontBase}/conta`,
+        supportEmail: cfg().fromEmail,
       }),
     );
     const result = await sendEmail({
       to: input.customerEmail,
-      from: FROM_EMAIL,
+      from: cfg().fromEmail,
       subject: `${typeLabel} aprovada · ${input.orderCode}`,
       html,
     });
