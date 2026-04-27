@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
+import { StorefrontPreview } from './storefront-preview';
 
 interface AppearanceConfig {
   typo?: string;
@@ -494,8 +495,8 @@ export default function AparenciaPage() {
                   </Link>
                 </div>
               </div>
-              <div style={{ background: activeTemplate.thumbBg, aspectRatio: previewMode === 'mobile' ? '9/16' : previewMode === 'tablet' ? '4/3' : '16/10', position: 'relative', overflow: 'hidden' }}>
-                <iframe src="https://apps-lojeo-storefront.m9axtw.easypanel.host" style={{ width: '100%', height: '100%', border: 'none' }} title="Storefront preview" loading="lazy" />
+              <div style={{ aspectRatio: previewMode === 'mobile' ? '9/16' : previewMode === 'tablet' ? '4/3' : '16/10', position: 'relative', overflow: 'auto' }}>
+                <StorefrontPreview config={{ typo, accent, bgTone, photoStyle, imgRadius, hero, trustSignals }} />
               </div>
               <div className="mono" style={{ padding: '10px 14px', background: 'var(--bg-subtle)', borderTop: '1px solid var(--border)', fontSize: 11, color: 'var(--fg-muted)' }}>
                 Mudanças aplicam só depois de <strong>publicar</strong>. Quem visita a loja agora vê a versão anterior.
