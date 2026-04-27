@@ -4,7 +4,7 @@ import { useState, useEffect, useId } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useCheckout, type CheckoutAddress } from '../../../components/checkout/checkout-provider';
-import { isValidCpf, stripCpf } from '@lojeo/engine';
+import { isValidCpf, stripCpf } from '../../../lib/cpf';
 import { useCart } from '../../../components/cart/cart-provider';
 import { useTracker } from '../../../components/tracker-provider';
 import { CheckoutSummary } from '../../../components/checkout/checkout-summary';
