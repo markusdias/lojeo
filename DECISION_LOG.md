@@ -3180,3 +3180,48 @@ Schema gift_cards preservado (existia). API contracts batem com /wishlist admin 
 - UX validation /gift-cards live (post-deploy)
 - Aplicação gift card no checkout como meio de pagamento (Sprint 5 critério aberto)
 - Crédito em loja como alternativa ao reembolso (Sprint 6 — usar gift_cards como motor)
+
+---
+
+## 2026-04-26 — Sprint 5 fechado: gift card como meio pagamento checkout
+
+**Commit + deploy admin+storefront**
+
+**Mudanças:**
+
+Schema:
+- orders.giftCardCode varchar(32) + giftCardDiscountCents integer
+- Migration 0026 idempotente em apps/admin/src/app/api/migrate/route.ts
+
+API novo:
+- POST /api/gift-cards/validate — lookup code → { valid, balanceCents, expiresAt, status, reason }
+- reason values: not_found / expired / depleted / inactive
+
+API existente atualizada:
+- POST /api/orders body.giftCardCode → atomic UPDATE gift_cards via SQL CASE:
+  ```sql
+  UPDATE gift_cards
+  SET current_balance_cents = GREATEST(0, current_balance_cents - LEAST(...)),
+      status = CASE WHEN balance hits 0 THEN 'used' ELSE status END
+  WHERE tenant_id = ? AND code = ? AND status='active' AND balance>0 AND expires_at>NOW()
+  RETURNING applied_cents
+  ```
+- Race-safe (atomic), idempotent (returning), abate min(balance, total).
+
+UI checkout pagamento:
+- Block "Aplicar gift card 🎁" após Cupom (input + Aplicar btn)
+- Erros contextuais (Código não encontrado / Gift card expirado / Sem saldo / Inativo)
+- Applied state: code font-mono + saldo + Remover
+- CheckoutSummary nova prop giftCardDiscountCents → linha verde "-R$ X,XX" + abate Total
+
+**Sprint 5 critérios fechados:**
+- ✅ Compra de gift card como produto especial (commit 11da29d anterior)
+- ✅ Aplicação no checkout como meio de pagamento (parcial ou total) — agora
+
+**Sprint 5 critérios remanescentes:**
+- Email automático destinatário com código (BLOQUEADO Resend API key)
+- Trigger.dev jobs notificação wishlist promo / restock (BLOQUEADO)
+
+**158 commits totais sessão**, **114 testes globais verdes**, **25 migrations prod**, **zero regressão**.
+
+**Próximo ciclo:** crédito loja Sprint 6 (gift card automático em devolução) + audit refs admin restantes.
