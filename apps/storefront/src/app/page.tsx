@@ -6,6 +6,7 @@ import { ProductCard } from '../components/ui/product-card';
 import { PersonalizedHero } from '../components/marketing/personalized-hero';
 import { RecommendedForYouSection } from '../components/products/recommended-for-you';
 import { AnonAffinitySection } from '../components/products/anon-affinity-section';
+import { UgcGallery } from '../components/ugc/ugc-gallery';
 
 export const dynamic = 'force-dynamic';
 
@@ -198,6 +199,11 @@ export default async function HomePage() {
             </Link>
           </div>
         </div>
+      </section>
+
+      {/* ── DA NOSSA COMUNIDADE (UGC) ── */}
+      <section style={{ maxWidth: 'var(--container-max)', margin: '120px auto 0', padding: '0 var(--container-pad)' }}>
+        <UgcGallery eyebrow="@atelier" title="Da nossa comunidade" columns={6} />
       </section>
 
       {/* ── TRUST SIGNALS ── */}

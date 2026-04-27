@@ -12,7 +12,17 @@ interface UgcPost {
   approvedAt: string | null;
 }
 
-export function UgcGallery({ productId }: { productId?: string }) {
+export function UgcGallery({
+  productId,
+  eyebrow = 'Comunidade',
+  title = 'Como nossas clientes usam',
+  columns,
+}: {
+  productId?: string;
+  eyebrow?: string;
+  title?: string;
+  columns?: number;
+}) {
   const [posts, setPosts] = useState<UgcPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [inViewport, setInViewport] = useState(false);
@@ -59,11 +69,11 @@ export function UgcGallery({ productId }: { productId?: string }) {
           <>
             <div style={{ marginBottom: 24 }}>
               <p style={{ fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8 }}>
-                Comunidade
+                {eyebrow}
               </p>
               <div style={{ height: 32, width: 280, background: 'var(--surface)', borderRadius: 4 }} />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: columns ? `repeat(${columns}, 1fr)` : 'repeat(auto-fill, minmax(180px, 1fr))', gap: columns ? 8 : 12 }}>
               {Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} style={{ aspectRatio: '1', background: 'var(--surface)', borderRadius: 4 }} />
               ))}
@@ -74,13 +84,13 @@ export function UgcGallery({ productId }: { productId?: string }) {
         <>
           <div style={{ marginBottom: 24 }}>
             <p style={{ fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8 }}>
-              Comunidade
+              {eyebrow}
             </p>
             <h2 style={{ fontSize: 28, fontWeight: 400, fontFamily: 'var(--font-display)' }}>
-              Como nossas clientes usam
+              {title}
             </h2>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: columns ? `repeat(${columns}, 1fr)` : 'repeat(auto-fill, minmax(180px, 1fr))', gap: columns ? 8 : 12 }}>
             {posts.map(p => (
               <div key={p.id} style={{ position: 'relative', aspectRatio: '1', overflow: 'hidden', borderRadius: 4, background: 'var(--surface)' }}>
                 <img
