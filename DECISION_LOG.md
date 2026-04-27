@@ -3225,3 +3225,35 @@ UI checkout pagamento:
 **158 commits totais sessão**, **114 testes globais verdes**, **25 migrations prod**, **zero regressão**.
 
 **Próximo ciclo:** crédito loja Sprint 6 (gift card automático em devolução) + audit refs admin restantes.
+
+---
+
+## 2026-04-26 — Sprint 6 fechamento parcial: crédito loja gift card automático
+
+**Commit:** 98f884b
+
+**Fluxo end-to-end:**
+1. Cliente abre return type='store_credit' via /conta/devolucoes
+2. Admin avalia e aprova → PATCH /api/returns/[id] { status: 'approved', refundCents: X }
+3. API detecta `existing.type === 'store_credit'` no approve
+4. Gera código GFT-XXXX-XXXX-XXXX (alfabeto sem ambíguos, retry colisão)
+5. INSERT gift_cards row com initialValueCents=refundCents, status='active', expiresAt 12 meses
+6. Audit log inclui issuedGiftCardCode
+7. Response retorna issuedGiftCardCode pra admin mostrar/copiar
+
+**Reusa motor existente:**
+- Schema gift_cards (Sprint 1)
+- POST /api/orders aplica gift card como meio pagamento (commit anterior)
+- Zero migration nova
+
+**Sprint 6 critérios:**
+- ✅ Crédito em loja como alternativa ao reembolso (gift card automático) — agora
+- ❌ Geração de etiqueta reversa via Melhor Envio (BLOQUEADO OAuth)
+- ❌ Reembolso integrado ao gateway no clique de aprovação (BLOQUEADO Mercado Pago OAuth)
+- ❌ NF-e de devolução automática via Bling (BLOQUEADO Bling OAuth)
+
+**Tests admin 18/18. Engine 44/44. 11/11 packages verde. Zero regressão.**
+
+**159 commits totais sessão**, **114 testes globais verdes**, **25 migrations prod**.
+
+**Próximo ciclo:** UX validation /devolucoes admin com store_credit approve flow + audit refs admin restantes (Empty.jsx que falta validar).
