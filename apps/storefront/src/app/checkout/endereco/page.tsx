@@ -4,6 +4,7 @@ import { useState, useEffect, useId } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useCheckout, type CheckoutAddress } from '../../../components/checkout/checkout-provider';
+import { isValidCpf, stripCpf } from '@lojeo/engine';
 import { useCart } from '../../../components/cart/cart-provider';
 import { useTracker } from '../../../components/tracker-provider';
 import { CheckoutSummary } from '../../../components/checkout/checkout-summary';
@@ -61,7 +62,7 @@ export default function EnderecoPage() {
   });
   const [email, setEmail] = useState(state.customerEmail ?? '');
   const [cpf, setCpf] = useState(state.customerCpf ?? '');
-  const [errors, setErrors] = useState<Partial<Record<keyof CheckoutAddress | 'email', string>>>({});
+  const [errors, setErrors] = useState<Partial<Record<keyof CheckoutAddress | 'email' | 'cpf', string>>>({});
   const [cepLoading, setCepLoading] = useState(false);
   const [cepError, setCepError] = useState('');
   const ids = {
@@ -148,6 +149,11 @@ export default function EnderecoPage() {
     if (!form.city?.trim()) e.city = 'Obrigatório';
     if (!form.state?.trim()) e.state = 'Obrigatório';
     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = 'Email inválido';
+    // CPF é opcional. Se preenchido, deve ser válido módulo 11.
+    const cpfDigits = stripCpf(cpf);
+    if (cpfDigits.length > 0 && !isValidCpf(cpf)) {
+      e.cpf = 'CPF inválido — verifique os dígitos';
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -194,7 +200,7 @@ export default function EnderecoPage() {
             />
           </Field>
 
-          <Field label="CPF (opcional, exigido para Boleto)" htmlFor={ids.cpf}>
+          <Field label="CPF (opcional, exigido para Boleto)" error={errors.cpf} htmlFor={ids.cpf}>
             <Input
               id={ids.cpf}
               value={cpf}
