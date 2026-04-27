@@ -39,6 +39,7 @@ export function Footer({ storeName }: { storeName: string }) {
             { label: 'Pulseiras', href: '/produtos?categoria=pulseiras' },
             { label: 'Coleções', href: '/colecoes' },
             { label: 'Novidades', href: '/produtos?ordenar=novidades' },
+            { label: 'Gift cards', href: '/gift-cards' },
           ].map(l => (
             <Link key={l.href} href={l.href} style={{
               display: 'block', fontSize: 13, color: 'var(--footer-muted)',
