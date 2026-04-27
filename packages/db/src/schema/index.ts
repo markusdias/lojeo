@@ -18,3 +18,4 @@ export * from './returns';
 export * from './competitors';
 export * from './reports';
 export * from './blog';
+export * from './notifications';

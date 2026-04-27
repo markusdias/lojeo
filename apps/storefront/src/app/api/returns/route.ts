@@ -8,6 +8,7 @@ import {
   products,
   RETURN_TYPES,
   RETURN_REASONS,
+  emitSellerNotification,
 } from '@lojeo/db';
 import { auth } from '../../../auth';
 
@@ -176,6 +177,20 @@ export async function POST(req: Request) {
   // Placeholder — Sprint 6 v2: enviar email de confirmação via Resend/SendGrid
   // eslint-disable-next-line no-console
   console.info('[returns] new request', { id: created?.id, orderId, type, reason, email: insertEmail });
+
+  if (created) {
+    void emitSellerNotification({
+      tenantId: tid,
+      type: 'return.requested',
+      severity: 'warning',
+      title: `Nova ${type === 'warranty' ? 'garantia' : type === 'exchange' ? 'troca' : 'devolução'} solicitada`,
+      body: `Pedido #${order.orderNumber} · ${insertEmail ?? 'guest'} · motivo: ${reason}`,
+      link: `/devolucoes/${created.id}`,
+      entityType: 'return_request',
+      entityId: created.id,
+      metadata: { orderId, orderNumber: order.orderNumber, type, reason },
+    });
+  }
 
   return NextResponse.json({ return: created }, { status: 201 });
 }

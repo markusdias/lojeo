@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { NotificationsBell } from './notifications-bell';
 
 interface TopbarProps {
   userName?: string;
@@ -132,12 +133,7 @@ export function Topbar({ userName, userEmail }: TopbarProps) {
         />
       </div>
 
-      <button className="lj-icon-btn" aria-label="Notificações" type="button">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-          <path d="M9 2v.5M5.25 5.25v3.5l-1 2.25h9.5l-1-2.25v-3.5a3.75 3.75 0 1 0-7.5 0Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-          <path d="M7.5 13a1.5 1.5 0 0 0 3 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
-      </button>
+      <NotificationsBell />
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
         <span className="lj-avatar" aria-hidden>{initials(display)}</span>

@@ -737,6 +737,29 @@ export async function POST(req: NextRequest) {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_push_subs_tenant_user ON push_subscriptions(tenant_id, user_id)`);
     results.push('push_subscriptions: ok');
 
+    // Sprint 9 — seller_notifications (alertas in-app pro lojista)
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS seller_notifications (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL,
+        user_id uuid,
+        type varchar(60) NOT NULL,
+        severity varchar(20) DEFAULT 'info' NOT NULL,
+        title varchar(200) NOT NULL,
+        body text,
+        link varchar(500),
+        entity_type varchar(60),
+        entity_id uuid,
+        metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+        read_at timestamptz,
+        created_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_seller_notif_tenant_user_created ON seller_notifications(tenant_id, user_id, created_at)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_seller_notif_tenant_read ON seller_notifications(tenant_id, read_at)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_seller_notif_tenant_type ON seller_notifications(tenant_id, type)`);
+    results.push('seller_notifications: ok');
+
     return NextResponse.json({ ok: true, results });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

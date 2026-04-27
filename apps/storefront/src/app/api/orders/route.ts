@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db, orders, orderItems, orderEvents, coupons, calcCouponDiscountCents } from '@lojeo/db';
+import { db, orders, orderItems, orderEvents, coupons, calcCouponDiscountCents, emitSellerNotification } from '@lojeo/db';
 import { eq, and, sql } from 'drizzle-orm';
 import { checkRateLimit, getClientIp } from '../../../lib/rate-limit';
 
@@ -256,6 +256,22 @@ export async function POST(req: Request) {
 
     // Sprint 3 full: trigger Mercado Pago preference creation here
     // For now: return order details, payment happens out-of-band
+
+    void emitSellerNotification({
+      tenantId: tid,
+      type: 'order.created',
+      severity: 'info',
+      title: `Novo pedido #${order.orderNumber}`,
+      body: `R$ ${(totalCents / 100).toFixed(2).replace('.', ',')} · ${body.paymentMethod} · ${body.customerEmail ?? 'sem email'}`,
+      link: `/pedidos/${order.id}`,
+      entityType: 'order',
+      entityId: order.id,
+      metadata: {
+        orderNumber: order.orderNumber,
+        totalCents,
+        paymentMethod: body.paymentMethod,
+      },
+    });
 
     return NextResponse.json({
       orderId: order.id,
