@@ -207,7 +207,12 @@ export default function PagamentoPage() {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 64, alignItems: 'start' }}>
       <form onSubmit={handleSubmit}>
-        <h2 style={{ marginBottom: 32, fontSize: 22 }}>Forma de pagamento</h2>
+        <h2 style={{
+          fontFamily: 'var(--font-display)', fontSize: 32, lineHeight: 1.1,
+          margin: '0 0 28px', fontWeight: 400,
+        }}>
+          Pagamento
+        </h2>
 
         {/* Gift option */}
         <div style={{ marginBottom: 32, padding: '16px 20px', border: '1px solid var(--divider)', borderRadius: 8 }}>
