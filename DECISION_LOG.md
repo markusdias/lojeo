@@ -4856,3 +4856,53 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - Plug createStripePaymentIntent em POST /api/orders quando template.currency='USD'/'EUR' AND paymentMethod='credit_card'. Persistir clientSecret em order metadata pra frontend Stripe.js confirmar.
 - DHL helper scaffold (mesmo padrão dual mock/real).
 - Storefront <html lang> dinâmico via cookie/template config.
+
+
+---
+
+## 2026-04-27 (continuacao) — Batch 33: International shipping (DHL/FedEx) — Fase 1.2
+
+**Commits:** ace44ef.
+
+**apps/storefront/src/lib/shipping/international.ts:**
+- Types: `ShippingCarrier` (dhl/fedex/correios_intl), `ShippingRateInput` (fromCountry, toCountry, postalCode, weightG, dimensionsCm, declaredValueCents, currency), `ShippingQuote` response com source mock/real.
+- `zoneMultiplier()`: doméstico×0.6 · same-region×1.0 · cross-region×1.6. Regiões agrupadas (Americas/Europe/Asia) — V2 substituir por tabela MyDHL.
+- `getMockShippingQuotes()`: 4 opções calibradas pra ordem de grandeza realista:
+  - DHL Express Worldwide: $25 base + $15/kg, 2-4d
+  - FedEx Intl Priority: $23 base + $14/kg, 2-5d
+  - FedEx Intl Economy: $15 base + $9/kg, 5-9d
+  - Correios Pacote Intl: $8 base + $6/kg, 10-25d
+- `fetchDhlQuotes()`/`fetchFedexQuotes()` — stubs no-op até DHL_API_KEY/FEDEX_API_KEY. V2: chamada real MyDHL Rates API + FedEx Rate Web Services. Skip silencioso pra preservar fluxo.
+- `getInternationalShippingQuotes()` consolidada: real first via Promise.all, mock fallback se ambos vazios. Sempre retorna >=1 opção (cliente nunca fica sem frete).
+
+**11 tests:**
+- Configurado check (sem env / só DHL / só FedEx)
+- Mock retorna 4 opções, todas source=mock
+- Currency preservation (USD/EUR)
+- Weight up → price up
+- Domestic (US→US) < international (US→BR)
+- Cross-region (US→JP) > same-region (US→CA)
+- DHL deliveryDaysMax < Correios deliveryDaysMax
+- Fallback mock quando sem creds
+
+**.env.example +2 vars:** DHL_API_KEY, FEDEX_API_KEY com modo degradado documentado.
+
+**Validações:**
+- Storefront 78/78 (+11 shipping). Admin 77, engine 98, db 20, jewelry 3, coffee 5, email 6, ai 7, tracking 7. **Total ~295** ✅. Typecheck/lint zero.
+- 0 regressão.
+
+**Fase 1.2 — coverage atualizada:**
+- ✓ Template scaffolded (batch 30)
+- ✓ Stripe helper PaymentIntent (batch 31)
+- ✓ Stripe webhook real-mode (batch 32)
+- ✓ **International shipping helpers DHL/FedEx**
+- ⏳ Plug stripe payment intent em POST /api/orders quando currency != BRL
+- ⏳ Plug shipping quotes em checkout/frete quando toCountry != BR
+- ⏳ Storefront layout.tsx detect coffee-v1 → lang=en + currency formatter USD
+- ⏳ Email templates EN-US fallback
+- ⏳ Coffee-v1 instance prod deploy
+
+**Próximo ciclo:**
+- Plug shipping internacional em UI checkout/frete: detectar address.country + listar quotes paralelo Melhor Envio (BR doméstico) vs DHL/FedEx (intl).
+- Stripe payment integration em POST /api/orders.
+- Storefront `<html lang>` dinâmico via tenant config.
