@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { db, products, productVariants, productImages, inventoryStock, behaviorEvents } from '@lojeo/db';
-import { eq, and, gte, sql, inArray, countDistinct } from 'drizzle-orm';
+import { db, products, productVariants, productImages, inventoryStock, behaviorEvents, productReviews } from '@lojeo/db';
+import { eq, and, gte, sql, inArray, countDistinct, avg, count } from 'drizzle-orm';
 import { getActiveTemplate } from '../../../template';
 import { PDPClient } from './pdp-client';
 import { ReviewSection } from '../../../components/reviews/review-section';
@@ -61,6 +61,29 @@ export default async function PDPPage({ params }: PDPProps) {
 
   const variantIds = variants.map(v => v.id);
   const windowAgo = new Date(Date.now() - VIEWING_WINDOW_MIN * 60 * 1000);
+
+  // Agregado de reviews aprovados (Stars + count no header da PDP — match jewelry-v1 ref).
+  // Falha graciosa: se DB der erro, header não exibe rating.
+  let reviewAvg = 0;
+  let reviewTotal = 0;
+  try {
+    const aggResult = await db
+      .select({
+        avg: avg(productReviews.rating),
+        total: count(productReviews.id),
+      })
+      .from(productReviews)
+      .where(and(
+        eq(productReviews.tenantId, tid),
+        eq(productReviews.productId, product.id),
+        eq(productReviews.status, 'approved'),
+      ));
+    const row = aggResult[0];
+    reviewAvg = row?.avg ? Math.round(Number(row.avg) * 10) / 10 : 0;
+    reviewTotal = Number(row?.total ?? 0);
+  } catch (err) {
+    console.warn('[PDP] review aggregate failed', err);
+  }
 
   // Telemetria de urgência — falha graciosa: se DB der erro, badge não renderiza.
   type UrgencyKind = 'none' | 'viewing' | 'low-stock';
@@ -164,6 +187,8 @@ export default async function PDPPage({ params }: PDPProps) {
         viewersNow={viewersNow}
         totalStock={totalStock}
         currency={tpl.currency}
+        reviewAvg={reviewAvg}
+        reviewTotal={reviewTotal}
       />
       <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '0 var(--container-pad) 80px' }}>
         <FrequentlyBoughtTogether productId={product.id} />

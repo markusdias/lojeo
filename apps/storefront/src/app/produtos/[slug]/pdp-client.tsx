@@ -9,6 +9,8 @@ import { HeartButton } from '../../../components/wishlist/heart-button';
 import { useTrackRecentlyViewed } from '../../../components/products/recently-viewed';
 import { trackPixelEvent } from '../../../components/marketing/pixel-events';
 import { VariantPicker } from './variant-picker';
+import { StickyBuyBar } from './sticky-buy-bar';
+import { ShippingCalc } from './shipping-calc';
 
 type UrgencyKind = 'none' | 'viewing' | 'low-stock';
 
@@ -48,6 +50,199 @@ interface PDPClientProps {
   viewersNow: number;
   totalStock: number;
   currency: string;
+  reviewAvg: number;
+  reviewTotal: number;
+}
+
+/**
+ * Stars — versão compacta read-only para o header da PDP.
+ * Match ref jewelry-v1: 5 estrelas champagne (#C9A85C) + cinza claro vazias.
+ */
+function Stars({ value }: { value: number }) {
+  const rounded = Math.round(value);
+  return (
+    <span aria-label={`${value.toFixed(1)} de 5 estrelas`} style={{ display: 'inline-flex', gap: 2, lineHeight: 1 }}>
+      {[1, 2, 3, 4, 5].map(i => (
+        <span key={i} style={{ color: i <= rounded ? '#C9A85C' : 'var(--divider)', fontSize: 14 }}>★</span>
+      ))}
+    </span>
+  );
+}
+
+/**
+ * MaterialSwatches — match ref jewelry-v1.
+ * Detecta o material atual em customFields (string) e mostra como botão circular 36x36
+ * com swatch de cor. A loja apenas exibe o material já cadastrado — não há troca real
+ * de variante por material (preserva contrato API). Se outras opções existirem em
+ * customFields.materialOptions (array), também são listadas como swatches secundárias.
+ */
+const MATERIAL_SWATCHES: Record<string, { label: string; swatch: string }> = {
+  ouro: { label: 'Ouro 18k', swatch: '#D4B896' },
+  'ouro 18k': { label: 'Ouro 18k', swatch: '#D4B896' },
+  'ouro-18k': { label: 'Ouro 18k', swatch: '#D4B896' },
+  prata: { label: 'Prata 925', swatch: '#C8CDD3' },
+  'prata 925': { label: 'Prata 925', swatch: '#C8CDD3' },
+  'rose-gold': { label: 'Ouro Rosé', swatch: '#C8A28C' },
+  'ouro rosé': { label: 'Ouro Rosé', swatch: '#C8A28C' },
+  'ouro rose': { label: 'Ouro Rosé', swatch: '#C8A28C' },
+  cobre: { label: 'Cobre', swatch: '#A96B3F' },
+  copper: { label: 'Cobre', swatch: '#A96B3F' },
+};
+
+function normalizeMaterialKey(s: string): string {
+  return s.trim().toLowerCase();
+}
+
+function MaterialSwatches({ customFields }: { customFields: Record<string, unknown> }) {
+  const raw = customFields.material ?? customFields.metal ?? customFields.materia;
+  const optionsRaw = customFields.materialOptions ?? customFields.materiais;
+  const options: string[] = Array.isArray(optionsRaw)
+    ? optionsRaw.filter((x): x is string => typeof x === 'string')
+    : typeof raw === 'string'
+      ? [raw]
+      : [];
+
+  if (options.length === 0) return null;
+
+  const swatches = options
+    .map(opt => {
+      const key = normalizeMaterialKey(opt);
+      const known = MATERIAL_SWATCHES[key];
+      return known
+        ? { key, ...known }
+        : { key, label: opt, swatch: 'var(--surface-sunken)' };
+    })
+    // dedupe por key
+    .filter((s, i, arr) => arr.findIndex(x => x.key === s.key) === i);
+
+  return (
+    <div style={{ marginTop: 32 }}>
+      <p style={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-secondary)', margin: 0 }}>
+        Material
+      </p>
+      <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
+        {swatches.map((s, i) => (
+          <button
+            key={s.key}
+            type="button"
+            title={s.label}
+            aria-label={s.label}
+            // Primeira swatch fica "ativa" — match ref (loja não troca variante por material aqui).
+            style={{
+              width: 36, height: 36, borderRadius: 999,
+              background: s.swatch,
+              border: '1px solid var(--divider)',
+              cursor: 'default',
+              outline: i === 0 ? '1.5px solid var(--text-primary)' : 'none',
+              outlineOffset: 2,
+              padding: 0,
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * NicheFields — dl em duas colunas (120px label uppercase + 1fr value), com divider entre rows.
+ * Match ref jewelry-v1 PDP.jsx::NicheFields. Renderiza apenas linhas com valor presente.
+ */
+const NICHE_FIELD_LABELS: Record<string, string> = {
+  material: 'Material',
+  metal: 'Material',
+  pedra: 'Pedra',
+  stone: 'Pedra',
+  quilate: 'Quilate',
+  carat: 'Quilate',
+  origem: 'Origem',
+  origin: 'Origem',
+  tamanho: 'Tamanho',
+  size: 'Tamanho',
+  aro: 'Aro',
+  acabamento: 'Acabamento',
+  finish: 'Acabamento',
+  comprimento: 'Comprimento',
+  length: 'Comprimento',
+  fecho: 'Fecho',
+  closure: 'Fecho',
+  embalagem: 'Embalagem',
+  packaging: 'Embalagem',
+  garantia: 'Garantia',
+  warranty: 'Garantia',
+};
+
+const NICHE_FIELD_ORDER = [
+  'material', 'metal', 'pedra', 'stone', 'quilate', 'carat',
+  'tamanho', 'size', 'aro', 'comprimento', 'length',
+  'fecho', 'closure', 'acabamento', 'finish',
+  'origem', 'origin', 'embalagem', 'packaging',
+  'garantia', 'warranty',
+];
+
+function NicheFields({ customFields, warrantyMonths }: { customFields: Record<string, unknown>; warrantyMonths: number }) {
+  const rows: Array<{ key: string; value: string }> = [];
+  const seenLabels = new Set<string>();
+
+  for (const k of NICHE_FIELD_ORDER) {
+    const raw = customFields[k];
+    if (raw === undefined || raw === null || raw === '') continue;
+    const label = NICHE_FIELD_LABELS[k] ?? k.charAt(0).toUpperCase() + k.slice(1);
+    if (seenLabels.has(label)) continue;
+    seenLabels.add(label);
+    rows.push({ key: label, value: String(raw) });
+  }
+
+  // Linhas extras presentes em customFields que não estão no ORDER conhecido.
+  for (const [k, v] of Object.entries(customFields)) {
+    if (NICHE_FIELD_ORDER.includes(k)) continue;
+    if (k === 'materialOptions' || k === 'materiais') continue;
+    if (v === undefined || v === null || v === '') continue;
+    if (typeof v !== 'string' && typeof v !== 'number' && typeof v !== 'boolean') continue;
+    const label = k.charAt(0).toUpperCase() + k.slice(1);
+    if (seenLabels.has(label)) continue;
+    seenLabels.add(label);
+    rows.push({ key: label, value: String(v) });
+  }
+
+  // Garantia derivada de warrantyMonths se ainda não houver
+  if (!seenLabels.has('Garantia') && warrantyMonths > 0) {
+    rows.push({
+      key: 'Garantia',
+      value: `${warrantyMonths} ${warrantyMonths === 1 ? 'mês' : 'meses'} contra defeitos de fabricação`,
+    });
+  }
+  if (!seenLabels.has('Embalagem')) {
+    rows.push({ key: 'Embalagem', value: 'Caixa Atelier inclusa' });
+  }
+
+  if (rows.length === 0) return null;
+
+  return (
+    <dl style={{ marginTop: 36, paddingTop: 24, borderTop: '1px solid var(--divider)', fontSize: 13, margin: '36px 0 0' }}>
+      {rows.map(r => (
+        <div
+          key={r.key}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '120px 1fr',
+            padding: '10px 0',
+            borderBottom: '1px solid var(--divider)',
+          }}
+        >
+          <dt style={{
+            color: 'var(--text-secondary)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+            fontSize: 11,
+          }}>
+            {r.key}
+          </dt>
+          <dd style={{ margin: 0, color: 'var(--text-primary)' }}>{r.value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
 }
 
 /**
@@ -155,7 +350,7 @@ function RestockButton({ productId, variantId }: { productId: string; variantId:
   );
 }
 
-export function PDPClient({ product, variants, images, urgency, viewersNow, totalStock, currency }: PDPClientProps) {
+export function PDPClient({ product, variants, images, urgency, viewersNow, totalStock, currency, reviewAvg, reviewTotal }: PDPClientProps) {
   const [imgIdx, setImgIdx] = useState(0);
   const [selectedVariantId, setSelectedVariantId] = useState(variants[0]?.id ?? '');
   const { addItem } = useCart();
@@ -301,10 +496,10 @@ export function PDPClient({ product, variants, images, urgency, viewersNow, tota
             ))}
           </div>
 
-          {/* Main image */}
+          {/* Main image — aspectRatio 1/1 (match ref jewelry-v1) */}
           <div
             style={{
-              aspectRatio: '3/4', borderRadius: 8, overflow: 'hidden',
+              aspectRatio: '1/1', borderRadius: 8, overflow: 'hidden',
               background: 'var(--surface-sunken)', position: 'relative',
               cursor: images[imgIdx] ? 'zoom-in' : 'default',
             }}
@@ -342,7 +537,15 @@ export function PDPClient({ product, variants, images, urgency, viewersNow, tota
           <p className="eyebrow" style={{ marginBottom: 8 }}>Joias Atelier</p>
           <h1 style={{ margin: '0 0 16px', lineHeight: 1.05 }}>{product.name}</h1>
 
-          {/* Avaliações — só exibe quando houver reviews reais */}
+          {/* Avaliações — só exibe quando houver reviews aprovados (telemetria real) */}
+          {reviewTotal > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: -4, marginBottom: 18 }}>
+              <Stars value={reviewAvg} />
+              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                {reviewAvg.toFixed(1)} · {reviewTotal} {reviewTotal === 1 ? 'avaliação' : 'avaliações'}
+              </span>
+            </div>
+          )}
 
           {/* Preço */}
           <div style={{ marginBottom: 4 }}>
@@ -360,6 +563,9 @@ export function PDPClient({ product, variants, images, urgency, viewersNow, tota
           {/* Urgência — dados reais */}
           <UrgencyBadge urgency={urgency} viewersNow={viewersNow} totalStock={totalStock} />
 
+          {/* Material swatches — match ref jewelry-v1 (Ouro/Prata/Rosé/Cobre) */}
+          <MaterialSwatches customFields={customFields} />
+
           {/* Variantes — chips por tipo de joia (anel/colar/brinco) ou select genérico */}
           {variants.length > 1 && (
             <VariantPicker
@@ -372,7 +578,7 @@ export function PDPClient({ product, variants, images, urgency, viewersNow, tota
           )}
 
           {/* CTAs */}
-          <div style={{ marginTop: 36, display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div data-sticky-buy-anchor style={{ marginTop: 36, display: 'flex', gap: 10, alignItems: 'center' }}>
             {isOutOfStock ? (
               <RestockButton productId={product.id} variantId={selectedVariantId} />
             ) : (
@@ -399,22 +605,8 @@ export function PDPClient({ product, variants, images, urgency, viewersNow, tota
             />
           </div>
 
-          {/* Campos do nicho */}
-          {Object.keys(customFields).length > 0 && (
-            <div style={{ marginTop: 32, padding: '20px 0', borderTop: '1px solid var(--divider)' }}>
-              <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 14 }}>Detalhes da peça</p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 24px' }}>
-                {Object.entries(customFields).map(([key, val]) => val ? (
-                  <div key={key}>
-                    <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>
-                      {key.charAt(0).toUpperCase() + key.slice(1)}
-                    </span>
-                    <p style={{ fontSize: 14, margin: '2px 0 0', color: 'var(--text-primary)' }}>{String(val)}</p>
-                  </div>
-                ) : null)}
-              </div>
-            </div>
-          )}
+          {/* Campos do nicho — dl 120px/1fr com divider entre rows (match ref jewelry-v1) */}
+          <NicheFields customFields={customFields} warrantyMonths={product.warrantyMonths} />
 
           {/* Descrição */}
           {product.description && (
@@ -425,24 +617,25 @@ export function PDPClient({ product, variants, images, urgency, viewersNow, tota
             </div>
           )}
 
-          {/* Garantia */}
-          <div style={{ marginTop: 28, display: 'flex', gap: 20, fontSize: 13, color: 'var(--text-secondary)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Icon name="shield" size={15} style={{ color: 'var(--accent)' }} />
-              Garantia de {product.warrantyMonths} meses
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Icon name="truck" size={15} style={{ color: 'var(--accent)' }} />
-              Frete grátis acima de R$ 500
-            </div>
+          {/* Trust signals com ícone — Garantia + Embalagem detalhadas vivem na dl NicheFields acima.
+              Aqui mantemos só o trust visual de frete grátis (CTA mais imediato). */}
+          <div style={{ marginTop: 28, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-secondary)' }}>
+            <Icon name="truck" size={15} style={{ color: 'var(--accent)' }} />
+            <span>Frete grátis acima de R$ 500</span>
           </div>
 
-          {/* Slots reservados para Sprint futuro */}
-          <div style={{ marginTop: 32, padding: '12px 16px', background: 'var(--surface-sunken)', borderRadius: 4, fontSize: 12, color: 'var(--text-muted)' }}>
-            {/* Slot reservado · FBT + Related + UGC + Chatbot FAB — Sprint 9–11 */}
-          </div>
+          {/* Calculadora inline de prazo e frete por CEP */}
+          <ShippingCalc priceCents={effectivePrice} currency={currency} />
         </div>
       </div>
+
+      {/* Sticky add-to-cart bar (mobile only — aparece quando o CTA principal sai do viewport) */}
+      <StickyBuyBar
+        productName={product.name}
+        priceLabel={formatPrice(effectivePrice)}
+        isOutOfStock={isOutOfStock}
+        onAddToCart={handleAddToCart}
+      />
     </div>
   );
 }
