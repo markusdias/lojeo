@@ -2706,3 +2706,37 @@ User pediu **agregar features extras (insights funil, ia-analyst, etc), não jog
 - /pedidos breadcrumb sub-nav match Image #9
 
 **127 commits totais sessão**, **108 testes globais verdes**, **24 migrations prod**, **zero regressão**.
+
+---
+
+## 2026-04-26 — seed/all estendido reviews pending + returns (pra /filas demo)
+
+**Commit:** [feat seed/all extended]
+
+**Motivo:** /filas live mostrava 3 tabs zerados. Reviews seed estavam todos status=approved (zero pending), zero returnRequests, zero pedidos paid/preparing. /filas precisa de dados rich pra demonstrar valor.
+
+**Mudanças:**
+
+- **Reviews split 4 pending + 4 approved** (antes: todos approved). Lógica: primeiros 4 (ordem cronológica recente, ageDays 0-1) vão pending pra /filas tab Reviews; últimos 4 (ageDays 12-21) vão approved pra PDP storefront + /avaliacoes tab Aprovadas.
+
+- **2 returnRequests novos**: vinculados a 2 pedidos delivered seedados via subquery. Status: `'analyzing'` (defeito fecho pulseira) + `'requested'` (tamanho anel). Type: `'exchange'` / `'refund'`. customerEmail puxado do order pra rastreamento.
+
+- **DELETE limpa returns das 4 personas seedadas** via `inArray(customerEmail, personaEmails)` — não usa prefix marker porque returns referenciam customerEmail das personas reais.
+
+**Decisões:**
+
+1. **Reviews 4-4 split** > 8 approved — 4 pending preserva fluxo /filas → moderação real, mantém demo do approved tab também. Compromisso entre demo rich vs limpeza pós-cleanup.
+
+2. **Returns vinculados a pedidos delivered** — schema exige orderId NOT NULL com FK orders. Pegar 2 pedidos delivered da query agarra os mais recentes seedados (Beatriz Champion). Sem precisar criar orders fake.
+
+3. **Não criar paid order pra Shipping tab** — orders schema tem state machine (pending→paid→preparing→shipped→delivered). UPDATE de delivered → paid quebraria invariant. Aceitar Shipping tab vazio até user disparar checkout real (ou seed/order criar 1 paid futuramente).
+
+**Tests admin 18/18.** Deploy admin disparado.
+
+**Próximo ciclo:**
+- Disparar /api/seed/all DELETE + POST pra repovoar prod
+- UX test /filas com dados rich
+- Settings.jsx tabs gap audit
+- Empty state do /filas (current text plain dentro de card → migrar pra `<EmptyState>` component)
+
+**128 commits totais sessão**, **108 testes globais verdes**, **24 migrations prod**, **zero regressão**.
