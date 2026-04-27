@@ -2,7 +2,8 @@
 
 import { useEffect, useState, type FormEvent } from 'react';
 import { InfoTooltip } from '@/components/ui/info-tooltip';
-import { SettingsAnchorNav } from './anchor-nav';
+import { SettingsSidebar, useTabHash } from './sidebar-tabs';
+import { GatewaysCards, FreteCards, FiscalCards, EmailCards } from './integration-cards';
 
 interface BrandGuide {
   brandName?: string;
@@ -100,6 +101,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useTabHash('identidade');
 
   useEffect(() => {
     fetch('/api/settings').then(r => r.json()).then(setSettings);
@@ -156,28 +158,59 @@ export default function SettingsPage() {
   const fonts: FontPair = TYPO_FONTS[typo] ?? TYPO_FONT_DEFAULT;
   const scale: ScalePx = TYPE_SCALE_PX[typeScale] ?? TYPE_SCALE_DEFAULT;
 
+  // Tab → conteúdo sub-view (filter sections by active tab)
+  const showSection = (tab: typeof activeTab) => activeTab === tab ? {} : { display: 'none' };
+
+  // Cards-only tabs (Vendas/Comunicação) renderizam fora do form
+  const isCardsTab = activeTab === 'pagamentos' || activeTab === 'frete' || activeTab === 'fiscal' || activeTab === 'email';
+
   return (
-    <main style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }} className="min-h-screen space-y-6">
-      <header>
-        <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginBottom: 'var(--space-2)' }}>Configurações da loja</h1>
-        <p className="body-s">
-          Template: <code className="mono" style={{ background: 'var(--bg-subtle)', padding: '1px 6px', borderRadius: 'var(--radius-xs)' }}>{settings.templateId}</code>
-          {settings.domain && <> · Domínio: <code className="mono" style={{ background: 'var(--bg-subtle)', padding: '1px 6px', borderRadius: 'var(--radius-xs)' }}>{settings.domain}</code></>}
+    <main style={{ padding: 'var(--space-6) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }}>
+      <header style={{ marginBottom: 'var(--space-5)' }}>
+        <p className="eyebrow" style={{ marginBottom: 'var(--space-1)', color: 'var(--fg-muted)' }}>
+          Configurações
         </p>
-        <nav style={{ display: 'flex', gap: 'var(--space-3)', marginTop: 'var(--space-3)', flexWrap: 'wrap' }}>
-          <a href="/settings/users" style={{ fontSize: 'var(--text-caption)', color: 'var(--accent)', textDecoration: 'none', fontWeight: 'var(--w-medium)' }}>Usuários e papéis →</a>
-          <a href="/settings/2fa" style={{ fontSize: 'var(--text-caption)', color: 'var(--accent)', textDecoration: 'none', fontWeight: 'var(--w-medium)' }}>2FA →</a>
-          <a href="/settings/audit" style={{ fontSize: 'var(--text-caption)', color: 'var(--accent)', textDecoration: 'none', fontWeight: 'var(--w-medium)' }}>Logs de auditoria →</a>
-          <a href="/settings/onboarding" style={{ fontSize: 'var(--text-caption)', color: 'var(--accent)', textDecoration: 'none', fontWeight: 'var(--w-medium)' }}>Onboarding →</a>
-        </nav>
+        <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginBottom: 'var(--space-1)' }}>
+          {activeTab === 'identidade' ? 'Identidade da loja'
+            : activeTab === 'aparencia' ? 'Aparência'
+            : activeTab === 'pagamentos' ? 'Gateways de pagamento'
+            : activeTab === 'frete' ? 'Frete e logística'
+            : activeTab === 'fiscal' ? 'Fiscal e ERP'
+            : activeTab === 'email' ? 'E-mail transacional'
+            : activeTab === 'pixels' ? 'Pixels & Analytics'
+            : activeTab === 'ia' ? 'IA · cota e brand guide'
+            : activeTab === 'comercial' ? 'Políticas comerciais'
+            : activeTab === 'robots' ? 'Robots.txt'
+            : 'Configurações da loja'
+          }
+        </h1>
+        <p className="body-s" style={{ color: 'var(--fg-secondary)' }}>
+          {activeTab === 'pagamentos' ? 'Conecte uma ou mais formas de receber. OAuth de 1 clique — sem copiar chaves.'
+            : activeTab === 'frete' ? 'Cotação automática e geração de etiquetas — Brasil e exterior.'
+            : activeTab === 'fiscal' ? 'Emissão automática de NF-e por pedido + sync de estoque.'
+            : activeTab === 'email' ? 'Confirmações de pedido, rastreio, recuperação de carrinho.'
+            : 'Tudo que sua loja precisa pra funcionar — em um lugar.'}
+        </p>
+        <p className="caption" style={{ marginTop: 'var(--space-2)', color: 'var(--fg-muted)' }}>
+          Template <code className="mono">{settings.templateId}</code>
+          {settings.domain && <> · Domínio <code className="mono">{settings.domain}</code></>}
+        </p>
       </header>
 
-      {/* Anchor nav sticky com active highlighting via IntersectionObserver */}
-      <SettingsAnchorNav />
+      <div style={{ display: 'flex', gap: 'var(--space-6)', alignItems: 'flex-start' }}>
+        <SettingsSidebar active={activeTab} onChange={setActiveTab} />
 
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {/* Tabs cards-only (Vendas/Comunicação): renderizam fora do form */}
+          {activeTab === 'pagamentos' && <GatewaysCards />}
+          {activeTab === 'frete' && <FreteCards />}
+          {activeTab === 'fiscal' && <FiscalCards />}
+          {activeTab === 'email' && <EmailCards />}
+
+          {!isCardsTab && (
       <form onSubmit={handleSave} className="space-y-8">
         {/* Identidade */}
-        <section id="identidade" className="lj-card" style={{ padding: 'var(--space-6)', scrollMarginTop: 80 }}>
+        <section id="identidade" className="lj-card" style={{ padding: 'var(--space-6)', ...showSection('identidade') }}>
           <h2 style={{ fontSize: 'var(--text-h4)', fontWeight: 'var(--w-semibold)', marginBottom: 'var(--space-4)' }}>Identidade</h2>
           <div className="space-y-4">
             <div>
@@ -206,7 +239,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Aparência */}
-        <section id="aparencia" className="lj-card" style={{ padding: 'var(--space-6)', scrollMarginTop: 80 }}>
+        <section id="aparencia" className="lj-card" style={{ padding: 'var(--space-6)', ...showSection('aparencia') }}>
           <div style={{ marginBottom: 'var(--space-5)' }}>
             <h2 style={{ fontSize: 'var(--text-h4)', fontWeight: 'var(--w-semibold)', marginBottom: 'var(--space-1)' }}>Aparência do storefront</h2>
             <p className="body-s">
@@ -420,7 +453,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Políticas comerciais */}
-        <section id="comercial" className="bg-white rounded-lg shadow p-6 space-y-4" style={{ scrollMarginTop: 80 }}>
+        <section id="comercial" className="bg-white rounded-lg shadow p-6 space-y-4" style={showSection('comercial')}>
           <h2 className="font-semibold text-lg">Políticas comerciais</h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -486,7 +519,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Brand Guide IA */}
-        <section id="brand-guide" className="bg-white rounded-lg shadow p-6 space-y-4" style={{ scrollMarginTop: 80 }}>
+        <section id="brand-guide" className="bg-white rounded-lg shadow p-6 space-y-4" style={showSection('ia')}>
           <div>
             <h2 className="font-semibold text-lg">Brand Guide para IA</h2>
             <p className="text-xs text-neutral-500 mt-1">
@@ -566,7 +599,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Pixels & Analytics */}
-        <section id="pixels" className="bg-white rounded-lg shadow p-6 space-y-3" style={{ scrollMarginTop: 80 }}>
+        <section id="pixels" className="bg-white rounded-lg shadow p-6 space-y-3" style={showSection('pixels')}>
           <h2 className="font-semibold text-lg">Pixels e Analytics</h2>
           <p className="text-xs text-neutral-500">
             IDs dos pixels de marketing. Deixe em branco para desativar. Os scripts respeitam o consentimento LGPD do cliente.
@@ -635,7 +668,7 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        <section id="robots" className="bg-white rounded-lg shadow p-6 space-y-3" style={{ scrollMarginTop: 80 }}>
+        <section id="robots" className="bg-white rounded-lg shadow p-6 space-y-3" style={showSection('robots')}>
           <h2 className="font-semibold text-lg">
             Robots.txt
             <InfoTooltip text="Em branco usa default. Edite só se precisar bloquear bots específicos ou liberar áreas restritas." />
@@ -665,6 +698,9 @@ export default function SettingsPage() {
           {saved && <span className="text-sm text-green-600">✓ Salvo com sucesso</span>}
         </div>
       </form>
+          )}
+        </div>
+      </div>
     </main>
   );
 }
