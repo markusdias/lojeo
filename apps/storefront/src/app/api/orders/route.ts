@@ -5,6 +5,7 @@ import { createStripePaymentIntent } from '../../../lib/payments/stripe';
 import { selectGateway, isGatewayDecision, stripeCurrency } from '../../../lib/payments/gateway';
 import { sendOrderConfirmationEmail, sendPixGeneratedEmail, sendBoletoGeneratedEmail } from '../../../lib/email/transactional';
 import { sendMetaPurchase } from '../../../lib/pixels/conversions-api';
+import { parseAffiliateCookie, isCookieValid } from '../../../lib/affiliates/tracking';
 import { eq, and, sql } from 'drizzle-orm';
 import { checkRateLimit, getClientIp } from '../../../lib/rate-limit';
 import { getActiveTemplate } from '../../../template';
@@ -218,6 +219,10 @@ export async function POST(req: Request) {
 
     const orderNumber = await nextOrderNumber(tid);
 
+    // Affiliate ref do cookie (atribuição last-touch 30d)
+    const affiliateParsed = parseAffiliateCookie(req.headers.get('cookie'));
+    const affiliateRef = isCookieValid(affiliateParsed) ? affiliateParsed.code : null;
+
     const inserted = await db.insert(orders).values({
       tenantId: tid,
       orderNumber,
@@ -245,7 +250,10 @@ export async function POST(req: Request) {
       giftPackagingCents,
       giftCardCode: giftCardCodePersisted,
       giftCardDiscountCents,
-      metadata: { shippingLabel: body.shipping.label },
+      metadata: {
+        shippingLabel: body.shipping.label,
+        ...(affiliateRef ? { affiliateRef } : {}),
+      },
     }).returning({ id: orders.id, orderNumber: orders.orderNumber });
 
     const order = inserted[0];

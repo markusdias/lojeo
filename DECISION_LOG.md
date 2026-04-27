@@ -5541,3 +5541,52 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - P4.R — programa afiliados (schema affiliate_links + UI admin + tracking ?ref).
 - P3.M — endereço adaptativo intl (BR CEP / US ZIP+state / UK postcode regex).
 - P3.K — UI filter chips garantia expirando 30/60/90d em /clientes.
+
+---
+
+## 2026-04-27 (continuacao) — Batch 47: Programa afiliados (P4.R)
+
+**Commits:** (a registrar nesta sessao).
+
+**Schema `affiliate_links` em `packages/db/src/schema/affiliates.ts`:**
+- Campos: tenantId, userId, affiliateName, affiliateEmail, code, commissionBps (default 1000=10%), clicks, conversions, payoutCents, pendingCents, active, notes, createdAt, updatedAt.
+- Indexes: unique(tenantId, code) + (tenantId, active) + userId.
+- Migration idempotente em `apps/admin/src/app/api/migrate/route.ts` (Fase 1.2).
+
+**Tracking helpers `apps/storefront/src/lib/affiliates/tracking.ts`:**
+- `parseAffiliateCookie(header)` — parse `lojeo_aff=CODE.timestamp`.
+- `isCookieValid(parsed, now)` — TTL 30 dias.
+- `buildAffiliateCookieValue(code, now)` — sanitiza (uppercase, A-Z0-9-).
+- `buildAffiliateSetCookieHeader(code)` — `Set-Cookie` header com Max-Age 2592000s, Path=/, SameSite=Lax.
+- `extractAffiliateRefFromUrl(url)` — captura `?ref=` query param + sanitiza.
+- `computeAffiliateCommissionCents(orderTotalCents, commissionBps)` — floor((total * bps) / 10000).
+
+**20 tests vitest cobrindo todos helpers.**
+
+**Endpoint `/api/affiliate/click`:**
+- POST: aceita `?ref=CODE` ou `body.ref`, increment atomic em `affiliate_links` (UPDATE SET clicks=clicks+1 WHERE active=TRUE), set cookie 30d.
+- GET: redirect-style — `/api/affiliate/click?ref=CODE&to=/produtos/anel-x` increment + redirect com cookie.
+- 404 quando código não existe ou inativo. 400 sem ref.
+
+**Hook em `/api/orders/route.ts`:**
+- `parseAffiliateCookie(req.headers.get('cookie'))` + `isCookieValid` antes de criar order.
+- Persiste `order.metadata.affiliateRef = CODE` quando válido.
+- V2: cron diário detecta orders com affiliateRef → increment `affiliate_links.conversions` + `pendingCents += commission`. Não plugado neste batch (separação de concerns: write em order ≠ payout reconciliation).
+
+**Trade-offs arquiteturais:**
+- Atribuição last-touch — cookie sempre sobrescreve (helper buildAffiliateSetCookieHeader rebuilda timestamp). V2: opt-in por afiliado pra first-touch via `tenant.config.affiliates.attribution`.
+- Comissão default 10% (1000 bps). Override por afiliado em `affiliate_links.commission_bps`.
+- Click tracking via increment atomic — race-safe sob concorrência. Sem dedup por IP/UA — 1 click pra cada GET/POST. V2: cooldown 30min por anonymousId.
+- payoutCents/pendingCents persistido pra audit. Cron de reconciliação batch separado (não criado neste batch).
+- UI admin pra criar afiliados / listar conversions NÃO criada — schema + tracking sai primeiro pro V1. V2: form `/admin/afiliados` + API CRUD.
+
+**Validações:**
+- pnpm -r typecheck zero erro.
+- storefront 146/146 (+20 tracking). engine 126/126. Total 444 passing. Zero regressao.
+- pnpm -r lint admin/storefront limpo.
+
+**Próximo ciclo:**
+- Cron reconciliação afiliados (detect orders.metadata.affiliateRef → increment conversions/pendingCents).
+- UI admin /afiliados CRUD.
+- P3.M endereço adaptativo intl.
+- P3.K UI filter chips garantia.

@@ -737,6 +737,31 @@ export async function POST(req: NextRequest) {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_push_subs_tenant_user ON push_subscriptions(tenant_id, user_id)`);
     results.push('push_subscriptions: ok');
 
+    // Fase 1.2 — affiliate_links (programa de afiliados)
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS affiliate_links (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL,
+        user_id uuid,
+        affiliate_name varchar(200) NOT NULL,
+        affiliate_email varchar(300),
+        code varchar(32) NOT NULL,
+        commission_bps integer DEFAULT 1000 NOT NULL,
+        clicks integer DEFAULT 0 NOT NULL,
+        conversions integer DEFAULT 0 NOT NULL,
+        payout_cents integer DEFAULT 0 NOT NULL,
+        pending_cents integer DEFAULT 0 NOT NULL,
+        active boolean DEFAULT true NOT NULL,
+        notes text,
+        created_at timestamptz DEFAULT now() NOT NULL,
+        updated_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS uniq_affiliates_tenant_code ON affiliate_links(tenant_id, code)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_affiliates_tenant_active ON affiliate_links(tenant_id, active)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_affiliates_user ON affiliate_links(user_id)`);
+    results.push('affiliate_links: ok');
+
     // Fase 1.2 — abandoned_carts (recuperação de carrinho via cron)
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS abandoned_carts (
