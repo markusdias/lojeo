@@ -4801,3 +4801,58 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - Stripe webhook handler real-mode: lookup payment_intent + update order status + emit notification.
 - Storefront `<html lang>` dinâmico baseado em template config.
 - DHL/FedEx shipping helper scaffold.
+
+
+---
+
+## 2026-04-27 (continuacao) — Batch 32: Stripe webhook real-mode (Fase 1.2)
+
+**Commits:** d50a005.
+
+**stripe.ts adições:**
+- `verifyStripeSignature(rawBody, signatureHeader)` async:
+  - Sem STRIPE_WEBHOOK_SECRET: retorna true (dev mode).
+  - Parse `Stripe-Signature: t=<ts>,v1=<sig>` regex.
+  - HMAC SHA256 via Web Crypto API (works em Edge Runtime — não usa node:crypto pra preservar storefront edge compat).
+  - Constant-time compare (XOR cumulativo) — timing-safe.
+- `fetchStripePaymentIntent(piId)`:
+  - GET `/v1/payment_intents/{id}` com Bearer.
+  - Retorna {id, status, metadata.order_id} ou null se sem token / falha.
+  - Razão: webhook payload é mínimo, MP/Stripe pode entregar parcial. Lookup confiável evita race.
+
+**POST /api/webhooks/stripe handler:**
+- verifyStripeSignature first → 401 se inválida.
+- Filter `payment_intent.*` events (skip outros tipos).
+- Lookup confiável `fetchStripePaymentIntent` em vez de payload direto.
+- Match order via `metadata.order_id`. Update status idempotente (skip se já igual). Insert orderEvents transition. Emit `order.paid` notification quando newStatus=paid (provider='stripe' no metadata).
+
+**Trade-offs:**
+- Web Crypto SubtleCrypto disponível em Node 19+ e Edge Runtime — mantém compat ambos. Não puxa node:crypto.
+- Lookup PI separado adiciona 1 round-trip Stripe API por webhook. Aceito vs trust payload (events.constructed vs constructEventAsync — Stripe SDK fornece, sem SDK nosso valida tudo manual).
+- emit order.paid mesmo helper já cobre MP — provider field em metadata diferencia em telemetry futura.
+
+**4 tests novos verifyStripeSignature:**
+- dev mode aceita tudo
+- header missing rejeitado
+- malformed header (sem t/v1) rejeitado
+- signature errada rejeitada
+
+**Validações:**
+- Storefront 67/67 (+4 stripe sig). Total ~285 tests. Typecheck/lint zero.
+- 0 regressão.
+- Deploy storefront disparado.
+
+**Fase 1.2 — coverage atualizada:**
+- ✓ Template scaffolded (batch 30)
+- ✓ Stripe helper PaymentIntent (batch 31)
+- ✓ **Stripe webhook real-mode** (batch 32)
+- ⏳ Plug stripe payment intent em POST /api/orders quando currency != BRL
+- ⏳ Storefront layout.tsx detect coffee-v1 → lang=en + currency formatter USD
+- ⏳ DHL/FedEx shipping helper
+- ⏳ Email templates EN-US fallback
+- ⏳ Coffee-v1 instance prod deploy
+
+**Próximo ciclo:**
+- Plug createStripePaymentIntent em POST /api/orders quando template.currency='USD'/'EUR' AND paymentMethod='credit_card'. Persistir clientSecret em order metadata pra frontend Stripe.js confirmar.
+- DHL helper scaffold (mesmo padrão dual mock/real).
+- Storefront <html lang> dinâmico via cookie/template config.
