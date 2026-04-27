@@ -64,6 +64,9 @@ export const orders = pgTable(
     subtotalCents: integer('subtotal_cents').notNull(),
     discountCents: integer('discount_cents').default(0).notNull(),
     totalCents: integer('total_cents').notNull(),
+    // Currency ISO 4217 — BRL/USD/EUR/GBP/CAD. Default BRL pra back-compat
+    // com pedidos pré-Fase-1.2 que não persistiam currency.
+    currency: varchar('currency', { length: 3 }).default('BRL').notNull(),
     // Payment
     paymentMethod: varchar('payment_method', { length: 50 }),
     paymentGateway: varchar('payment_gateway', { length: 50 }),

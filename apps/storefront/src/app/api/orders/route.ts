@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
 import { db, orders, orderItems, orderEvents, coupons, calcCouponDiscountCents, emitSellerNotification } from '@lojeo/db';
 import { createMercadoPagoPreference, createMercadoPagoPixPayment, createMercadoPagoBoletoPayment } from '../../../lib/payments/mercado-pago';
+import { createStripePaymentIntent } from '../../../lib/payments/stripe';
+import { selectGateway, isGatewayDecision, stripeCurrency } from '../../../lib/payments/gateway';
 import { sendOrderConfirmationEmail, sendPixGeneratedEmail, sendBoletoGeneratedEmail } from '../../../lib/email/transactional';
 import { eq, and, sql } from 'drizzle-orm';
 import { checkRateLimit, getClientIp } from '../../../lib/rate-limit';
+import { getActiveTemplate } from '../../../template';
+import { asSupportedCurrency } from '@lojeo/engine';
 
 const tenantId = () => process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
 const FREE_SHIPPING_ABOVE = 50000;
@@ -85,6 +89,18 @@ export async function POST(req: Request) {
     if (!['pix', 'credit_card', 'boleto'].includes(body.paymentMethod)) {
       return NextResponse.json({ error: 'Método de pagamento inválido' }, { status: 400 });
     }
+
+    // Currency-aware gateway selection — BRL=MP, USD/EUR/GBP/CAD=Stripe
+    const tpl = await getActiveTemplate();
+    const currency = asSupportedCurrency(tpl.currency);
+    const gatewayChoice = selectGateway(currency, body.paymentMethod);
+    if (!isGatewayDecision(gatewayChoice)) {
+      return NextResponse.json(
+        { error: gatewayChoice.error, reason: gatewayChoice.reason, currency },
+        { status: 400 },
+      );
+    }
+    const gateway = gatewayChoice.gateway;
 
     const subtotalCents = body.items.reduce((s, i) => s + i.unitPriceCents * i.qty, 0);
     const freeShipping = subtotalCents >= FREE_SHIPPING_ABOVE;
@@ -215,8 +231,9 @@ export async function POST(req: Request) {
       subtotalCents,
       discountCents: pixDiscount + couponDiscountCents,
       totalCents,
+      currency,
       paymentMethod: body.paymentMethod,
-      paymentGateway: 'mercadopago',
+      paymentGateway: gateway,
       couponCode: couponCodePersisted,
       couponDiscountCents,
       utmSource: body.utm?.source ?? null,
@@ -258,35 +275,72 @@ export async function POST(req: Request) {
       metadata: { paymentMethod: body.paymentMethod, channel: 'storefront' },
     });
 
-    // Mercado Pago preference creation (modo mock se sem ACCESS_TOKEN)
+    // Gateway dispatch — Stripe (intl) vs Mercado Pago (BRL)
     const baseUrl = process.env.STOREFRONT_PUBLIC_URL ?? '';
-    const preference = await createMercadoPagoPreference({
-      orderId: order.id,
-      orderNumber: order.orderNumber,
-      totalCents,
-      payerEmail: body.customerEmail ?? null,
-      items: body.items.map((it) => ({
-        title: it.productName,
-        quantity: it.qty,
-        unit_price: it.unitPriceCents / 100,
-        currency_id: 'BRL',
-      })),
-      notificationUrl: baseUrl ? `${baseUrl}/api/webhooks/mercado-pago` : undefined,
-      successUrl: baseUrl ? `${baseUrl}/checkout/confirmacao?order=${order.id}` : `/checkout/confirmacao?order=${order.id}`,
-      failureUrl: baseUrl ? `${baseUrl}/checkout/falha?order=${order.id}` : `/checkout/falha?order=${order.id}`,
-    });
+    let stripeData: { paymentIntentId: string; clientSecret: string; currency: string; source: 'stripe' | 'mock' } | null = null;
+    let preference: { id: string | null; initPoint: string | null; source: 'mp' | 'mock' } = {
+      id: null,
+      initPoint: null,
+      source: 'mock',
+    };
 
-    if (preference.source === 'mp') {
+    if (gateway === 'stripe') {
+      const intent = await createStripePaymentIntent({
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        totalCents,
+        currency: stripeCurrency(currency),
+        payerEmail: body.customerEmail ?? '',
+        description: `Order ${order.orderNumber}`,
+      });
+      stripeData = {
+        paymentIntentId: intent.paymentIntentId,
+        clientSecret: intent.clientSecret,
+        currency,
+        source: intent.source,
+      };
       await db
         .update(orders)
-        .set({ gatewayPaymentId: preference.id, paymentGateway: 'mercadopago' })
+        .set({
+          gatewayPaymentId: intent.paymentIntentId,
+          gatewayStatus: intent.status,
+          metadata: {
+            shippingLabel: body.shipping.label,
+            stripe: stripeData,
+          },
+        })
         .where(eq(orders.id, order.id));
+    } else {
+      const mpResult = await createMercadoPagoPreference({
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        totalCents,
+        payerEmail: body.customerEmail ?? null,
+        items: body.items.map((it) => ({
+          title: it.productName,
+          quantity: it.qty,
+          unit_price: it.unitPriceCents / 100,
+          currency_id: 'BRL',
+        })),
+        notificationUrl: baseUrl ? `${baseUrl}/api/webhooks/mercado-pago` : undefined,
+        successUrl: baseUrl ? `${baseUrl}/checkout/confirmacao?order=${order.id}` : `/checkout/confirmacao?order=${order.id}`,
+        failureUrl: baseUrl ? `${baseUrl}/checkout/falha?order=${order.id}` : `/checkout/falha?order=${order.id}`,
+      });
+      preference = mpResult;
+
+      if (preference.source === 'mp') {
+        await db
+          .update(orders)
+          .set({ gatewayPaymentId: preference.id, paymentGateway: 'mercadopago' })
+          .where(eq(orders.id, order.id));
+      }
     }
 
     // Pix/Boleto direto: cria payment com QR/PDF, dispara email transacional.
+    // Apenas BRL — Stripe path skipa este bloco.
     let pixData: { qrCode: string; qrCodeBase64: string; ticketUrl: string | null } | null = null;
     let boletoData: { boletoUrl: string; barcode: string } | null = null;
-    if (body.paymentMethod === 'pix' && body.customerEmail) {
+    if (gateway === 'mercadopago' && body.paymentMethod === 'pix' && body.customerEmail) {
       const pix = await createMercadoPagoPixPayment({
         orderId: order.id,
         orderNumber: order.orderNumber,
@@ -317,7 +371,7 @@ export async function POST(req: Request) {
       });
     }
 
-    if (body.paymentMethod === 'boleto' && body.customerEmail) {
+    if (gateway === 'mercadopago' && body.paymentMethod === 'boleto' && body.customerEmail) {
       const boleto = await createMercadoPagoBoletoPayment({
         orderId: order.id,
         orderNumber: order.orderNumber,
@@ -386,13 +440,15 @@ export async function POST(req: Request) {
       orderId: order.id,
       orderNumber: order.orderNumber,
       totalCents,
+      currency,
       paymentMethod: body.paymentMethod,
       payment: {
-        provider: preference.source,
+        provider: gateway === 'stripe' ? (stripeData?.source ?? 'stripe') : preference.source,
         preferenceId: preference.id,
         initPoint: preference.initPoint,
         pix: pixData,
         boleto: boletoData,
+        stripe: stripeData,
       },
     }, { status: 201 });
   } catch (err) {

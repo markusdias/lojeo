@@ -5014,3 +5014,71 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - P1.B: Plug Stripe payment em POST /api/orders quando template.currency != BRL.
 - Hook `cart_add` event no storefront em pdp-client.tsx ja persiste; verifica se metadata.qty esta sendo emitido (se nao, fix).
 - Migration prod aplicar via POST /api/migrate apos deploy.
+
+---
+
+## 2026-04-27 (continuacao) — Batch 36: Stripe payment em /api/orders (P1.B)
+
+**Commits:** (a registrar nesta sessao).
+
+**Selecao de gateway baseada em currency:**
+- Helper puro `apps/storefront/src/lib/payments/gateway.ts`:
+  - `selectGateway(currency, paymentMethod)` → `{ gateway: 'mercadopago' | 'stripe' }` ou `{ error, reason }`.
+  - BRL: aceita pix|credit_card|boleto → mercadopago.
+  - USD/EUR/GBP/CAD: aceita apenas credit_card → stripe. Pix/boleto → 400 invalid_payment_method_for_currency.
+  - `isGatewayDecision(r)` type guard. `stripeCurrency(c)` cast type-safe (BRL throw).
+- 10 tests vitest (`gateway.test.ts`) cobrem todas combinacoes BRL/USD/EUR/GBP × pix/credit_card/boleto.
+
+**Schema orders ganha `currency`:**
+- `packages/db/src/schema/orders.ts` adiciona `currency varchar(3) DEFAULT 'BRL' NOT NULL`. Migration ja tinha; schema TS estava desincronizado — alinhamento.
+- Pedidos antigos sem currency: default BRL via DB-level default.
+
+**`/api/orders/route.ts` (storefront) plugado:**
+- `await getActiveTemplate()` resolve `tpl.currency` → `asSupportedCurrency`.
+- `selectGateway(currency, paymentMethod)` decide branch.
+- Stripe path:
+  - `createStripePaymentIntent({ orderId, totalCents, currency, payerEmail })`.
+  - Persiste em `order.metadata.stripe = { paymentIntentId, clientSecret, currency, source }`.
+  - Set `gatewayPaymentId` + `gatewayStatus`.
+- MP path: skip MP/Pix/boleto blocks via `gateway === 'mercadopago'` guard.
+- Response inclui `currency` + `payment.stripe`.
+
+**`/checkout/confirmacao` Stripe Elements:**
+- Adiciona `StripeData` + `currency` em `FetchedOrder`.
+- `isStripe = !!stripe && paymentMethod === 'credit_card'`.
+- Componente `StripeSection`:
+  - Polling status 5s identico Pix.
+  - Carrega `https://js.stripe.com/v3/` via `<script>` injetado.
+  - Usa `clientSecret` para mount Payment Element via `stripe.elements({ clientSecret }).create('payment')`.
+  - Form submit chama `stripe.confirmPayment({ elements, confirmParams: { return_url } })`.
+  - Mock fallback (sem STRIPE_SECRET_KEY): mostra mensagem em vez de Elements.
+- Copy bilingue tipo: "Pay with card" / "Powered by Stripe".
+
+**Trade-offs arquiteturais:**
+- Pix discount (5%) calculado antes do gateway selection. Quando Stripe (intl), `pixDiscount=0` automatic (paymentMethod=credit_card). Mantido para evitar ramificacao adicional.
+- `metadata.stripe.clientSecret` persistido no DB — deve ser tratado como sensivel (publishable key + clientSecret do PI permite confirmacao). Stripe documenta clientSecret como seguro pra expor ao cliente, mas auditoria DB deve mascarar.
+- `automatic_payment_methods.enabled=true` Stripe inclui Apple Pay/Google Pay/Link. Frontend renderiza tudo automaticamente.
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` exigida no client. Sem ela, Stripe Elements nao monta — degrade silenciosa via stripeReady=false. Doc deploy precisa adicionar a env var coffee instance.
+- Stripe.js carregado via CDN script tag em vez de npm dep — evita aumentar bundle storefront. Aceito deferimento async pra Fase 1.2.
+
+**Validacoes:**
+- pnpm -r typecheck zero erro (ajuste schema TS orders.currency necessario).
+- pnpm -r test: 345 passing total. storefront 88/88 (+10 gateway). Zero regressao.
+- pnpm -r lint: zero warning admin/storefront. 2 pre-existentes packages/db.
+- CI batch 35 (abandoned-cart) verde.
+
+**Fase 1.2 — coverage atualizada:**
+- ✓ Stripe helper (batch 31)
+- ✓ Stripe webhook (batch 32)
+- ✓ DHL/FedEx shipping (batch 33)
+- ✓ Currency formatter (batch 34)
+- ✓ Storefront coffee-v1 register (batch 34)
+- ✓ Abandoned cart recovery (batch 35)
+- ✓ **Plug Stripe payment intent em POST /api/orders quando currency != BRL** (batch 36)
+- ⏳ Plug shipping international UI checkout (P1.C)
+- ⏳ tokens.css condicional baseado em tpl.id (P1.D)
+- ⏳ Email templates EN-US fallback subject/copy (P1.E)
+- ⏳ Coffee-v1 instance prod deploy (P3.O)
+
+**Proximo ciclo:**
+- P1.C — shipping intl UI: detect address.country no checkout/frete, pull DHL/FedEx vs Melhor Envio.

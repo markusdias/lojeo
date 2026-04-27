@@ -18,6 +18,13 @@ interface BoletoData {
   barcode: string;
 }
 
+interface StripeData {
+  paymentIntentId: string;
+  clientSecret: string;
+  currency: string;
+  source: 'stripe' | 'mock';
+}
+
 interface FetchedOrder {
   id: string;
   orderNumber: string;
@@ -25,6 +32,8 @@ interface FetchedOrder {
   status: string;
   pix: PixData | null;
   boleto: BoletoData | null;
+  stripe: StripeData | null;
+  currency: string;
 }
 
 function ConfirmacaoInner() {
@@ -47,7 +56,8 @@ function ConfirmacaoInner() {
         orderNumber?: string;
         paymentMethod?: string | null;
         status?: string;
-        metadata?: { pix?: PixData | null; boleto?: BoletoData | null };
+        currency?: string;
+        metadata?: { pix?: PixData | null; boleto?: BoletoData | null; stripe?: StripeData | null };
       } | null) => {
         if (d?.id) {
           setFetched({
@@ -57,6 +67,8 @@ function ConfirmacaoInner() {
             status: d.status ?? 'pending',
             pix: d.metadata?.pix ?? null,
             boleto: d.metadata?.boleto ?? null,
+            stripe: d.metadata?.stripe ?? null,
+            currency: d.currency ?? 'BRL',
           });
         }
       })
@@ -100,6 +112,8 @@ function ConfirmacaoInner() {
 
   const isPix = paymentMethod === 'pix';
   const isBoleto = paymentMethod === 'boleto';
+  const stripe = fetched?.stripe ?? null;
+  const isStripe = !!stripe && paymentMethod === 'credit_card';
 
   return (
     <div style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center', padding: '40px 0 80px' }}>
@@ -120,6 +134,10 @@ function ConfirmacaoInner() {
 
       {isPix && (
         <PixSection pix={pix} orderStatus={orderStatus} orderId={orderId} setFetched={setFetched} />
+      )}
+
+      {isStripe && stripe && (
+        <StripeSection stripe={stripe} orderStatus={orderStatus} orderId={orderId} setFetched={setFetched} />
       )}
 
       {isBoleto && (
@@ -349,6 +367,146 @@ function PixSection({ pix, orderStatus, orderId, setFetched }: PixSectionProps) 
         <p style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
           Pix em modo simulado (Mercado Pago não conectado). Entre em contato via WhatsApp para finalizar manualmente.
         </p>
+      )}
+    </div>
+  );
+}
+
+interface StripeSectionProps {
+  stripe: StripeData;
+  orderStatus: string;
+  orderId: string;
+  setFetched: React.Dispatch<React.SetStateAction<FetchedOrder | null>>;
+}
+
+declare global {
+  // Stripe.js global injetado pela tag script CDN
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  interface Window { Stripe?: (key: string) => any }
+}
+
+function StripeSection({ stripe, orderStatus, orderId, setFetched }: StripeSectionProps) {
+  const [stripeReady, setStripeReady] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const isMock = stripe.source === 'mock';
+
+  // Polling igual Pix — Stripe webhook atualiza status -> paid
+  useEffect(() => {
+    if (orderStatus === 'paid' || orderStatus === 'cancelled') return;
+    if (!orderId) return;
+    const id = setInterval(() => {
+      fetch(`/api/orders?id=${encodeURIComponent(orderId)}`, { cache: 'no-store' })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d: { status?: string } | null) => {
+          if (d?.status && d.status !== orderStatus) {
+            setFetched((prev) => prev ? { ...prev, status: d.status ?? prev.status } : prev);
+          }
+        })
+        .catch(() => null);
+    }, 5000);
+    return () => clearInterval(id);
+  }, [orderStatus, orderId, setFetched]);
+
+  // Carrega Stripe.js do CDN e mounta Payment Element
+  useEffect(() => {
+    if (isMock) return;
+    if (typeof window === 'undefined') return;
+    if (window.Stripe) {
+      mountElements();
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://js.stripe.com/v3/';
+    script.async = true;
+    script.onload = () => mountElements();
+    document.body.appendChild(script);
+    return () => { script.remove(); };
+  }, [stripe.clientSecret, isMock]);
+
+  function mountElements() {
+    const pk = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+    if (!pk || !window.Stripe) return;
+    const stripeInstance = window.Stripe(pk);
+    const elements = stripeInstance.elements({ clientSecret: stripe.clientSecret });
+    const paymentEl = elements.create('payment');
+    paymentEl.mount('#stripe-payment-element');
+    setStripeReady(true);
+
+    const form = document.getElementById('stripe-payment-form') as HTMLFormElement | null;
+    if (!form) return;
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      setConfirming(true);
+      setErrorMsg(null);
+      const result = await stripeInstance.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: `${window.location.origin}/checkout/confirmacao?order=${orderId}`,
+        },
+      });
+      if (result.error) {
+        setErrorMsg(result.error.message ?? 'Payment failed');
+      }
+      setConfirming(false);
+    };
+  }
+
+  if (orderStatus === 'paid') {
+    return (
+      <div style={{
+        padding: 24, border: '1px solid var(--success, #166534)',
+        background: 'var(--surface, #fff)', borderRadius: 8, marginBottom: 32,
+      }}>
+        <strong style={{ fontSize: 18, color: 'var(--success, #166534)' }}>Payment confirmed ✓</strong>
+        <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 8 }}>
+          We received your payment. Tracking code coming via email.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      padding: 24, border: '1px solid var(--divider)', borderRadius: 8, marginBottom: 32, textAlign: 'left',
+    }}>
+      <h3 style={{ marginBottom: 12 }}>Pay with card</h3>
+      {isMock ? (
+        <p style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
+          Stripe in mock mode (STRIPE_SECRET_KEY not configured). Contact support to finalize manually.
+        </p>
+      ) : (
+        <>
+          <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16 }}>
+            Enter your card details. Powered by Stripe — your data never touches our servers.
+          </p>
+          <form id="stripe-payment-form">
+            <div id="stripe-payment-element" style={{ marginBottom: 16, minHeight: 60 }} />
+            <button
+              type="submit"
+              disabled={!stripeReady || confirming}
+              style={{
+                width: '100%',
+                padding: '14px 16px',
+                background: confirming ? 'var(--text-muted)' : 'var(--text-primary, #1A1612)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                fontSize: 14,
+                fontWeight: 500,
+                cursor: confirming ? 'wait' : 'pointer',
+              }}
+            >
+              {confirming ? 'Processing…' : 'Pay now'}
+            </button>
+            {errorMsg && (
+              <p style={{ fontSize: 13, color: 'var(--error, #b91c1c)', marginTop: 12 }}>{errorMsg}</p>
+            )}
+          </form>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 12, textAlign: 'center' }}>
+            Awaiting payment — this page updates automatically.
+          </p>
+        </>
       )}
     </div>
   );
