@@ -5407,3 +5407,40 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - P3.K — UI filter chips garantia expirando 30/60/90d em /clientes (engine helper já existe via expiringWithinDays).
 - P3.M — endereço adaptativo intl (BR CEP / US ZIP+state / UK postcode regex / EU genérico).
 - P4.P/Q — Google Shopping feed + Meta Catalog feed (XML/CSV).
+
+---
+
+## 2026-04-27 (continuacao) — Batch 44: Google Shopping + Meta Catalog feeds (P4.P + P4.Q)
+
+**Commits:** (a registrar nesta sessao).
+
+**Helpers puros em `apps/storefront/src/lib/feeds/`:**
+- `google-shopping.ts` → `buildGoogleShoppingFeedXml({ storeName, storeUrl, items })`. RSS 2.0 + namespace `g`. Escapa entidades XML (& < > " '). Campos: g:id, g:title, g:description, g:link, g:image_link, g:availability, g:price (`<cents/100> <currency>`), g:condition, g:brand, g:gtin, g:product_type, g:shipping_weight (kg), g:warranty_months. Omite campos null/undefined.
+- `meta-catalog.ts` → `buildMetaCatalogFeedCsv({ items })`. CSV header: id,title,description,availability,condition,price,link,image_link,brand,product_type,gtin. csvEscape (vírgula+aspas+newline). 
+
+**Endpoints dynamic:**
+- `GET /api/feeds/google-shopping.xml` — content-type application/xml, cache 1h. Lê products.status='active', JOIN com product_images (cover) + inventory_stock (sum available across variants).
+- `GET /api/feeds/meta-catalog.csv` — content-type text/csv, cache 1h. Mesma lógica DB. brand derivado de tpl.name primeira parte. productType jewelry='Joias' / coffee='Specialty Coffee'.
+
+**7 tests vitest `feeds.test.ts`:**
+- Google Shopping: XML válido + namespace g + escape entidades + campos opcionais omitidos + shipping_weight kg.
+- Meta Catalog: header CSV + linha row + escape vírgula/aspas + empty items.
+
+**Trade-offs arquiteturais:**
+- `availability` derivada por sum de inventory_stock por variantes do produto. Sem variantes registradas: out of stock (conservador).
+- `condition` hardcoded 'new' — V2 condicional via product.metadata.
+- `productType` derivado de tpl.id — V2: usar product.collections / breadcrumb category quando schema gain.
+- `brand` derivado de tpl.name primeira parte — V2 persistir em tenant.config.brandName.
+- `gtin` opcional — schema atual não tem. V2: adicionar `products.gtin` column.
+- `cache-control: max-age=3600` — Google/Meta refazem fetch frequentemente; 1h evita carga DB excessiva.
+- Sitemap.ts referência aos feeds NÃO adicionada — Google Merchant Center tem submission própria via UI, sitemap não precisa expô-la.
+
+**Validações:**
+- pnpm -r typecheck zero erro.
+- storefront 126/126 (+7 feeds). Total 401 passing. Zero regressao.
+- pnpm -r lint admin/storefront limpo.
+
+**Próximo ciclo:**
+- P4.R — programa afiliados (schema affiliate_links + UI admin + tracking ?ref cookie 30d).
+- P4.S — fraudScore engine (sinais email/valor/IP/primeiros pedidos).
+- P3.M — endereço adaptativo intl (BR CEP / US ZIP+state / UK postcode).
