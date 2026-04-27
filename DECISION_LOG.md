@@ -4190,3 +4190,45 @@ curl -X POST -H "x-cron-secret: $CRON_SECRET" \
 - TradeApproved email em /api/returns/[id] PATCH approve.
 - Tests apps/storefront/src/lib/email/transactional.test.ts (mock sendEmail+render).
 - Audit dependência @react-email transitivamente: padronizar versão (atualmente 1.0.4 e 1.1.2 coexistem).
+
+
+---
+
+## 2026-04-27 (continuacao) — Batch 19: Email transacional admin (Shipping + TradeApproved)
+
+**Commits:** 017a6ea.
+
+**apps/admin ganha dep @lojeo/email:**
+- Mesmo padrão storefront (batch 18). Re-exporta render via @lojeo/email evita dep direta.
+- Helper `apps/admin/src/lib/email/transactional.ts` (admin-side):
+  - `sendShippingNotificationEmail(input)`: render template `ShippingNotification` (jewelry-v1) com props {storeName, estimatedDelivery, trackingCode, trackingUrl, stops[]}. Stops são timeline 4 etapas (enviado/trânsito/saiu pra entrega/entregue) — primeira stop done com data atual, restante future.
+  - `sendTradeApprovedEmail(input)`: render template `TradeApproved` com labelPdfUrl (fallback /conta). type mapeado de existing.type (exchange/warranty/refund). Subject diferenciado por type.
+  - Try/catch envolvendo render+send — falha email NUNCA derruba transição.
+  - Constants STORE_NAME, FROM_EMAIL, STOREFRONT_BASE de env vars com defaults.
+
+**Hooks plugados:**
+- `/pedidos/[id]` updateStatus action: quando `newStatus === 'shipped' && trackingCode && order.customerEmail`, dispara fire-and-forget `sendShippingNotificationEmail`. trackingUrl aponta storefront /rastreio?order=X (não admin).
+- `/api/returns/[id]` PATCH: quando `newStatus === 'approved' && existing.customerEmail`, dispara `sendTradeApprovedEmail` com type derivado de existing.type. Não compete com gift card issue (lógica separada acima no mesmo handler).
+
+**Coverage emails transacionais:**
+- ✓ OrderConfirmation (POST /api/orders) — cliente recebe ao criar pedido
+- ✓ ShippingNotification (transition shipped) — cliente recebe ao despachar com tracking
+- ✓ TradeApproved (transition return.approved) — cliente recebe ao aprovar troca/garantia/devolução
+- ⏳ Welcome (signup /api/conta) — pendente próximo iter
+- ⏳ PixGenerated (MP preference + Pix selected) — pendente próximo iter
+
+**Trade-offs:**
+- Render React síncrono no server action — adiciona ~50ms. Aceitável (transition já tem DB write + notification emit).
+- estimatedDelivery hardcoded "7 dias úteis" — V2: calcular via shipping carrier deadline + dia de envio.
+- TradeApproved template props mínimos (labelPdfUrl) — não diferencia tipo no body. V2: customizar template aceitando tradeType prop.
+
+**Validações:**
+- Tests admin 77/77, storefront 41/41 verde. Typecheck/lint zero.
+- 0 regressão.
+- Deploy admin disparado.
+
+**Próximo ciclo:**
+- Welcome email em signup (/api/conta).
+- PixGenerated email quando MP preference criada com payment_method=pix.
+- Tests transactional helpers (mock sendEmail+render).
+- Email template Boleto (jewelry-v1 não tem — criar ou usar OrderConfirmation com aviso).
