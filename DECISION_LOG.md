@@ -4275,3 +4275,50 @@ curl -X POST -H "x-cron-secret: $CRON_SECRET" \
 - Audit env vars STOREFRONT_STORE_NAME, STOREFRONT_FROM_EMAIL, STOREFRONT_PUBLIC_URL — adicionar a .env.example.
 - Refactor: padronizar STORE_NAME/FROM_EMAIL constants entre storefront e admin (atualmente duplicado).
 - UX testing prod via Playwright login admin.
+
+
+---
+
+## 2026-04-27 (continuacao) — Batch 21: getStoreEmailConfig shared + .env.example completo
+
+**Commits:** 5bec91a.
+
+**Refactor STORE_NAME constants → getStoreEmailConfig():**
+- `packages/email/src/store-config.ts`: helper único `getStoreEmailConfig()` retorna `{storeName, fromEmail, storefrontBase}` com env defaults.
+- Apps consumidoras (admin + storefront transactional.ts) chamam `cfg()` local em vez de declarar constants top-level.
+  - Trade-off: 1 chamada de função extra por email vs cleaner imports + sourcetable single-place. Aceito.
+  - Override em runtime: V2 — passar config no input quando multi-tenant SaaS-mode com tenants próprios STORE_NAME.
+
+**Decisão Pix email pulado:**
+- Storefront cria MP Preference (não Payment direto). QR Pix vive no MP init_point — não temos `qrImageUrl`/`pixCopyPaste` pra preencher template `PixGenerated`.
+- V2: chamar `POST /v1/payments` direto ao MP com payment_method_id=pix → recebe QR + copia-cola → enviar email com template. Requer migrations + flow paralelo ao Preference.
+- Por ora, MP redirect leva cliente direto pro QR no painel MP — UX nativa funcional.
+
+**.env.example expansão (15 vars novas em 7 grupos):**
+1. Storefront branding: STOREFRONT_STORE_NAME, STOREFRONT_FROM_EMAIL, STOREFRONT_PUBLIC_URL
+2. Mercado Pago: MERCADO_PAGO_ACCESS_TOKEN, MERCADO_PAGO_WEBHOOK_SECRET
+3. Stripe: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
+4. Fiscal/frete: BLING_CLIENT_ID, BLING_CLIENT_SECRET, OLIST_API_TOKEN, PAGARME_API_KEY, MELHOR_ENVIO_TOKEN
+5. Email/WhatsApp: SENDGRID_API_KEY, FAQZAP_API_TOKEN
+6. Jobs: TRIGGER_API_URL, TRIGGER_API_KEY
+7. Admin/security: CRON_SECRET (cron scheduler), MIGRATION_SECRET (migrate endpoint), ALLOWED_ORIGINS (CSRF allowlist)
+
+Cada var com comentário explicativo (link doc, modo degradado quando aplicável).
+
+**Validações:**
+- Tests: admin 77/77, storefront 46/46, db 20/20, engine 87, template 3, tracking 7, ai 7, ui 0. Total 240+. Typecheck/lint zero.
+- 0 regressão.
+- Deploys disparados (admin + storefront).
+
+**Sprint 13 status — Email transacional 4/5 plugged:**
+- ✓ OrderConfirmation (POST /api/orders)
+- ✓ ShippingNotification (transition shipped + tracking)
+- ✓ TradeApproved (transition return.approved)
+- ✓ Welcome (NextAuth events.createUser)
+- ✗ PixGenerated — bloqueado em criar Payment direto MP (V2)
+
+**Próximo ciclo:**
+- UX testing prod via Playwright login admin (criar pedido, ver email mock log, validar email actual com Resend key).
+- Refactor: extrair render+sendEmail wrapper único pra reduzir boilerplate try/catch nas 5 funções.
+- Audit visual hover/focus states em buttons/links críticos.
+- Coffee-v1 template — Fase 1.2 internacional (após Fase 1 100%).
