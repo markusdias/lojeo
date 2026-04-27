@@ -2629,3 +2629,40 @@ User pediu **agregar features extras (insights funil, ia-analyst, etc), não jog
 - /pedidos default filter 90d em vez de 30d (cobrir histórico seedado)
 
 **121 commits totais sessão**, **108 testes globais verdes**, **24 migrations prod**, **zero regressão**.
+
+---
+
+## 2026-04-26 — Empty states branded + /pedidos default 90d
+
+**Commit:** [feat empty states + 90d filter]
+
+**Gap detectado anteriormente via UX testing:** /ugc Pendente vazio, /avaliacoes Pendentes vazio, /tickets, /devolucoes — todos com texto plano "Nenhuma..." em vez de visual rico match Empty.jsx ref.
+
+**Arquivos:**
+- `apps/admin/src/components/ui/empty-state.tsx` — 7 ícones Lucide-style 32x32 stroke 1.5 exportados:
+  - IconShoppingBag (pedidos)
+  - IconUsers (clientes)
+  - IconStar (avaliações)
+  - IconPackage (produtos)
+  - IconImage (UGC)
+  - IconReturn (devoluções)
+  - IconHeadset (tickets)
+- `apps/admin/src/app/avaliacoes/page.tsx` — EmptyState com IconStar + microcopy contextual por tab (Pendente convida 1-1 vs Aprovadas/Rejeitadas histórico)
+- `apps/admin/src/app/ugc/page.tsx` — EmptyState IconImage + microcopy "Ative badge compartilhe sua peça nos emails pós-entrega" + 2 CTAs (Configurar email / Importar Instagram)
+- `apps/admin/src/app/devolucoes/page.tsx` — substitui emoji "↩" por IconReturn + microcopy "Pode ser sinal positivo — ou apenas filtros restritos" + CTA configurar política
+- `apps/admin/src/app/tickets/page.tsx` — substitui emoji "💬" por IconHeadset (mantém microcopy)
+- `apps/admin/src/app/pedidos/page.tsx` — filtro padrão `'30'` → `'90'` (cobrir histórico seedado com offsetDays 49-720 que ficavam ocultos)
+
+**Decisões pontuais:**
+
+1. **Ícones 32x32 (não 56x56 como Empty.jsx)** — EmptyState component existente já tem container 56x56 com background `var(--accent-soft)` circular; ícone interno 32x32 mantém proporção visual sem alterar contract.
+
+2. **Microcopy por tab em /avaliacoes** — não usar mesmo texto pra Pendentes/Aprovadas/Rejeitadas. Cada estado tem framing diferente: Pendente é convite ativação ("convide quem comprou"); Aprovadas é histórico ("aparecem aqui após aprovar"); Rejeitadas é auditoria.
+
+3. **/pedidos 90d default** — match Customer.jsx Beatriz "Cliente desde maio 2024 · 12 pedidos" pattern: lojista quer ver janela ampla por padrão; 30d default escondia 14 dos 17 pedidos seedados, criando ilusão de loja vazia. 90d é equilíbrio com performance.
+
+**Tests admin 18/18 verde.** Deploy admin disparado.
+
+**Próximo ciclo:** Settings tabs (Identidade/Pagamentos/Frete/Email/Fiscal/Pixels/IA), Queues unificado, gap audit storefront /comunidade vs Home.jsx UGC seção embedded.
+
+**125 commits totais sessão**, **108 testes globais verdes**, **24 migrations prod**, **zero regressão**.
