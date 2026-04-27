@@ -8,7 +8,7 @@ import {
   productVariants,
   inventoryStock,
 } from '@lojeo/db';
-import { eq, and, sql, desc, gte, lte } from 'drizzle-orm';
+import { eq, and, sql, desc, gte, lte, inArray } from 'drizzle-orm';
 import { WishlistTabs, type Tab } from './tabs';
 
 const TENANT_ID = process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
@@ -78,7 +78,7 @@ async function fetchWishlists(tenantId: string): Promise<WishlistRow[]> {
     .where(
       and(
         eq(productVariants.tenantId, tenantId),
-        sql`${productVariants.productId} = ANY(${productIds})`,
+        inArray(productVariants.productId, productIds),
       ),
     )
     .groupBy(productVariants.productId);
