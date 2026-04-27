@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { and, eq, gte, sql } from 'drizzle-orm';
 import {
   db,
@@ -8,16 +8,16 @@ import {
   sellerNotifications,
   emitSellerNotification,
 } from '@lojeo/db';
-import { auth } from '../../../../auth';
 import { TENANT_ID } from '../../../../lib/roles';
+import { authorizeCronRequest } from '../../../../lib/cron-auth';
 
 export const dynamic = 'force-dynamic';
 
 const DEDUP_HOURS = 24;
 
-export async function POST() {
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+export async function POST(req: NextRequest) {
+  const auth = await authorizeCronRequest(req);
+  if (!auth.ok) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
   const tid = TENANT_ID;
   const since = new Date(Date.now() - DEDUP_HOURS * 60 * 60 * 1000);

@@ -1,21 +1,18 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { and, desc, eq, gte, sql } from 'drizzle-orm';
 import { scoreChurnBatch, type ChurnInput } from '@lojeo/engine';
 import { db, orders, sellerNotifications, emitSellerNotification } from '@lojeo/db';
 import { TENANT_ID } from '../../../../lib/roles';
+import { authorizeCronRequest } from '../../../../lib/cron-auth';
 
 export const dynamic = 'force-dynamic';
 
 const DEDUP_DAYS = 7;
-const TOP_AT_RISK = 5; // top N customers crítico/alto pra emit
+const TOP_AT_RISK = 5;
 
-export async function POST() {
-  // Auth: middleware bloqueia mutations sem session.
-  if (process.env.NODE_ENV !== 'test') {
-    const { auth } = await import('../../../../auth');
-    const session = await auth();
-    if (!session?.user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  }
+export async function POST(req: NextRequest) {
+  const auth = await authorizeCronRequest(req);
+  if (!auth.ok) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
   const tid = TENANT_ID;
   const since = new Date(Date.now() - DEDUP_DAYS * 24 * 60 * 60 * 1000);

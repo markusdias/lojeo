@@ -332,6 +332,52 @@ export default async function DashboardPage() {
         </div>
       </header>
 
+      {_productCount === 0 && orderCount === 0 && (
+        <section
+          style={{
+            background: 'linear-gradient(135deg, var(--accent-soft, #F4ECDB) 0%, var(--surface, #fff) 100%)',
+            border: '1px solid var(--border)',
+            borderRadius: 12,
+            padding: 'var(--space-6)',
+            marginBottom: 'var(--space-6)',
+          }}
+        >
+          <span style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--fg-muted)' }}>
+            Primeiros passos
+          </span>
+          <h2 style={{ fontSize: 'var(--text-h3)', fontWeight: 'var(--w-semibold)', margin: '6px 0 var(--space-2)' }}>
+            Sua loja está pronta. Falta só dar o primeiro passo.
+          </h2>
+          <p className="body-s" style={{ margin: '0 0 var(--space-5)', color: 'var(--fg-secondary)' }}>
+            Em ~10 minutos você cadastra produto, conecta pagamento e vende. Cada bloco abaixo leva direto pra ação.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--space-3)' }}>
+            <OnboardingStep
+              num="1"
+              title="Cadastre seu primeiro produto"
+              desc="Nome, foto, preço. SKU e variantes vêm depois."
+              cta="Criar produto"
+              href="/products/new"
+              primary
+            />
+            <OnboardingStep
+              num="2"
+              title="Conecte um meio de pagamento"
+              desc="Mercado Pago para Pix + cartão BR · Stripe para internacional."
+              cta="Configurar"
+              href="/integracoes"
+            />
+            <OnboardingStep
+              num="3"
+              title="Personalize sua loja"
+              desc="Cores, tipografia, logo. Sua marca em 2 minutos."
+              cta="Aparência"
+              href="/aparencia"
+            />
+          </div>
+        </section>
+      )}
+
       <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
         <MetricCard
           label="Receita hoje"
@@ -527,5 +573,57 @@ export default async function DashboardPage() {
         </p>
       )}
     </div>
+  );
+}
+
+interface OnboardingStepProps {
+  num: string;
+  title: string;
+  desc: string;
+  cta: string;
+  href: string;
+  primary?: boolean;
+}
+
+function OnboardingStep({ num, title, desc, cta, href, primary }: OnboardingStepProps) {
+  return (
+    <Link
+      href={href}
+      style={{
+        display: 'block',
+        background: 'var(--surface, #fff)',
+        border: `1px solid ${primary ? 'var(--accent, #C9A85C)' : 'var(--border)'}`,
+        borderRadius: 10,
+        padding: 'var(--space-4)',
+        textDecoration: 'none',
+        color: 'inherit',
+        transition: 'border-color 120ms, transform 120ms',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+        <span
+          aria-hidden
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 24,
+            height: 24,
+            borderRadius: 12,
+            background: primary ? 'var(--accent, #C9A85C)' : 'var(--neutral-50, #fafaf8)',
+            color: primary ? '#fff' : 'var(--fg-muted)',
+            fontSize: 12,
+            fontWeight: 600,
+          }}
+        >
+          {num}
+        </span>
+        <strong style={{ fontSize: 14, fontWeight: 600 }}>{title}</strong>
+      </div>
+      <p style={{ fontSize: 13, color: 'var(--fg-secondary)', margin: '0 0 12px', lineHeight: 1.45 }}>{desc}</p>
+      <span style={{ fontSize: 13, color: primary ? 'var(--accent, #C9A85C)' : 'var(--fg)', fontWeight: 500 }}>
+        {cta} →
+      </span>
+    </Link>
   );
 }

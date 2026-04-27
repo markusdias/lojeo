@@ -68,7 +68,8 @@ function needs2FAGate(pathname: string): boolean {
 }
 
 // Mutações em rotas /api/* exigem sessão. Allowlist mantém endpoints públicos
-// (auth flow, webhooks externos, track behavioral, migrate bootstrap).
+// (auth flow, webhooks externos, track behavioral, migrate bootstrap, cron com
+// secret próprio).
 const API_AUTH_ALLOWLIST_PREFIXES = [
   '/api/auth/',
   '/api/migrate',
@@ -76,6 +77,7 @@ const API_AUTH_ALLOWLIST_PREFIXES = [
   '/api/track',
   '/api/events',
   '/api/webhooks/',
+  '/api/cron/',
 ];
 
 function needsApiAuth(pathname: string, method: string): boolean {
