@@ -3682,3 +3682,37 @@ V2: trocar por react-markdown + sanitizer quando implementar UGC blog/comentario
 - Emit em fiscal failed (Bling/Olist), churn detection (IA Analyst), high-cart-abandonment.
 - /clientes/[id] já existe (audit estava errado) — ok como está.
 - Empty states audit: passar por rotas vazias e padronizar componente `EmptyState` (já existe, só falta cobertura).
+
+
+---
+
+## 2026-04-27 (continuacao) — Batch 7: Integrações conectáveis via UI
+
+**Commits:** 4e8074e (10 providers + sentinel + UI inline form).
+
+**Sprint 13 — Conexão de provedor 1-clique sem env:**
+- Schema central `apps/admin/src/lib/integrations-config.ts` com `PROVIDERS` cobrindo 10 providers críticos: Bling (Fiscal), Olist Tiny (Fiscal), Mercado Pago (Pagamentos), Stripe, Pagar.me, Melhor Envio (Frete), Resend (Email), SendGrid, FaqZap (WhatsApp), Anthropic Claude (IA), Trigger.dev (Jobs). Cada provider declara `envVars[]` (env vars que dominam quando presentes) + `fields[]` (label/type/required/placeholder/helper) + helper + docsUrl.
+- Persistência: `tenants.config.integrations.<providerId>.<fieldKey>`. Não criamos coluna nova — reusa jsonb config existente.
+- Sentinel pattern (concept memory): `maskValue` retorna `••••XXXX`. `isMaskedValue` detecta. `mergeCredentials` NUNCA sobrescreve real com mascarado nem com string vazia → impede que GET → PATCH apague secret. Validado por 5 testes específicos.
+- API:
+  - `PUT /api/integrations/[provider]` — auth + scope `settings.write`, valida required fields, merge sentinel-safe, audit implícita via update.
+  - `DELETE /api/integrations/[provider]` — remove credenciais (env continua válida).
+  - `GET /api/integrations/status` — fonte unificada: env > config > none. Retorna `source` (`env|config|none`) + `storedCredentials` mascaradas + `helper` + `docsUrl`. Try/catch DB pra preservar comportamento degradado nos tests sem DB.
+- UI `/integracoes` reescrita: card por provider, status pill, botão Conectar (Editar quando connected via config, Desconectar quando config), badge "via env" quando env vars dominam (impede sobrescrever prod via UI por engano), form inline (não modal — reduz fricção mobile MEI), feedback ok/erro contextual, link doc externo opcional. Categorias agrupadas: Pagamentos, Fiscal, Frete, Email, IA, WhatsApp, Jobs.
+
+**Trade-offs arquiteturais:**
+- Tokens em jsonb plain text (sem encryption-at-rest). Aceito v1 — DB já está atrás de auth + Postgres user único + acesso restrito. V2: cifrar com chave master fora do DB (libsodium ou AWS KMS) quando passar a SaaS multi-tenant.
+- env vars > config: produção pode forçar valores (12-factor) sem que UI mostre como editáveis. Lojista MEI sem acesso server vê config; ops com acesso usa env.
+- Sem refresh token / OAuth flow real: cada provider precisaria sua dance OAuth (callback URL, app registrado em Bling/Stripe/etc). V1 entrega "API Key/Token" direto — fluxo 1 clique vem em V2 quando tivermos apps registrados nos providers.
+- Form inline em vez de modal/page: dropdown que expande embaixo do card. Reduz cliques + permite ver outros providers no contexto. Validado UX em mobile pelo padrão accordion.
+
+**Validações:**
+- Tests: 19 novos `integrations-config.test.ts` (mask/merge/isProviderConnected/getProvider). Admin 63/63. degraded-mode test mantido com regex flexível (status `disconnected` + message `não conectado|disponível|manual`).
+- Typecheck zero. Lint zero warnings novos.
+- 0 regressão.
+
+**Próximo ciclo:**
+- Audit empty states cobertura em /atribuicao, /recomendacoes/ctr, /wishlist (3 rotas sem EmptyState component).
+- Emit notifications fiscal failed quando NF-e falhar 3x.
+- OAuth real bling/mercadopago em V2 (criar app provider → callback URL → consent screen).
+- Encrypt-at-rest tokens em config (Sprint Fase 2 multi-tenant).
