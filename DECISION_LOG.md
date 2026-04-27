@@ -5229,3 +5229,44 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 
 **Próximo ciclo:**
 - P2.F — canais notificação além in-app (email severity=critical, push PWA, Slack/Discord webhook).
+
+---
+
+## 2026-04-27 (continuacao) — Batch 40: Multichannel notifications (P2.F parcial)
+
+**Commits:** (a registrar nesta sessao).
+
+**Senders externos (degraded mode):**
+- `apps/admin/src/lib/notifications/slack.ts` — `sendSlackWebhook({ webhookUrl, text, attachmentColor, fields, link })`. Sem URL: `{ ok: false, mocked: true }`.
+- `apps/admin/src/lib/notifications/discord.ts` — `sendDiscordWebhook({ webhookUrl, content, embed })`. Embed colorizado por severity.
+
+**Orquestrador `apps/admin/src/lib/notifications/multichannel.ts`:**
+- `emitMultichannelNotification(input)` espelha `EmitSellerNotificationInput` + `channels?` opcional.
+- Sempre cria in-app (sellerNotifications row).
+- Default channels por severity:
+  - `critical` → email + slack + discord (extra in-app).
+  - `warning` → slack + discord.
+  - `info` → só in-app.
+- Lê `tenant.config.notifications.{email,slack,discord}` pra obter URLs/recipients.
+- Email lojista: subject `[CRITICAL]/[WARNING]` + título + body + link. Recipients vem de `tenant.config.notifications.email.recipientsCsv`. Sem recipients: skip.
+- Retorna `{ inappId, tried: { inapp, email, slack, discord, push } }` pra observability.
+
+**9 tests vitest:**
+- `slack.test.ts` (5): mocked sem URL / POST text+username / attachments com fields / status erro / fetch throw.
+- `discord.test.ts` (4): mocked sem URL / POST content+username / embed presente / status erro.
+
+**Trade-offs arquiteturais:**
+- Não migrei os 9 emit hooks existentes pra `emitMultichannelNotification` ainda — mantém `emitSellerNotification` como API canônica e introduz multichannel como wrapper opt-in. V2 (próximo batch): refactor low-stock-check + churn-check + return.requested + ticket.assigned (todos critical/warning) pra usar multichannel.
+- Push PWA stub não implementado neste batch — schema `push_subscriptions` já existe. V2: gerar VAPID keys + send via `web-push` lib (~70KB dep). Aguarda lojistas registrarem subscriptions via Service Worker.
+- `tenant.config.notifications` shape: `{ email: { enabled, recipientsCsv }, slack: { webhookUrl }, discord: { webhookUrl }, push: { enabled } }`. UI admin pra editar não criada — V2 form `/configuracoes/notificacoes`.
+- Slack/Discord webhooks são públicos por natureza (URL). Sentinel pattern (mask GET, merge sem sobrescrever PUT) deve aplicar quando UI for criada.
+
+**Validações:**
+- pnpm typecheck zero erro.
+- admin 99/99 (+9 slack/discord). Total ~371 passing.
+- pnpm lint admin/storefront limpo.
+
+**Próximo ciclo:**
+- Plugar emitMultichannelNotification em low-stock-check + churn-check (severity=critical/warning).
+- UI form admin pra tenant.config.notifications.
+- Push PWA real (web-push lib + VAPID keys).
