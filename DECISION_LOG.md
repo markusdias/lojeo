@@ -3982,3 +3982,50 @@ V2: trocar por react-markdown + sanitizer quando implementar UGC blog/comentario
 - Dashboard onboarding card pra MEI sem produtos (Apple-thinking).
 - /pedidos/[id] botão "Marcar como pago manual" pra fluxo MEI sem MP integrado.
 - UX testing prod completo via login real (manual ou Playwright com auth setup).
+
+
+---
+
+## 2026-04-27 (continuacao) — Batch 14: cron-auth secret + dashboard onboarding card
+
+**Commits:** 033e4f0.
+
+**cron-auth helper (apps/admin/src/lib/cron-auth.ts):**
+- `checkCronSecret(req)` — timing-safe constant compare entre header `x-cron-secret` e env `CRON_SECRET`. Length-aware (mismatch → false sem comparar bytes).
+- `authorizeCronRequest(req)` — aceita secret válido OR session válida (lazy import auth). `NODE_ENV=test` bypassa pra preservar dogfood + test files.
+- 6 tests: sem env, sem header, header errado, correto, length mismatch, vazio.
+
+**Aplicado em:**
+- `POST /api/cron/low-stock-check`
+- `POST /api/cron/churn-check`
+
+**Middleware update:**
+- Allowlist agora inclui `/api/cron/` — handlers fazem auth check próprio (secret OR session). Permite scheduler externo (EasyPanel cronjob, Trigger.dev, GitHub Action) chamar via curl:
+```bash
+curl -X POST -H "x-cron-secret: $CRON_SECRET" \
+  https://apps-lojeo-admin.m9axtw.easypanel.host/api/cron/low-stock-check
+```
+
+**Dashboard onboarding card (Apple-thinking):**
+- Renderiza quando `_productCount === 0 && orderCount === 0` (MEI sem nada).
+- Gradient champagne → surface, eyebrow "Primeiros passos", H2 encorajador, 3 cards numerados:
+  1. Criar produto (primary, accent border)
+  2. Conectar pagamento → /integracoes
+  3. Personalizar aparência → /aparencia
+- Some quando primeiro produto/pedido aparece — sem dismiss button (estado autoexplicativo).
+- `OnboardingStep` componente reusável dentro do mesmo arquivo.
+
+**Validações:**
+- Tests admin 77/77 (+6 cron-auth). Storefront 41/41. Typecheck/lint zero.
+- 0 regressão.
+
+**Trade-offs:**
+- CRON_SECRET sem env config = scheduler externo não funciona. Lojista que quer cron precisa setar `CRON_SECRET=$(openssl rand -hex 32)` em variáveis EasyPanel + agendar cronjob com mesmo header.
+- Helper `authorizeCronRequest` é async (lazy import auth). Trade-off: 1 await extra em prod por chamada cron. Negligível, dynamic import cacheado pelo Node módulo.
+
+**Próximo ciclo:**
+- Documentar CRON_SECRET setup em README.md ou onboarding settings.
+- /pedidos/[id] já tem botão "Confirmar pagamento" (descoberto no audit) — pular duplicação.
+- UX testing prod completo via Playwright + login admin@lojeo.dev.
+- Botão "Verificar churn" em /ia-analyst também (atual só em /clientes).
+- Schema notification preferences por tenant (opt-out de tipos específicos).
