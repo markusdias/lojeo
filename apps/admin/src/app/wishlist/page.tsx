@@ -29,6 +29,7 @@ interface GiftCardRow {
   initialValueCents: number;
   currentBalanceCents: number;
   recipientEmail: string | null;
+  buyerUserId: string | null;
   status: string;
   createdAt: string;
   expiresAt: string | null;
@@ -112,6 +113,7 @@ async function fetchGiftCards(tenantId: string): Promise<{ rows: GiftCardRow[]; 
       initialValueCents: giftCards.initialValueCents,
       currentBalanceCents: giftCards.currentBalanceCents,
       recipientEmail: giftCards.recipientEmail,
+      buyerUserId: giftCards.buyerUserId,
       status: giftCards.status,
       createdAt: giftCards.createdAt,
       expiresAt: giftCards.expiresAt,
@@ -263,16 +265,33 @@ export default async function WishlistAdminPage({ searchParams }: PageProps) {
         </p>
       </div>
 
-      {/* AI Insight (pra topo wishlist com estoque baixo) */}
-      {topWishlist && topWishlist.stock <= topWishlist.count / 8 && (
-        <div className="lj-card" style={{ background: 'var(--accent-soft)', borderColor: 'var(--accent)', padding: 'var(--space-3) var(--space-4)', marginBottom: 'var(--space-5)', display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+      {/* AI Insight — gradient soft, sempre que houver demanda relevante */}
+      {topWishlist && topWishlist.count >= 5 && (
+        <div
+          className="lj-card"
+          style={{
+            background: 'var(--ai-gradient-soft)',
+            borderColor: 'var(--accent)',
+            padding: 'var(--space-3) var(--space-4)',
+            marginBottom: 'var(--space-5)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-3)',
+          }}
+        >
           <span className="lj-badge lj-badge-accent" style={{ flexShrink: 0 }}>✨ IA</span>
           <p className="body-s" style={{ flex: 1, lineHeight: 1.55 }}>
             <strong>{topWishlist.productName}</strong> tem {topWishlist.count} pessoas esperando
-            {topWishlist.stock === 0 ? ' — está zerado.' : ` — ${topWishlist.stock} unidades em estoque.`}
-            {' '}Repor pode gerar até R$ {(topWishlist.priceCents * topWishlist.count / 100).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} de receita potencial.
+            {topWishlist.stock === 0
+              ? ' — está zerado.'
+              : ` — apenas ${topWishlist.stock} ${topWishlist.stock === 1 ? 'unidade' : 'unidades'} em estoque.`}
+            {' '}Repor {Math.max(topWishlist.count - topWishlist.stock, 1)} unidades pode gerar ~R$ {(topWishlist.priceCents * Math.max(topWishlist.count - topWishlist.stock, 1) / 100).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} de receita potencial.
           </p>
-          <Link href="/ia-analyst" className="lj-btn-primary" style={{ fontSize: 'var(--text-caption)', whiteSpace: 'nowrap', textDecoration: 'none' }}>
+          <Link
+            href="/ia-analyst"
+            className="lj-btn-primary"
+            style={{ fontSize: 'var(--text-caption)', whiteSpace: 'nowrap', textDecoration: 'none' }}
+          >
             Pergunte ao IA →
           </Link>
         </div>

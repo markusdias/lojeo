@@ -18,6 +18,7 @@ interface GiftCardRow {
   initialValueCents: number;
   currentBalanceCents: number;
   recipientEmail: string | null;
+  buyerUserId: string | null;
   status: string;
   createdAt: string;
   expiresAt: string | null;
@@ -158,6 +159,7 @@ export function WishlistTabs({ initialTab, totals, wishlists, giftcards, giftcar
                   <th style={{ textAlign: 'right', padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)', fontWeight: 'var(--w-medium)' }}>EM WISHLIST</th>
                   <th style={{ textAlign: 'right', padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)', fontWeight: 'var(--w-medium)' }}>ESTOQUE</th>
                   <th style={{ textAlign: 'right', padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)', fontWeight: 'var(--w-medium)' }}>PREÇO</th>
+                  <th style={{ width: 130, padding: 'var(--space-3) var(--space-4)' }}></th>
                 </tr>
               </thead>
               <tbody>
@@ -188,6 +190,17 @@ export function WishlistTabs({ initialTab, totals, wishlists, giftcards, giftcar
                     </td>
                     <td className="numeric" style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right', fontWeight: 'var(--w-medium)' }}>
                       {fmtBrl(w.priceCents)}
+                    </td>
+                    <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>
+                      <button
+                        type="button"
+                        className="lj-btn-secondary"
+                        style={{ fontSize: 'var(--text-caption)', padding: '6px 12px' }}
+                        disabled
+                        title="Detalhe da lista por produto — Sprint 9"
+                      >
+                        Ver lista →
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -244,6 +257,7 @@ export function WishlistTabs({ initialTab, totals, wishlists, giftcards, giftcar
                     <th style={{ textAlign: 'left', padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)', fontWeight: 'var(--w-medium)' }}>CÓDIGO</th>
                     <th style={{ textAlign: 'right', padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)', fontWeight: 'var(--w-medium)' }}>VALOR</th>
                     <th style={{ textAlign: 'right', padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)', fontWeight: 'var(--w-medium)' }}>SALDO</th>
+                    <th style={{ textAlign: 'left', padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)', fontWeight: 'var(--w-medium)' }}>COMPRADOR</th>
                     <th style={{ textAlign: 'left', padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)', fontWeight: 'var(--w-medium)' }}>DESTINATÁRIO</th>
                     <th style={{ textAlign: 'left', padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)', fontWeight: 'var(--w-medium)' }}>EMITIDO</th>
                     <th style={{ textAlign: 'left', padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)', fontWeight: 'var(--w-medium)' }}>STATUS</th>
@@ -257,6 +271,9 @@ export function WishlistTabs({ initialTab, totals, wishlists, giftcards, giftcar
                         <td className="mono" style={{ padding: 'var(--space-3) var(--space-4)', fontWeight: 'var(--w-medium)' }}>{g.code}</td>
                         <td className="numeric" style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>{fmtBrl(g.initialValueCents)}</td>
                         <td className="numeric" style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right', fontWeight: 'var(--w-medium)' }}>{fmtBrl(g.currentBalanceCents)}</td>
+                        <td className="mono" style={{ padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)', fontSize: 'var(--text-caption)' }}>
+                          {g.buyerUserId ? g.buyerUserId.slice(0, 8) : '—'}
+                        </td>
                         <td style={{ padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)' }}>{g.recipientEmail ?? '—'}</td>
                         <td style={{ padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)' }}>
                           {new Date(g.createdAt).toLocaleDateString('pt-BR')}
@@ -293,6 +310,7 @@ export function WishlistTabs({ initialTab, totals, wishlists, giftcards, giftcar
                   <th style={{ textAlign: 'left', padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)', fontWeight: 'var(--w-medium)' }}>PRODUTO</th>
                   <th style={{ textAlign: 'right', padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)', fontWeight: 'var(--w-medium)' }}>ESPERANDO</th>
                   <th style={{ textAlign: 'left', padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)', fontWeight: 'var(--w-medium)' }}>ÚLTIMO CADASTRO</th>
+                  <th style={{ textAlign: 'left', padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)', fontWeight: 'var(--w-medium)' }}>REPOSIÇÃO</th>
                   <th style={{ textAlign: 'right', padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)', fontWeight: 'var(--w-medium)' }}>AÇÕES</th>
                 </tr>
               </thead>
@@ -314,6 +332,9 @@ export function WishlistTabs({ initialTab, totals, wishlists, giftcards, giftcar
                     </td>
                     <td style={{ padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)' }}>
                       {relativeTime(r.lastSignupAt)}
+                    </td>
+                    <td style={{ padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)', fontSize: 'var(--text-caption)' }}>
+                      sem reposição agendada
                     </td>
                     <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>
                       <button
