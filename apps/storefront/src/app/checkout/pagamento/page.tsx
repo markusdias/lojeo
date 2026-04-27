@@ -45,6 +45,8 @@ export default function PagamentoPage() {
   const [method, setMethod] = useState<'pix' | 'credit_card' | 'boleto'>(state.paymentMethod ?? 'pix');
   const [isGift, setIsGift] = useState(state.isGift);
   const [giftMessage, setGiftMessage] = useState(state.giftMessage);
+  const [giftPremium, setGiftPremium] = useState(false);
+  const GIFT_PREMIUM_CENTS = 990; // R$ 9,90 — futuramente lê de tenant.config.checkout
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [couponInput, setCouponInput] = useState(state.coupon?.code ?? '');
@@ -172,7 +174,7 @@ export default function PagamentoPage() {
           paymentMethod: method,
           couponCode: state.coupon?.code ?? undefined,
           utm,
-          gift: isGift ? { isGift: true, message: giftMessage || null } : null,
+          gift: isGift ? { isGift: true, message: giftMessage || null, packagingCents: giftPremium ? GIFT_PREMIUM_CENTS : 0 } : null,
         }),
       });
 
@@ -229,20 +231,37 @@ export default function PagamentoPage() {
             </div>
           </label>
           {isGift && (
-            <textarea
-              placeholder="Mensagem para o cartão (opcional)"
-              value={giftMessage}
-              onChange={e => setGiftMessage(e.target.value)}
-              maxLength={280}
-              rows={3}
-              style={{
-                marginTop: 12, width: '100%', boxSizing: 'border-box',
-                padding: '10px 12px', fontSize: 13, borderRadius: 4,
-                border: '1px solid var(--divider)', background: 'var(--surface)',
-                color: 'var(--text-primary)', fontFamily: 'var(--font-body)',
-                resize: 'vertical',
-              }}
-            />
+            <>
+              <textarea
+                placeholder="Mensagem para o cartão (opcional)"
+                value={giftMessage}
+                onChange={e => setGiftMessage(e.target.value)}
+                maxLength={280}
+                rows={3}
+                style={{
+                  marginTop: 12, width: '100%', boxSizing: 'border-box',
+                  padding: '10px 12px', fontSize: 13, borderRadius: 4,
+                  border: '1px solid var(--divider)', background: 'var(--surface)',
+                  color: 'var(--text-primary)', fontFamily: 'var(--font-body)',
+                  resize: 'vertical',
+                }}
+              />
+              <label style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12, cursor: 'pointer', paddingTop: 12, borderTop: '1px solid var(--divider)' }}>
+                <input
+                  type="checkbox"
+                  checked={giftPremium}
+                  onChange={e => setGiftPremium(e.target.checked)}
+                  style={{ accentColor: 'var(--accent)', width: 16, height: 16 }}
+                />
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
+                    <span style={{ fontSize: 13, fontWeight: 500 }}>Embalagem premium</span>
+                    <span style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 500 }}>+ {fmt(GIFT_PREMIUM_CENTS)}</span>
+                  </div>
+                  <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>Caixa rígida acetinada + fita de cetim + cartão handwritten</p>
+                </div>
+              </label>
+            </>
           )}
         </div>
 
@@ -456,6 +475,7 @@ export default function PagamentoPage() {
         shippingCents={shippingCents}
         discountCents={couponDiscountCents}
         freeShipping={freeShipping}
+        giftPackagingCents={isGift && giftPremium ? GIFT_PREMIUM_CENTS : 0}
       />
     </div>
   );

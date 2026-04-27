@@ -15,13 +15,14 @@ interface CheckoutSummaryProps {
   shippingCents?: number;
   discountCents?: number;
   freeShipping?: boolean;
+  giftPackagingCents?: number;
 }
 
-export function CheckoutSummary({ subtotalCents, shippingCents = 0, discountCents = 0, freeShipping: freeShippingProp }: CheckoutSummaryProps) {
+export function CheckoutSummary({ subtotalCents, shippingCents = 0, discountCents = 0, freeShipping: freeShippingProp, giftPackagingCents = 0 }: CheckoutSummaryProps) {
   const { items, count } = useCart();
   const freeShipping = freeShippingProp ?? subtotalCents >= FREE_SHIPPING_ABOVE;
   const effectiveShipping = freeShipping ? 0 : shippingCents;
-  const total = Math.max(0, subtotalCents - discountCents + effectiveShipping);
+  const total = Math.max(0, subtotalCents - discountCents + effectiveShipping + giftPackagingCents);
 
   return (
     <div style={{
@@ -91,6 +92,12 @@ export function CheckoutSummary({ subtotalCents, shippingCents = 0, discountCent
               freeShipping ? 'Grátis' : fmt(effectiveShipping)}
           </span>
         </div>
+        {giftPackagingCents > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
+            <span style={{ color: 'var(--text-secondary)' }}>Embalagem premium 🎁</span>
+            <span>{fmt(giftPackagingCents)}</span>
+          </div>
+        )}
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
           borderTop: '1px solid var(--divider)', paddingTop: 12, marginTop: 4,

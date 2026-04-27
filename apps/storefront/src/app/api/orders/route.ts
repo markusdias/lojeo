@@ -53,7 +53,7 @@ interface CreateOrderBody {
   couponCode?: string;
   anonymousId?: string;
   utm?: { source?: string | null; medium?: string | null; campaign?: string | null } | null;
-  gift?: { isGift: boolean; message?: string | null } | null;
+  gift?: { isGift: boolean; message?: string | null; packagingCents?: number | null } | null;
 }
 
 export async function POST(req: Request) {
@@ -179,6 +179,7 @@ export async function POST(req: Request) {
       utmCampaign: body.utm?.campaign ?? null,
       isGift: body.gift?.isGift ?? false,
       giftMessage: body.gift?.message ?? null,
+      giftPackagingCents: body.gift?.packagingCents ?? 0,
       metadata: { shippingLabel: body.shipping.label },
     }).returning({ id: orders.id, orderNumber: orders.orderNumber });
 
