@@ -3,12 +3,26 @@ import { eq, and } from 'drizzle-orm';
 import {
   db,
   returnRequests,
+  giftCards,
   RETURN_STATUSES,
   canTransitionReturn,
   type ReturnStatus,
 } from '@lojeo/db';
 import { auth } from '../../../../auth';
 import { TENANT_ID, requirePermission, recordAuditLog } from '../../../../lib/roles';
+
+// Gera código GFT-XXXX-XXXX-XXXX (alfabeto sem ambíguos)
+const GFT_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function generateGiftCardCode(): string {
+  let out = 'GFT-';
+  for (let block = 0; block < 3; block++) {
+    if (block > 0) out += '-';
+    for (let i = 0; i < 4; i++) {
+      out += GFT_ALPHABET[Math.floor(Math.random() * GFT_ALPHABET.length)];
+    }
+  }
+  return out;
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -96,6 +110,36 @@ export async function PATCH(
       .where(and(eq(returnRequests.id, id), eq(returnRequests.tenantId, TENANT_ID)))
       .returning();
 
+    // Crédito loja Sprint 6: aprovado + type=store_credit → gera gift card
+    let issuedGiftCardCode: string | null = null;
+    if (newStatus === 'approved' && existing.type === 'store_credit') {
+      const credit = (updated?.refundCents ?? existing.refundCents) ?? 0;
+      if (credit > 0) {
+        const expiresAt = new Date();
+        expiresAt.setMonth(expiresAt.getMonth() + 12); // 12 meses validade
+        // Retry colisão code (raro com 32^12 keyspace)
+        for (let attempt = 0; attempt < 5; attempt++) {
+          const code = generateGiftCardCode();
+          try {
+            await db.insert(giftCards).values({
+              tenantId: TENANT_ID,
+              code,
+              initialValueCents: credit,
+              currentBalanceCents: credit,
+              status: 'active',
+              recipientEmail: existing.customerEmail,
+              expiresAt,
+            });
+            issuedGiftCardCode = code;
+            break;
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            if (!msg.includes('duplicate') && !msg.includes('unique')) throw e;
+          }
+        }
+      }
+    }
+
     await recordAuditLog({
       session,
       action: newStatus ? 'return.status_change' : 'return.update',
@@ -106,10 +150,13 @@ export async function PATCH(
         status: updated?.status ?? existing.status,
         refundCents: updated?.refundCents ?? existing.refundCents,
       },
-      metadata: { resolutionNotes: body.resolutionNotes ?? null },
+      metadata: {
+        resolutionNotes: body.resolutionNotes ?? null,
+        ...(issuedGiftCardCode ? { issuedGiftCardCode } : {}),
+      },
     });
 
-    return NextResponse.json({ return: updated });
+    return NextResponse.json({ return: updated, issuedGiftCardCode });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: msg }, { status: 500 });
