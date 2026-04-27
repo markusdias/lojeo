@@ -4029,3 +4029,49 @@ curl -X POST -H "x-cron-secret: $CRON_SECRET" \
 - UX testing prod completo via Playwright + login admin@lojeo.dev.
 - Botão "Verificar churn" em /ia-analyst também (atual só em /clientes).
 - Schema notification preferences por tenant (opt-out de tipos específicos).
+
+
+---
+
+## 2026-04-27 (continuacao) — Batch 15: Notification preferences opt-out por tipo
+
+**Commits:** 1b79603.
+
+**Helper emitSellerNotification — sentinel pra disabledTypes:**
+- `getNotificationPrefs(tenantId)` consulta `tenants.config.notifications.disabledTypes` com cache 60s.
+- Se type incluído em disabledTypes → return null silencioso (skip insert + skip log noise).
+- Cache key = tenantId. TTL evita query DB em cada emit (alto throughput em hooks order/restock).
+- `__resetNotificationPrefsCache()` exportado pra invalidação imediata após PATCH.
+
+**API:**
+- `GET /api/notifications/preferences` — retorna `{disabledTypes: string[], knownTypes: string[]}`. knownTypes hardcoded list de 9 tipos Sprint 9.
+- `PATCH /api/notifications/preferences` — auth lazy + scope `settings.write`. Whitelist contra knownTypes evita injection de tipo arbitrário. Persiste em jsonb config, invalida cache.
+
+**UI /notificacoes/preferencias:**
+- Lista 9 cards com switch toggle (role=switch + aria-checked acessível).
+- Label legível + desc + code mono do type.
+- Switch CSS-only (background accent on/neutral off, transition slide).
+- Botão Salvar com feedback inline.
+- Link "Preferências" adicionado ao header `/notificacoes` (próximo ao Marcar todas como lidas).
+
+**Trade-offs:**
+- Cache TTL 60s vs invalidação imediata: PATCH chama reset, mas multi-instance prod (load balancer) precisaria pubsub. V1 aceitamos race até 60s — preferences mudam raramente.
+- `knownTypes` hardcoded em route + UI: drift risk. Refactor v2: extrair pra shared constants (já está parcialmente em `seller_notifications` schema doc).
+- Sem schema dedicado pra preferences (poderia ser `notification_prefs` table) — usar jsonb config evita migration nova, baixa cardinalidade (1 row por tenant).
+
+**Validações:**
+- Tests admin 77/77, storefront 41/41 verde. Typecheck/lint zero.
+- 0 regressão.
+
+**Sprint 9 fechamento (round 2):**
+- 9/9 emit hooks (batch 12) ✓
+- Opt-out granular por tipo (batch 15) ✓
+- Cron secret pra scheduler externo (batch 14) ✓
+- Botão Verificar churn manual (batch 13) ✓
+- /clientes/[email] detail page (já existia) ✓
+
+**Próximo ciclo:**
+- Test mock DB pra emit helper validando disabledTypes skip.
+- Documentar CRON_SECRET + endpoints cron em README.md/onboarding.
+- UX testing prod completo (Playwright + login admin).
+- Sub-aba "Notificações" em /settings com link pra /notificacoes/preferencias.
