@@ -10,6 +10,9 @@ interface VariantStats {
   conversions: number;
   conversionRate: number;
   liftVsControl: number;
+  pValue: number;
+  confidencePct: number;
+  isSignificant: boolean;
 }
 
 interface DailyPoint {
@@ -121,11 +124,13 @@ export default function ExperimentResultsPage({ params }: { params: Promise<{ id
         </div>
       </div>
 
-      {/* Confidence gauge + p-value + lift + power — match ABEditor.jsx */}
+      {/* Confidence gauge real (z-test 2-prop) — match ABEditor.jsx */}
       <ConfidenceCard
-        confidence={summary.significantSampleSize && winner ? Math.min(99.9, 50 + Math.abs(winner.liftVsControl) * 5) : Math.min(70, 30 + summary.totalExposures / 30)}
+        confidence={winner && winner.variantKey !== variants[0]?.variantKey ? winner.confidencePct : 50}
+        pValue={winner && winner.variantKey !== variants[0]?.variantKey ? winner.pValue : 1}
         lift={winner?.liftVsControl ?? 0}
         sampleSize={summary.totalExposures}
+        isSignificant={winner?.isSignificant ?? false}
       />
 
       {/* Daily sparkline A vs B — paridade ABEditor.jsx ABDailyChart */}
@@ -195,13 +200,24 @@ export default function ExperimentResultsPage({ params }: { params: Promise<{ id
 }
 
 // ─── ConfidenceCard: gauge semicírculo + p-valor + lift + power ─────────────
-function ConfidenceCard({ confidence, lift, sampleSize }: { confidence: number; lift: number; sampleSize: number }) {
+function ConfidenceCard({
+  confidence,
+  pValue,
+  lift,
+  sampleSize,
+  isSignificant,
+}: {
+  confidence: number;
+  pValue: number;
+  lift: number;
+  sampleSize: number;
+  isSignificant: boolean;
+}) {
   const r = 70;
   const c = Math.PI * r;
   const offset = c - (confidence / 100) * c;
   const color = confidence >= 95 ? 'var(--success)' : confidence >= 85 ? 'var(--warning)' : 'var(--error)';
-  const pValue = confidence >= 95 ? 0.018 : confidence >= 85 ? 0.064 : 0.21;
-  const power = confidence >= 95 ? 0.82 : confidence >= 85 ? 0.61 : 0.38;
+  const power = sampleSize >= 5000 ? 0.85 : sampleSize >= 2000 ? 0.7 : sampleSize >= 1000 ? 0.55 : 0.35;
   const stdErr = sampleSize > 1000 ? 0.42 : 0.84;
 
   return (
@@ -243,9 +259,26 @@ function ConfidenceCard({ confidence, lift, sampleSize }: { confidence: number; 
         </div>
       </div>
       <div style={{ marginTop: 'var(--space-3)', paddingTop: 'var(--space-3)', borderTop: '1px solid var(--border)' }}>
-        {confidence >= 95 && <span className="body-s" style={{ color: 'var(--success)', fontWeight: 'var(--w-medium)' }}>✓ Limiar de 95% atingido — pode declarar vencedor</span>}
-        {confidence >= 85 && confidence < 95 && <span className="body-s" style={{ color: 'var(--warning)', fontWeight: 'var(--w-medium)' }}>↗ Quase lá — estimativa: +3 dias pra ≥ 95%</span>}
-        {confidence < 85 && <span className="body-s" style={{ color: 'var(--error)', fontWeight: 'var(--w-medium)' }}>⚠ Abaixo do limiar — precisa mais tempo ou amostra maior</span>}
+        {isSignificant && lift > 0 && (
+          <span className="body-s" style={{ color: 'var(--success)', fontWeight: 'var(--w-medium)' }}>
+            ✓ Diferença estatisticamente significativa (p={pValue.toFixed(3)} &lt; 0.05) — pode declarar vencedor
+          </span>
+        )}
+        {isSignificant && lift < 0 && (
+          <span className="body-s" style={{ color: 'var(--error)', fontWeight: 'var(--w-medium)' }}>
+            ⚠ Variante teste é significativamente PIOR (p={pValue.toFixed(3)}) — encerre e mantenha controle
+          </span>
+        )}
+        {!isSignificant && confidence >= 85 && (
+          <span className="body-s" style={{ color: 'var(--warning)', fontWeight: 'var(--w-medium)' }}>
+            ↗ Quase lá — colete mais dados para atingir p &lt; 0.05
+          </span>
+        )}
+        {!isSignificant && confidence < 85 && (
+          <span className="body-s" style={{ color: 'var(--fg-secondary)', fontWeight: 'var(--w-medium)' }}>
+            ⚠ Sem diferença detectável ainda (p={pValue.toFixed(3)}) — precisa mais tempo ou amostra maior
+          </span>
+        )}
       </div>
     </section>
   );

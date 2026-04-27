@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { eq, and, sql } from 'drizzle-orm';
 import { db, experiments, experimentEvents } from '@lojeo/db';
+import { variantSignificance } from '@lojeo/engine';
 import { auth } from '../../../../../auth';
 import { TENANT_ID, requirePermission } from '../../../../../lib/roles';
 
@@ -14,6 +15,12 @@ interface VariantStats {
   conversions: number;
   conversionRate: number;
   liftVsControl: number; // % diff vs primeira variante (controle implícito)
+  /** p-value bilateral 2-prop z-test vs controle. 1 para o controle */
+  pValue: number;
+  /** Confianca em % (P(variante > controle | dados)) cap 99.9 */
+  confidencePct: number;
+  /** True quando p < 0.05 vs controle */
+  isSignificant: boolean;
 }
 
 interface DailyPoint {
@@ -64,13 +71,17 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const controlRate = controlStats && controlStats.exposures > 0
     ? controlStats.conversions / controlStats.exposures
     : 0;
+  const control = controlStats ?? { exposures: 0, conversions: 0 };
 
-  const variantStats: VariantStats[] = variants.map(v => {
+  const variantStats: VariantStats[] = variants.map((v, i) => {
     const s = statsMap.get(v.key) ?? { exposures: 0, conversions: 0 };
     const conversionRate = s.exposures > 0 ? s.conversions / s.exposures : 0;
     const liftVsControl = controlRate > 0
       ? ((conversionRate - controlRate) / controlRate) * 100
       : 0;
+    const sig = i === 0
+      ? { pValue: 1, confidencePct: 50, isSignificant: false }
+      : variantSignificance(control, s);
     return {
       variantKey: v.key,
       variantName: v.name,
@@ -79,6 +90,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       conversions: s.conversions,
       conversionRate: Number(conversionRate.toFixed(4)),
       liftVsControl: Number(liftVsControl.toFixed(2)),
+      pValue: sig.pValue,
+      confidencePct: sig.confidencePct,
+      isSignificant: sig.isSignificant,
     };
   });
 

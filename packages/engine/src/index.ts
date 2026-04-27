@@ -14,3 +14,4 @@ export * from './competitive-pricing';
 export * from './embeddings';
 export * from './attribution';
 export * from './markdown';
+export * from './experiments-stats';
