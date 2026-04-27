@@ -17,6 +17,8 @@ interface StockRow {
 export default function InventoryPage() {
   const [stock, setStock] = useState<StockRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [scanResult, setScanResult] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
 
   useEffect(() => {
     fetch('/api/inventory')
@@ -24,6 +26,31 @@ export default function InventoryPage() {
       .then((d: { stock: StockRow[] }) => { setStock(d.stock ?? []); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
+
+  async function runLowStockScan() {
+    if (scanning) return;
+    setScanning(true);
+    setScanResult(null);
+    try {
+      const r = await fetch('/api/cron/low-stock-check', { method: 'POST' });
+      const d = (await r.json()) as { emitted?: number; skipped?: number; scanned?: number };
+      if (r.ok) {
+        const e = d.emitted ?? 0;
+        const s = d.skipped ?? 0;
+        setScanResult(
+          e === 0 && s === 0
+            ? 'Tudo em ordem — nenhum item abaixo do mínimo.'
+            : `${e} aviso${e === 1 ? '' : 's'} criado${e === 1 ? '' : 's'}${s > 0 ? ` · ${s} já notificado${s === 1 ? '' : 's'} nas últimas 24h` : ''}.`,
+        );
+      } else {
+        setScanResult('Falha ao verificar — tente novamente.');
+      }
+    } catch {
+      setScanResult('Erro de rede.');
+    } finally {
+      setScanning(false);
+    }
+  }
 
   function alertLevel(row: StockRow): 'critical' | 'low' | 'ok' {
     const available = row.qty - row.reserved;
@@ -48,7 +75,7 @@ export default function InventoryPage() {
           <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginBottom: 'var(--space-2)' }}>Estoque</h1>
           <p style={{ fontSize: 13, color: 'var(--fg-secondary)', marginTop: 2 }}>Visão consolidada por variante</p>
         </div>
-        <div style={{ display: 'flex', gap: 12 }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           {criticalCount > 0 && (
             <span style={{ background: '#FEF2F2', color: '#991B1B', fontSize: 13, fontWeight: 600, padding: '4px 12px', borderRadius: 99 }}>
               {criticalCount} esgotado{criticalCount !== 1 ? 's' : ''}
@@ -59,8 +86,31 @@ export default function InventoryPage() {
               {lowCount} baixo{lowCount !== 1 ? 's' : ''}
             </span>
           )}
+          <button
+            type="button"
+            onClick={runLowStockScan}
+            disabled={scanning}
+            style={{
+              padding: '8px 14px',
+              fontSize: 13,
+              background: 'var(--fg)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 8,
+              cursor: scanning ? 'not-allowed' : 'pointer',
+              opacity: scanning ? 0.7 : 1,
+            }}
+          >
+            {scanning ? 'Verificando…' : 'Verificar estoque baixo'}
+          </button>
         </div>
       </div>
+
+      {scanResult && (
+        <p style={{ fontSize: 13, color: 'var(--fg-secondary)', marginTop: -8, marginBottom: 8 }}>
+          {scanResult}
+        </p>
+      )}
 
       {loading && <p style={{ color: 'var(--fg-secondary)', fontSize: 14 }}>Carregando…</p>}
 

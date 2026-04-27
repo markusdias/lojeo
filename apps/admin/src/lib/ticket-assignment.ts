@@ -4,6 +4,7 @@ import {
   ticketAssignmentRules,
   supportTickets,
   userRoles,
+  emitSellerNotification,
   type TicketAssignmentRule,
 } from '@lojeo/db';
 import { TENANT_ID } from './roles';
@@ -152,6 +153,19 @@ export async function applyAutoAssignment(
         eq(supportTickets.tenantId, TENANT_ID),
         eq(supportTickets.id, ticketId),
       ));
+
+    void emitSellerNotification({
+      tenantId: TENANT_ID,
+      userId,
+      type: 'ticket.assigned',
+      severity: 'info',
+      title: `Ticket atribuído a você`,
+      body: subject ? subject.slice(0, 180) : 'Novo ticket aguardando resposta.',
+      link: `/tickets/${ticketId}`,
+      entityType: 'ticket',
+      entityId: ticketId,
+      metadata: { ruleType: matched.ruleType },
+    });
 
     return userId;
   } catch (err) {

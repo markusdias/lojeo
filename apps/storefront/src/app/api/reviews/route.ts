@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { db, productReviews } from '@lojeo/db';
+import { db, productReviews, emitSellerNotification } from '@lojeo/db';
 import { eq, and, desc } from 'drizzle-orm';
 import { checkRateLimit, getClientIp } from '../../../lib/rate-limit';
 
@@ -69,8 +69,9 @@ export async function POST(req: Request) {
   }
 
   try {
-    await db.insert(productReviews).values({
-      tenantId: tenantId(),
+    const tid = tenantId();
+    const inserted = await db.insert(productReviews).values({
+      tenantId: tid,
       productId: parsed.data.productId,
       rating: parsed.data.rating,
       title: parsed.data.title ?? null,
@@ -79,7 +80,22 @@ export async function POST(req: Request) {
       anonymousEmail: parsed.data.email ?? null,
       status: 'pending',
       verifiedPurchase: false,
-    });
+    }).returning({ id: productReviews.id });
+
+    const reviewId = inserted[0]?.id;
+    if (reviewId) {
+      void emitSellerNotification({
+        tenantId: tid,
+        type: 'review.pending',
+        severity: 'info',
+        title: `Nova avaliação ${parsed.data.rating}/5`,
+        body: `${parsed.data.name.trim()}${parsed.data.title ? ` · ${parsed.data.title}` : ''}`,
+        link: '/avaliacoes',
+        entityType: 'product_review',
+        entityId: reviewId,
+        metadata: { rating: parsed.data.rating, productId: parsed.data.productId },
+      });
+    }
 
     return NextResponse.json({ ok: true, message: 'Avaliação enviada para moderação' }, { status: 201 });
   } catch (err) {
