@@ -3947,3 +3947,38 @@ V2: trocar por react-markdown + sanitizer quando implementar UGC blog/comentario
 - Cron real EasyPanel (cronjob hourly → curl POST /api/cron/{low-stock,churn}-check).
 - Confirmacao MP-redirect-flow: aceitar `?order=X` query param + fetch /api/orders?id=X.
 - Dashboard: card "Próximos passos" para MEI sem produtos (onboarding inline).
+
+
+---
+
+## 2026-04-27 (continuacao) — Batch 13: ChurnScanButton + MP-redirect-flow
+
+**Commits:** f19eed2.
+
+**ChurnScanButton em /clientes:**
+- Header right do `/clientes`. Chama `POST /api/cron/churn-check` manualmente.
+- Resultado inline: X alertas criados · Y já notificados em 7d · Z em risco. "Tudo em ordem" quando atRisk=0.
+- Lojista pode rodar quando achar útil — alternativa enquanto cron real (EasyPanel hourly) não está plugado.
+
+**MP-redirect-flow /checkout/confirmacao:**
+- Aceita `?order=X` query param (cross-session redirect MP).
+- Se sem provider state mas com queryOrderId: fetch `/api/orders?id=X` (storefront endpoint público existente, returna order data).
+- Renderiza orderNumber/paymentMethod do fetched OR provider (whichever exists). orderId derivado idem.
+- Suspense wrapper externo pra `useSearchParams` (Next.js 15 RSC req).
+- Loading explícito durante fetch.
+
+**Trade-offs:**
+- /api/orders GET storefront retorna order data sem auth check específico (já era assim antes do meu trabalho). Consideração: order ID é uuid v4 (entrópico) — exposição limitada. V2: assinar query (HMAC com session secret) ou exigir email match.
+- Cron real EasyPanel: pendente. Comando shell:
+  `curl -X POST -H "Cookie: <session>" https://apps-lojeo-admin.m9axtw.easypanel.host/api/cron/{low-stock,churn}-check`
+  Mas auth required — precisa pré-criar session token system bypass (X-Cron-Secret header). Próximo iter.
+
+**Validações:**
+- Tests admin 71/71, storefront 41/41 verde. Typecheck/lint zero.
+- 0 regressão.
+
+**Próximo ciclo:**
+- Cron secret header pra EasyPanel/external schedulers chamarem POST /api/cron/* sem session.
+- Dashboard onboarding card pra MEI sem produtos (Apple-thinking).
+- /pedidos/[id] botão "Marcar como pago manual" pra fluxo MEI sem MP integrado.
+- UX testing prod completo via login real (manual ou Playwright com auth setup).
