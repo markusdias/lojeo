@@ -4663,3 +4663,47 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - Coffee-v1 template Fase 1.2 internacional (USD + Stripe + DHL/FedEx + EN-US).
 - E2E Playwright fluxo checkout completo Pix + Boleto.
 - Validation onBlur (não só onSubmit).
+
+
+---
+
+## 2026-04-27 (continuacao) — Batch 29: BoletoGenerated email template + CI fix engine barrel
+
+**Commits:** 18c0e55 (CI fix engine barrel), 35a0c35 (BoletoGenerated template).
+
+**CI fix — engine barrel pull em Edge Runtime:**
+- Build CI falhou: `Module not found: 'net'/'tls'/'fs'/'perf_hooks'` no storefront. Causa: `import { isValidCpf } from '@lojeo/engine'` em /checkout/endereco (client component) puxa engine `index.ts` barrel inteiro, que re-exporta `tenant.ts` → `@lojeo/db` → `postgres-js`. Edge Runtime rejeita Node modules.
+- Fix: criar `apps/storefront/src/lib/cpf.ts` duplicando lógica engine. Storefront client usa local. Engine cpf.ts permanece pra admin/server (re-exportado pelo barrel — admin importa via @lojeo/db dep ok). 30 LOC duplicados, doc de sync.
+- Trade-off: V2 — split engine em `engine-server` (com @lojeo/db) vs `engine-pure` (cpf, rfm, churn, attribution). Refactor maior.
+
+**BoletoGenerated email template:**
+- `packages/email/src/templates/boleto.tsx` espelha PixGenerated structure:
+  - Hero "Seu boleto está pronto" + copy banco-agnostic
+  - Botão primary "Baixar boleto (PDF)" — link externo target MP
+  - Card linha digitável mono em surface-sunken (copia-e-cola fallback)
+  - Lines "Valor" + "Vencimento" (3 dias úteis label default)
+  - Footer copy explicando compensação 1-2d + sugestão Pix
+- Exposed: `BoletoGenerated` + `BoletoGeneratedProps` no `@lojeo/email`.
+
+**sendBoletoGeneratedEmail helper:**
+- Skip silencioso sem customerEmail OR sem boletoUrl (mock mode tem URL vazia).
+- Subject `Seu boleto · {orderCode}`.
+- Plugado em `POST /api/orders` paymentMethod=boleto fire-and-forget.
+
+**Sprint 13 email transacional — 6/6 ✅:**
+- ✓ OrderConfirmation (POST /api/orders, qualquer método)
+- ✓ ShippingNotification (transition shipped + tracking)
+- ✓ TradeApproved (transition return.approved)
+- ✓ Welcome (NextAuth events.createUser)
+- ✓ PixGenerated (POST /api/orders pix)
+- ✓ **BoletoGenerated** (POST /api/orders boleto)
+
+**Validações:**
+- Tests storefront 53/53, admin 77/77, engine 98/98 (+11 cpf), db 20, email 6, etc. Total ~265. Typecheck/lint zero.
+- 0 regressão.
+- Deploy storefront disparado.
+
+**Próximo ciclo:**
+- E2E Playwright fluxo checkout completo (Pix + Boleto + Cartão) validando emails mocked + notifications.
+- Validation onBlur (não só onSubmit) — UX feedback antes do user clicar "continuar".
+- Coffee-v1 template Fase 1.2 internacional.
