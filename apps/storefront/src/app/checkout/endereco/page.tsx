@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useId } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useCheckout, type CheckoutAddress } from '../../../components/checkout/checkout-provider';
 import { useCart } from '../../../components/cart/cart-provider';
 import { useTracker } from '../../../components/tracker-provider';
@@ -159,7 +160,15 @@ export default function EnderecoPage() {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 64, alignItems: 'start' }}>
       <form onSubmit={handleSubmit}>
-        <h2 style={{ marginBottom: 32, fontSize: 22 }}>Endereço de entrega</h2>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 32, lineHeight: 1.1, margin: '0 0 6px' }}>
+          Quem vai receber?
+        </h2>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginTop: 0, marginBottom: 32 }}>
+          Já tem conta?{' '}
+          <Link href="/conta" style={{ color: 'var(--text-primary)', borderBottom: '1px solid currentColor', textDecoration: 'none' }}>
+            Entre aqui
+          </Link>
+        </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <Field label="Email" error={errors.email} htmlFor={ids.email}>

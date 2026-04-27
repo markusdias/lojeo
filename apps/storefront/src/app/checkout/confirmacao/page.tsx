@@ -35,17 +35,18 @@ export default function ConfirmacaoPage() {
   return (
     <div style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center', padding: '40px 0 80px' }}>
       <div style={{
-        width: 64, height: 64, borderRadius: 999,
-        background: 'var(--accent-soft)', display: 'grid', placeItems: 'center',
+        width: 72, height: 72, borderRadius: 999,
+        background: '#EEF2E8', display: 'grid', placeItems: 'center',
         margin: '0 auto 24px',
       }}>
-        <Icon name="check" size={28} style={{ color: 'var(--accent)' }} />
+        <Icon name="check" size={32} style={{ color: 'var(--success)' }} />
       </div>
 
-      <p className="eyebrow" style={{ marginBottom: 8 }}>Pedido recebido</p>
-      <h1 style={{ marginBottom: 8 }}>{state.orderNumber}</h1>
-      <p style={{ fontSize: 16, color: 'var(--text-secondary)', marginBottom: 40 }}>
-        Obrigada pela sua compra!
+      <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 44, lineHeight: 1.05, margin: 0 }}>
+        Pedido confirmado.
+      </h1>
+      <p style={{ fontSize: 17, color: 'var(--text-secondary)', marginTop: 12, marginBottom: 40 }}>
+        Recebemos seu pedido <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{state.orderNumber}</strong>. Enviamos um email com os detalhes.
       </p>
 
       {isPix && (
@@ -79,27 +80,60 @@ export default function ConfirmacaoPage() {
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 48 }}>
+      {/* Próximos passos — paridade ref Checkout.jsx */}
+      <div style={{
+        background: 'var(--surface-sunken)', borderRadius: 8,
+        padding: 28, marginTop: 8, marginBottom: 36, textAlign: 'left',
+      }}>
+        <div className="eyebrow" style={{
+          fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase',
+          color: 'var(--text-secondary)', marginBottom: 14,
+        }}>
+          Próximos passos
+        </div>
         {[
-          { icon: 'check', text: 'Email de confirmação será enviado em breve' },
-          { icon: 'truck', text: `Frete: ${state.shipping?.label ?? 'a confirmar'}` },
-          { icon: 'shield', text: 'Garantia de 12 meses incluída' },
-        ].map(i => (
-          <div key={i.text} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'var(--surface-sunken)', borderRadius: 4, textAlign: 'left' }}>
-            <Icon name={i.icon as 'check' | 'truck' | 'shield'} size={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-            <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{i.text}</span>
+          {
+            n: '1',
+            t: 'Pagamento',
+            d: isPix
+              ? 'Aguardamos a confirmação do Pix'
+              : isBoleto
+                ? 'Aguardamos a compensação do boleto · até 2 dias úteis'
+                : 'Aguardamos a confirmação do pagamento',
+          },
+          { n: '2', t: 'Preparação', d: 'Sua peça é finalizada à mão · 3 a 5 dias úteis' },
+          { n: '3', t: 'Envio', d: `Você recebe o código de rastreio por email${state.shipping?.label ? ` · ${state.shipping.label}` : ''}` },
+          { n: '4', t: 'Entrega', d: 'Em embalagem presente · garantia de 12 meses incluída' },
+        ].map(s => (
+          <div key={s.n} style={{ display: 'grid', gridTemplateColumns: '30px 1fr', gap: 14, padding: '10px 0' }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--accent)' }}>{s.n}</div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>{s.t}</div>
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>{s.d}</div>
+            </div>
           </div>
         ))}
       </div>
 
       <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
         <Link
+          href="/conta/pedidos"
+          style={{
+            display: 'inline-block', padding: '14px 24px',
+            background: 'var(--text-primary)', color: 'var(--text-on-dark)',
+            fontSize: 14, fontWeight: 500, borderRadius: 8, textDecoration: 'none',
+          }}
+        >
+          Acompanhar pedido
+        </Link>
+        <Link
           href="/produtos"
           onClick={() => reset()}
           style={{
-            display: 'inline-block', padding: '14px 32px',
-            background: 'var(--text-primary)', color: 'var(--text-on-dark)',
-            fontSize: 14, fontWeight: 500, borderRadius: 8,
+            display: 'inline-block', padding: '14px 24px',
+            background: 'transparent', color: 'var(--text-primary)',
+            border: '1px solid var(--divider)',
+            fontSize: 14, fontWeight: 500, borderRadius: 8, textDecoration: 'none',
           }}
         >
           Continuar comprando
