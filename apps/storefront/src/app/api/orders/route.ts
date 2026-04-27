@@ -52,6 +52,8 @@ interface CreateOrderBody {
   };
   paymentMethod: 'pix' | 'credit_card' | 'boleto';
   customerEmail?: string | null;
+  customerName?: string | null;
+  customerCpf?: string | null;
   couponCode?: string;
   anonymousId?: string;
   utm?: { source?: string | null; medium?: string | null; campaign?: string | null } | null;
@@ -290,6 +292,7 @@ export async function POST(req: Request) {
         orderNumber: order.orderNumber,
         totalCents,
         payerEmail: body.customerEmail,
+        payerName: body.customerName ?? undefined,
       });
       pixData = { qrCode: pix.qrCode, qrCodeBase64: pix.qrCodeBase64, ticketUrl: pix.ticketUrl };
       // Persiste pixData em order.metadata.pix pra render em /checkout/confirmacao
@@ -320,6 +323,8 @@ export async function POST(req: Request) {
         orderNumber: order.orderNumber,
         totalCents,
         payerEmail: body.customerEmail,
+        payerName: body.customerName ?? undefined,
+        payerCpf: body.customerCpf ?? undefined,
       });
       boletoData = { boletoUrl: boleto.boletoUrl, barcode: boleto.barcode };
       const updateData: Record<string, unknown> = {

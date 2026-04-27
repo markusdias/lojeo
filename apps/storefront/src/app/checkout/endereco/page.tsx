@@ -43,7 +43,7 @@ function Input({ style, ...props }: React.InputHTMLAttributes<HTMLInputElement>)
 
 export default function EnderecoPage() {
   const router = useRouter();
-  const { state, setAddress, setCustomerEmail, setStep } = useCheckout();
+  const { state, setAddress, setCustomerEmail, setCustomerName, setCustomerCpf, setStep } = useCheckout();
   const { items, subtotalCents } = useCart();
   const tracker = useTracker();
 
@@ -60,11 +60,13 @@ export default function EnderecoPage() {
     ...state.address,
   });
   const [email, setEmail] = useState(state.customerEmail ?? '');
+  const [cpf, setCpf] = useState(state.customerCpf ?? '');
   const [errors, setErrors] = useState<Partial<Record<keyof CheckoutAddress | 'email', string>>>({});
   const [cepLoading, setCepLoading] = useState(false);
   const [cepError, setCepError] = useState('');
   const ids = {
     email: useId(),
+    cpf: useId(),
     name: useId(),
     phone: useId(),
     cep: useId(),
@@ -75,6 +77,14 @@ export default function EnderecoPage() {
     city: useId(),
     state: useId(),
   };
+
+  function formatCpf(v: string): string {
+    const d = v.replace(/\D/g, '').slice(0, 11);
+    if (d.length <= 3) return d;
+    if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
+    if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
+    return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+  }
 
   useEffect(() => {
     tracker?.track({ type: 'checkout_step_start', entityType: 'checkout', entityId: 'endereco', metadata: { step: 1 } });
@@ -147,6 +157,8 @@ export default function EnderecoPage() {
     if (!validate()) return;
     setAddress(form);
     setCustomerEmail(email);
+    setCustomerName(form.recipientName ?? '');
+    setCustomerCpf(cpf);
     setStep('frete');
     tracker?.track({ type: 'checkout_step_complete', entityType: 'checkout', entityId: 'endereco', metadata: { step: 1 } });
     router.push('/checkout/frete');
@@ -179,6 +191,17 @@ export default function EnderecoPage() {
               onChange={e => setEmail(e.target.value)}
               placeholder="para acompanhar seu pedido"
               autoComplete="email"
+            />
+          </Field>
+
+          <Field label="CPF (opcional, exigido para Boleto)" htmlFor={ids.cpf}>
+            <Input
+              id={ids.cpf}
+              value={cpf}
+              onChange={e => setCpf(formatCpf(e.target.value))}
+              placeholder="000.000.000-00"
+              autoComplete="off"
+              inputMode="numeric"
             />
           </Field>
 

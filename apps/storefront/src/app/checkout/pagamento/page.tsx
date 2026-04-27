@@ -222,6 +222,8 @@ export default function PagamentoPage() {
             qty: i.qty,
           })),
           customerEmail: state.customerEmail || null,
+          customerName: state.customerName || null,
+          customerCpf: state.customerCpf || null,
           shippingAddress: state.address,
           shipping: state.shipping,
           paymentMethod: method,
