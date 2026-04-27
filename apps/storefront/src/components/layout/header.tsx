@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Icon } from '../ui/icon';
 import { useCart } from '../cart/cart-provider';
+import { useWishlist } from '../wishlist/wishlist-provider';
 
 const CATEGORIES = [
   { slug: 'aneis',    label: 'Anéis' },
@@ -41,13 +43,43 @@ export function Header({ storeName }: { storeName: string }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
   const { count } = useCart();
+  const { count: wishCount } = useWishlist();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  useEffect(() => {
+    if (searchOpen) {
+      const t = setTimeout(() => searchInputRef.current?.focus(), 50);
+      return () => clearTimeout(t);
+    }
+  }, [searchOpen]);
+
+  useEffect(() => {
+    if (!searchOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSearchOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [searchOpen]);
+
+  function submitSearch(e: React.FormEvent) {
+    e.preventDefault();
+    const q = searchQuery.trim();
+    if (!q) return;
+    router.push(`/busca?q=${encodeURIComponent(q)}`);
+    setSearchOpen(false);
+    setSearchQuery('');
+  }
 
   return (
     <header style={{
@@ -102,9 +134,15 @@ export function Header({ storeName }: { storeName: string }) {
           alignItems: 'center',
           position: 'relative',
         }}>
-          <Link href="/busca" style={iconBtn} aria-label="Buscar produtos">
+          <button
+            type="button"
+            style={iconBtn}
+            onClick={() => setSearchOpen(o => !o)}
+            aria-label="Buscar produtos"
+            aria-expanded={searchOpen}
+          >
             <Icon name="search" size={20} />
-          </Link>
+          </button>
 
           {/* Menu conta */}
           <div style={{ position: 'relative' }}>
@@ -158,6 +196,12 @@ export function Header({ storeName }: { storeName: string }) {
             )}
           </div>
 
+          {/* Wishlist */}
+          <Link href="/conta/wishlist" style={iconBtn} aria-label="Lista de desejos">
+            <Icon name="heart" size={20} />
+            {wishCount > 0 && <Pip>{wishCount}</Pip>}
+          </Link>
+
           {/* Carrinho */}
           <Link href="/carrinho" style={iconBtn} aria-label="Sacola">
             <Icon name="bag" size={20} />
@@ -174,6 +218,57 @@ export function Header({ storeName }: { storeName: string }) {
           </button>
         </div>
       </div>
+
+      {/* Search overlay */}
+      {searchOpen && (
+        <div
+          style={{
+            borderTop: '1px solid var(--divider)',
+            background: 'var(--bg)',
+            padding: '20px var(--container-pad)',
+          }}
+        >
+          <form
+            onSubmit={submitSearch}
+            style={{
+              maxWidth: 'var(--container-max)',
+              margin: '0 auto',
+              display: 'flex',
+              gap: 12,
+              alignItems: 'center',
+            }}
+          >
+            <Icon name="search" size={20} />
+            <input
+              ref={searchInputRef}
+              type="search"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Buscar anéis, brincos, colares..."
+              aria-label="Buscar produtos"
+              style={{
+                flex: 1,
+                padding: '10px 4px',
+                fontSize: 16,
+                fontFamily: 'var(--font-body)',
+                background: 'transparent',
+                border: 'none',
+                borderBottom: '1px solid var(--divider)',
+                color: 'var(--text-primary)',
+                outline: 'none',
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => { setSearchOpen(false); setSearchQuery(''); }}
+              style={{ ...iconBtn, color: 'var(--text-secondary)' }}
+              aria-label="Fechar busca"
+            >
+              <Icon name="close" size={20} />
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Mobile nav */}
       {mobileOpen && (
