@@ -3296,3 +3296,42 @@ UI checkout pagamento:
 **160 commits totais sessão**, **114 testes globais verdes**, **25 migrations prod**.
 
 **Próximo ciclo:** UX validation gift card flow live + audit features Sprint 7 IA backoffice gaps + Sprint 8 IA Analyst gaps.
+
+---
+
+## 2026-04-26 — IA Analyst polish + /comunidade UGC galeria
+
+**Commits:** 14e2b18 (IA Analyst) · 935c8e5 (UGC galeria)
+
+**IA Analyst (worktree ada84734):**
+- Empty state: 6 quick suggestion cards (diagnóstico/retenção/operação/receita/funil/produtos) match briefing C
+- Loading state: 3 dots animated bounce + "Consultando dados…"
+- Cost transparency: rodapé `✦ Sonnet · N tokens · ~R$ X,XX` por mensagem (Sonnet 4.5 pricing $3/$15 Mtok, USD→BRL ×5)
+- Error retry button "Tentar novamente" reenvia lastPrompt
+- API route expoe tokensIn/tokensOut/model
+
+**UGC galeria /comunidade (worktree a65e5397):**
+- Header: H1 44px font-display "Cada peça ganha vida em quem usa" + storytelling 620px + CTA "Compartilhe sua peça →" linkando /conta/galeria
+- Filtros tab-like: Todas / Com produto marcado / Mais recentes (showFilters prop opcional, não quebra PDP/home)
+- Lightbox: full-screen modal com Esc/setas teclado + caption + customerName + click fora fecha
+- Hover state: zoom 1.04x img + overlay nome + contagem produtos marcados
+- Rodapé "@atelier" Instagram
+
+**Sprint 8 Briefing C atendido em parte:**
+- ✅ IA Analyst chat (existia)
+- ✅ Quick suggestions chips/cards
+- ✅ Cost transparency (princípio briefing C)
+- ✅ Loading/error states honestos
+
+**Sprint 14 UGC:**
+- ✅ Galeria storefront com filtros + lightbox
+- ✅ CTA submit linkando /conta/galeria
+
+**Tests engine 44/44 + admin 18/18 + storefront 14/14 + email 6/6 + ai 7/7 + tracking 7/7 + db 7/7 verde. 11/11 packages.**
+
+**162 commits totais sessão**, **120 testes globais verdes**, **25 migrations prod**, **zero regressão**.
+
+**Próximo ciclo:**
+- UX validation /ia-analyst + /comunidade live
+- Sprint 7 IA backoffice gaps (modo econômico já tem? Painel uso já tem?)
+- Sprint 9 Trigger.dev mocks (BLOQUEADO real, mas pode estruturar)
