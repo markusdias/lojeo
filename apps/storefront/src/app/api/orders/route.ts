@@ -54,6 +54,7 @@ interface CreateOrderBody {
   anonymousId?: string;
   utm?: { source?: string | null; medium?: string | null; campaign?: string | null } | null;
   gift?: { isGift: boolean; message?: string | null; packagingCents?: number | null } | null;
+  giftCardCode?: string | null;
 }
 
 export async function POST(req: Request) {
@@ -152,7 +153,47 @@ export async function POST(req: Request) {
       couponCodePersisted = coupon.code;
     }
 
-    const totalCents = Math.max(0, subtotalCents - pixDiscount - couponDiscountCents + shippingCents);
+    // Gift packaging additive
+    const giftPackagingCents = body.gift?.packagingCents ?? 0;
+
+    // Gift card lookup + atomic abate balance (Sprint 5 critério)
+    let giftCardDiscountCents = 0;
+    let giftCardCodePersisted: string | null = null;
+    const giftCardCodeRaw = body.giftCardCode?.trim().toUpperCase();
+    if (giftCardCodeRaw && giftCardCodeRaw.length >= 8) {
+      const subtotalAfterDiscounts = Math.max(
+        0,
+        subtotalCents - pixDiscount - couponDiscountCents + shippingCents + giftPackagingCents,
+      );
+      // Atomic abate: deduct min(balance, subtotalAfterDiscounts) from card.
+      // Set status='used' if card hits zero.
+      const claimed = await db.execute(sql`
+        UPDATE gift_cards
+        SET current_balance_cents = GREATEST(0, current_balance_cents - LEAST(current_balance_cents, ${subtotalAfterDiscounts})),
+            status = CASE WHEN current_balance_cents - LEAST(current_balance_cents, ${subtotalAfterDiscounts}) <= 0 THEN 'used' ELSE status END
+        WHERE tenant_id = ${tid}
+          AND code = ${giftCardCodeRaw}
+          AND status = 'active'
+          AND current_balance_cents > 0
+          AND (expires_at IS NULL OR expires_at > NOW())
+        RETURNING code, LEAST(current_balance_cents + LEAST(current_balance_cents, ${subtotalAfterDiscounts}), ${subtotalAfterDiscounts}) as applied_cents
+      `);
+      const claimedRows = (claimed as unknown as { rows?: Array<{ code: string; applied_cents: number }> }).rows ?? [];
+      if (claimedRows.length > 0) {
+        giftCardDiscountCents = Math.min(Number(claimedRows[0]!.applied_cents ?? 0), subtotalAfterDiscounts);
+        giftCardCodePersisted = giftCardCodeRaw;
+      } else {
+        return NextResponse.json(
+          { error: 'gift_card_invalid', reason: 'not_found_or_expired' },
+          { status: 400 },
+        );
+      }
+    }
+
+    const totalCents = Math.max(
+      0,
+      subtotalCents - pixDiscount - couponDiscountCents + shippingCents + giftPackagingCents - giftCardDiscountCents,
+    );
 
     const orderNumber = await nextOrderNumber(tid);
 
@@ -179,7 +220,9 @@ export async function POST(req: Request) {
       utmCampaign: body.utm?.campaign ?? null,
       isGift: body.gift?.isGift ?? false,
       giftMessage: body.gift?.message ?? null,
-      giftPackagingCents: body.gift?.packagingCents ?? 0,
+      giftPackagingCents,
+      giftCardCode: giftCardCodePersisted,
+      giftCardDiscountCents,
       metadata: { shippingLabel: body.shipping.label },
     }).returning({ id: orders.id, orderNumber: orders.orderNumber });
 

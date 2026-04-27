@@ -52,6 +52,11 @@ export default function PagamentoPage() {
   const [couponInput, setCouponInput] = useState(state.coupon?.code ?? '');
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState('');
+  // Gift card aplicado como meio pagamento
+  const [giftCardInput, setGiftCardInput] = useState('');
+  const [giftCardLoading, setGiftCardLoading] = useState(false);
+  const [giftCardError, setGiftCardError] = useState('');
+  const [giftCardApplied, setGiftCardApplied] = useState<{ code: string; balanceCents: number } | null>(null);
 
   useEffect(() => {
     if (!state.address.postalCode || !state.shipping) {
@@ -106,6 +111,54 @@ export default function PagamentoPage() {
     setCouponInput('');
     setCouponError('');
   }
+
+  async function applyGiftCard() {
+    const code = giftCardInput.trim().toUpperCase();
+    if (!code) {
+      setGiftCardError('Informe um código');
+      return;
+    }
+    setGiftCardLoading(true);
+    setGiftCardError('');
+    try {
+      const res = await fetch('/api/gift-cards/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.valid) {
+        setGiftCardApplied(null);
+        const reason = data.reason ?? 'invalid';
+        const labels: Record<string, string> = {
+          not_found: 'Código não encontrado',
+          expired: 'Gift card expirado',
+          depleted: 'Gift card sem saldo',
+          inactive: 'Gift card inativo',
+          invalid_body: 'Código inválido',
+        };
+        setGiftCardError(labels[reason] ?? 'Gift card inválido');
+        return;
+      }
+      setGiftCardApplied({ code, balanceCents: data.balanceCents });
+      setGiftCardInput(code);
+    } catch {
+      setGiftCardError('Erro ao validar gift card');
+    } finally {
+      setGiftCardLoading(false);
+    }
+  }
+
+  function removeGiftCard() {
+    setGiftCardApplied(null);
+    setGiftCardInput('');
+    setGiftCardError('');
+  }
+
+  // Total final: subtotal - cupom + frete + embalagem - gift card abate
+  const giftCardDiscountCents = giftCardApplied
+    ? Math.min(giftCardApplied.balanceCents, totalCents + (isGift && giftPremium ? GIFT_PREMIUM_CENTS : 0))
+    : 0;
 
   const pixPct = getPixDiscountPct();
   const pixTotalCents = applyPixDiscount(totalCents);
@@ -175,6 +228,7 @@ export default function PagamentoPage() {
           couponCode: state.coupon?.code ?? undefined,
           utm,
           gift: isGift ? { isGift: true, message: giftMessage || null, packagingCents: giftPremium ? GIFT_PREMIUM_CENTS : 0 } : null,
+          giftCardCode: giftCardApplied?.code ?? null,
         }),
       });
 
@@ -409,6 +463,63 @@ export default function PagamentoPage() {
           )}
         </div>
 
+        {/* Gift card como meio pagamento (Sprint 5) */}
+        <div style={{ marginBottom: 28 }}>
+          <h3 style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 8, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+            Aplicar gift card 🎁
+          </h3>
+          {giftCardApplied ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--surface-warm)', border: '1px solid var(--accent)', borderRadius: 4 }}>
+              <div>
+                <span className="mono" style={{ fontSize: 13, fontWeight: 500 }}>{giftCardApplied.code}</span>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)', marginLeft: 8 }}>
+                  saldo {fmt(giftCardApplied.balanceCents)}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={removeGiftCard}
+                style={{ fontSize: 12, color: 'var(--text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+              >
+                Remover
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                type="text"
+                value={giftCardInput}
+                onChange={e => { setGiftCardInput(e.target.value); setGiftCardError(''); }}
+                placeholder="Ex.: GFT-X4M2-9K7P-A2BC"
+                aria-label="Código de gift card"
+                style={{
+                  flex: 1, padding: '10px 12px', fontSize: 13, borderRadius: 4,
+                  border: '1px solid var(--divider)', background: 'var(--surface)',
+                  color: 'var(--text-primary)', fontFamily: 'var(--font-mono)',
+                  textTransform: 'uppercase', letterSpacing: '0.5px',
+                }}
+              />
+              <button
+                type="button"
+                onClick={applyGiftCard}
+                disabled={giftCardLoading}
+                style={{
+                  padding: '10px 18px', fontSize: 13, fontWeight: 500,
+                  borderRadius: 4, border: '1px solid var(--text-primary)',
+                  background: 'var(--text-primary)', color: 'var(--surface)',
+                  cursor: giftCardLoading ? 'wait' : 'pointer',
+                  opacity: giftCardLoading ? 0.6 : 1,
+                }}
+              >
+                {giftCardLoading ? '...' : 'Aplicar'}
+              </button>
+            </div>
+          )}
+          {giftCardError && (
+            <p style={{ marginTop: 8, fontSize: 12, color: '#E53E3E' }}>{giftCardError}</p>
+          )}
+        </div>
+
         {/* Pix discount info — confirmação compacta após o card destacado */}
         {method === 'pix' && (
           <div style={{
@@ -476,6 +587,7 @@ export default function PagamentoPage() {
         discountCents={couponDiscountCents}
         freeShipping={freeShipping}
         giftPackagingCents={isGift && giftPremium ? GIFT_PREMIUM_CENTS : 0}
+        giftCardDiscountCents={giftCardDiscountCents}
       />
     </div>
   );

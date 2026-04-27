@@ -185,6 +185,9 @@ export async function POST(req: NextRequest) {
     await db.execute(sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS is_gift boolean DEFAULT false NOT NULL`);
     await db.execute(sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS gift_message text`);
     await db.execute(sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS gift_packaging_cents integer DEFAULT 0`);
+    // Migration 0026 — gift card applied as payment (Sprint 5)
+    await db.execute(sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS gift_card_code varchar(32)`);
+    await db.execute(sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS gift_card_discount_cents integer DEFAULT 0`);
     results.push('orders.gift_columns: ok');
 
     // Migration 0006 — customer_email on orders (CRITICAL — used in /api/orders, /clientes)

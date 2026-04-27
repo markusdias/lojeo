@@ -90,6 +90,9 @@ export const orders = pgTable(
     isGift: boolean('is_gift').default(false).notNull(),
     giftMessage: text('gift_message'),
     giftPackagingCents: integer('gift_packaging_cents').default(0),
+    // Gift card applied as payment method (Sprint 5 critério)
+    giftCardCode: varchar('gift_card_code', { length: 32 }),
+    giftCardDiscountCents: integer('gift_card_discount_cents').default(0),
     // Customer email — set on both guest and logged-in orders for lookup
     customerEmail: varchar('customer_email', { length: 300 }),
     // Metadata for extensibility

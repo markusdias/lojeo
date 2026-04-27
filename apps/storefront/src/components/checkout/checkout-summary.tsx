@@ -16,13 +16,14 @@ interface CheckoutSummaryProps {
   discountCents?: number;
   freeShipping?: boolean;
   giftPackagingCents?: number;
+  giftCardDiscountCents?: number;
 }
 
-export function CheckoutSummary({ subtotalCents, shippingCents = 0, discountCents = 0, freeShipping: freeShippingProp, giftPackagingCents = 0 }: CheckoutSummaryProps) {
+export function CheckoutSummary({ subtotalCents, shippingCents = 0, discountCents = 0, freeShipping: freeShippingProp, giftPackagingCents = 0, giftCardDiscountCents = 0 }: CheckoutSummaryProps) {
   const { items, count } = useCart();
   const freeShipping = freeShippingProp ?? subtotalCents >= FREE_SHIPPING_ABOVE;
   const effectiveShipping = freeShipping ? 0 : shippingCents;
-  const total = Math.max(0, subtotalCents - discountCents + effectiveShipping + giftPackagingCents);
+  const total = Math.max(0, subtotalCents - discountCents + effectiveShipping + giftPackagingCents - giftCardDiscountCents);
 
   return (
     <div style={{
@@ -96,6 +97,12 @@ export function CheckoutSummary({ subtotalCents, shippingCents = 0, discountCent
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
             <span style={{ color: 'var(--text-secondary)' }}>Embalagem premium 🎁</span>
             <span>{fmt(giftPackagingCents)}</span>
+          </div>
+        )}
+        {giftCardDiscountCents > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
+            <span style={{ color: 'var(--text-secondary)' }}>Gift card aplicado 🎁</span>
+            <span style={{ color: 'var(--success)' }}>-{fmt(giftCardDiscountCents)}</span>
           </div>
         )}
         <div style={{
