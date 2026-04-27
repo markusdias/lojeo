@@ -29,7 +29,7 @@ const destinationsSchema = z
   })
   .strict();
 
-export const reportCreateSchema = z.object({
+const reportCreateSchema = z.object({
   name: z.string().trim().min(1, 'name obrigatório').max(200),
   reportType: z.enum(REPORT_TYPES),
   cronExpression: cronSchema,
@@ -37,8 +37,6 @@ export const reportCreateSchema = z.object({
   filters: z.record(z.unknown()).default({}).optional(),
   active: z.boolean().default(true).optional(),
 });
-
-export type ReportCreateInput = z.infer<typeof reportCreateSchema>;
 
 export async function GET() {
   const session = await auth();

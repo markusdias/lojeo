@@ -97,7 +97,7 @@ export default async function BlogPostPage({ params }: Params) {
         {post.coverImageUrl && (
           <img
             src={post.coverImageUrl}
-            alt=""
+            alt={`Capa do post: ${post.title}`}
             loading="eager"
             decoding="async"
             style={{ width: '100%', height: 'auto', borderRadius: 'var(--img-radius, 8px)', marginBottom: 48 }}

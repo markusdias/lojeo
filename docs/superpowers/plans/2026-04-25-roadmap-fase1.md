@@ -516,7 +516,7 @@ const template = await loadTemplate(process.env.TEMPLATE_ID!);
 - [ ] Escalada do bot FaqZap → ticket no admin — **BLOQUEADO: FaqZap**
 
 **Chatbot storefront (NOVO):**
-- [ ] Widget de chat na PDP, PLP e homepage (configurável) — **BLOQUEADO: Design D**
+- [x] Widget de chat na PDP, PLP e homepage (configurável) — v1 minimalista mounted no layout do storefront (FAB canto inferior direito, painel 380x520, sessionStorage history, chips de sugestão, contexto do produto via `data-product-id`/`data-product-name` no PDP, modo degradado com CTA WhatsApp). Design D refinará visual; backend tool-calling Sprint 9 já pronto.
 - [x] **Contexto da página atual passado ao chatbot (Sec 17)** — `context.productName` + `context.productId` no body da request
 - [x] Tool-calling pattern: Claude Haiku com ferramentas `search_products`, `get_product_details`, `check_stock`, `get_faq_answer`, `escalate_to_human`
 - [ ] Catálogo + FAQ injetados como contexto (cache de embeddings em pgvector) — parcial: FAQ estruturada pronta, embeddings pgvector pendente

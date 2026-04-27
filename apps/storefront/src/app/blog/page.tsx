@@ -68,7 +68,7 @@ export default async function BlogIndexPage() {
                 {p.coverImageUrl && (
                   <img
                     src={p.coverImageUrl}
-                    alt=""
+                    alt={`Capa do post: ${p.title}`}
                     width={180}
                     height={180}
                     loading="lazy"

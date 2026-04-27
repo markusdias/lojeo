@@ -4,6 +4,24 @@ Decisões técnicas relevantes registradas com data e justificativa.
 
 ---
 
+## 2026-04-27 — Batch 6: CI fix + ChatWidget storefront + alt text a11y
+
+**Contexto:** CI quebrado em 5 commits consecutivos. Auditoria visual storefront identificou ChatbotFAB ausente (Sprint 9 widget) e alt text vazio em blog (a11y).
+
+**Fixes aplicados:**
+
+1. **`@lojeo/engine` subpath export** — `markdown-editor.tsx` (client) importava `@lojeo/engine` que arrasta `@lojeo/db` → `postgres` → `net/tls` (Node-only) no client bundle, falhando o build do admin. Adicionado export `./markdown` em `packages/engine/package.json` apontando direto pro arquivo puro `markdown.ts`. Editor agora importa de `@lojeo/engine/markdown`. Padrão a replicar quando outros componentes client precisarem de helpers do engine.
+
+2. **`route.ts` Next.js 15 export whitelist** — `apps/admin/src/app/api/relatorios/route.ts` exportava `reportCreateSchema` (schema Zod). Next.js 15 valida exports de route handlers contra whitelist (HTTP methods + `runtime`/`dynamic`/`revalidate`/etc). Removido `export` do schema (uso só interno).
+
+3. **Alt text vazio blog** — `apps/storefront/src/app/blog/page.tsx` e `[slug]/page.tsx` tinham `alt=""` em `<img>` de capa. Trocado para `Capa do post: ${title}` (descritivo, semântico).
+
+4. **ChatWidget storefront v1** — Sprint 9 backend já pronto (`/api/chat` com tool-calling Claude Haiku, rate limit, modo degradado), faltava UI. Implementado client component `apps/storefront/src/components/chat/chat-widget.tsx` (FAB 56×56 canto inferior direito + painel 380×520, sessionStorage history, chips de sugestão "qual a diferença entre 18k e 925", contexto do produto lido via `data-product-id`/`data-product-name` na PDP, modo degradado mostra CTA WhatsApp). Mounted no layout do storefront. Design D refinará visual.
+
+**Justificativa:** Bloqueador CI estava silencioso (deploys saindo de SHAs antigos no EasyPanel). Verificar `gh run list` antes de push virou parte do fluxo. ChatWidget destrava UX ponta-a-ponta do chatbot — backend isolado sem UI era código órfão.
+
+---
+
 ## 2026-04-26 — Sprint 0 executado autonomamente
 
 **Decisão:** Sprint 0 implementado de forma autônoma com decisões PO / Arquiteto / IA Engineer / CFO / UX / CTO consolidadas:

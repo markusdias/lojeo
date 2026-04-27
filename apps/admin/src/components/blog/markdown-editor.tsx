@@ -1,7 +1,7 @@
 'use client';
 
 import { createElement, useMemo, useState } from 'react';
-import { renderMarkdown } from '@lojeo/engine';
+import { renderMarkdown } from '@lojeo/engine/markdown';
 
 interface Props {
   value: string;

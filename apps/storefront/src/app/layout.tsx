@@ -4,6 +4,7 @@ import { TrackerProvider } from '../components/tracker-provider';
 import { CartProvider } from '../components/cart/cart-provider';
 import { WishlistProvider } from '../components/wishlist/wishlist-provider';
 import { CookieBanner } from '../components/marketing/cookie-banner';
+import { ChatWidget } from '../components/chat/chat-widget';
 import { Header } from '../components/layout/header';
 import { Footer } from '../components/layout/footer';
 import { Pixels } from '../components/marketing/pixels';
@@ -108,6 +109,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             <main id="main-content">{children}</main>
             <Footer storeName={tpl.name} />
             <CookieBanner />
+            <ChatWidget />
           </TrackerProvider>
         </CartProvider>
         </WishlistProvider>

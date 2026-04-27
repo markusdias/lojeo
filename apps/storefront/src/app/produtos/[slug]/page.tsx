@@ -201,7 +201,11 @@ export default async function PDPPage({ params }: PDPProps) {
         reviewAvg={reviewAvg}
         reviewTotal={reviewTotal}
       />
-      <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '0 var(--container-pad) 80px' }}>
+      <div
+        data-product-id={product.id}
+        data-product-name={product.name}
+        style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '0 var(--container-pad) 80px' }}
+      >
         <FrequentlyBoughtTogether productId={product.id} />
         <RelatedProducts productId={product.id} />
         <UgcGallery productId={product.id} />
