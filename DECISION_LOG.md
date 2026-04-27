@@ -5590,3 +5590,53 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - UI admin /afiliados CRUD.
 - P3.M endereço adaptativo intl.
 - P3.K UI filter chips garantia.
+
+---
+
+## 2026-04-27 (continuacao) — Batch 48: Endereço adaptativo intl (P3.M)
+
+**Commits:** (a registrar nesta sessao).
+
+**Helpers `apps/storefront/src/lib/address/validate.ts`:**
+- `validateAddress(input)` retorna `{ ok, errors }`. Errors keys legível pra UI:
+  - `name_too_short` / `required` / `invalid_cep` / `invalid_zip` / `invalid_postcode` / `invalid_uf` / `invalid_state`.
+- Regex per-country:
+  - **BR**: CEP `^\d{5}-?\d{3}$` + UF whitelist 27 estados + número obrigatório.
+  - **US**: ZIP `^\d{5}(-\d{4})?$` (5 ou 9 digits) + state whitelist 51 (incl DC).
+  - **GB**: postcode UK Royal Mail format `^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$`.
+  - **EU genérico** (DE/FR/ES/IT/NL/PT/BE/AT/IE/CA): regex `^[A-Z0-9-]{3,10}$`.
+- `normalizePostalCode(pc, country)` — BR adiciona hífen, GB uppercase+single space, US passthrough, outros uppercase.
+- `getAddressLayout(country, locale)` retorna config pra UI:
+  - `postalCodeLabel` (CEP / ZIP code / Postcode / Postal code).
+  - `showState` boolean + `states` whitelist (BR_STATES/US_STATES) ou undefined.
+  - `showNumber` (BR true, US/EU false — número fica em street).
+  - `showNeighborhood` (BR true, outros false).
+
+**Whitelists exportadas:**
+- `BR_STATES` (27 UFs) + `US_STATES` (51 incl DC).
+
+**27 tests vitest:**
+- BR: válido, CEP sem hífen, CEP curto, UF inválida, número vazio, todas UFs aceitas (27 iterações).
+- US: ZIP 5 dígitos, ZIP+4, curto rejeita, state inválido, todos states aceitos (51 iterações), sem número required.
+- GB: SW1A 1AA / M1 1AE / CR2 6XH válidos, INVALID rejeita.
+- EU genérico: DE 5 digit / FR / a@! rejeita.
+- normalizePostalCode: BR adiciona hífen / GB uppercase+space / US passthrough / outros uppercase.
+- getAddressLayout: BR (CEP+UF+number+neighborhood) / US (ZIP+state, no number) / GB (no state) / DE en-US (Postal code).
+
+**Trade-offs arquiteturais:**
+- Não plugado em `/checkout/endereco/page.tsx` ainda — UI form atual é BR-only. V2: form responsive baseado em `getAddressLayout(country)` + state dropdown / postcode label / conditional number-bairro fields.
+- ZIP+4 aceito mas não obrigatório (US Postal Service uses 5 digits básico).
+- UK postcode regex cobre ~99% dos casos; raros formatos (GIR 0AA Girobank, ASCN 1ZZ Ascension Island) NÃO cobertos. V2 expandir.
+- Eurozone uses 4-10 chars genérico — ES tem 5 digits, NL "1234 AB", DE 5 digits — todos passam regex genérico.
+- BR exige número (`number` field) por convenção postal — US/UK colocam tudo em street.
+
+**Validações:**
+- pnpm -r typecheck zero erro.
+- storefront 173/173 (+27 address). Total 471 passing. Zero regressao.
+- pnpm -r lint admin/storefront limpo.
+
+**Próximo ciclo:**
+- UI checkout/endereco refactor pra usar getAddressLayout dinamicamente.
+- P3.K — UI filter chips garantia em /clientes.
+- Cron reconciliação afiliados.
+- Plugar emitMultichannelNotification em low-stock-check.
