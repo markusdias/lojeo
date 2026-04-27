@@ -3844,3 +3844,57 @@ V2: trocar por react-markdown + sanitizer quando implementar UGC blog/comentario
 - Bling integration (mesmo padrão dual mock/real do MP).
 - /checkout/sucesso página confirmação com dados do preference + status polling.
 - Webhook idempotency: dedup por paymentId em events table (evitar event spam se MP reentregar).
+
+
+---
+
+## 2026-04-27 (continuacao) — Batch 11: Bling NF-e + /checkout/falha + fix MP URLs
+
+**Commits:** 25da4a9.
+
+**Bling NF-e integration (mesmo padrão dual MP):**
+- Helper `apps/admin/src/lib/payments/bling.ts`:
+  - `isBlingConfigured()` — exige BLING_CLIENT_ID + BLING_CLIENT_SECRET juntos.
+  - `createBlingNfe(input)`:
+    - Sem creds: mock invoiceKey 44 dígitos derivado de orderId+timestamp (fail-soft, lojista emite manual).
+    - Com creds: OAuth2 client_credentials → cache em memory (expires_in - 60s) → POST `/Api/v3/nfes` com Bearer + payload Bling format (tipo=1 saída, contato, itens, transporte, observações).
+    - **Comportamento divergente do MP**: aqui falha API real **NÃO** cai em mock — throw error pra caller chamar emit fiscal.failed. Razão: lojista precisa SABER que NF-e falhou, mock seria silencioso e ele descobriria só na auditoria fiscal (multa).
+    - Mock fallback **apenas** se OAuth não retorna token (creds inválidas — equivalente a "não configurado").
+  - `__resetBlingTokenCache()` exportado pra tests resetarem cache entre cases.
+- Tests: 8 cases cobrindo configurado-vs-não, mock determinístico, API real OAuth+NFe, fail throw, fallback OAuth-401.
+
+**Endpoint `POST /api/orders/[id]/invoice`:**
+- Lazy auth + scope `orders.write`.
+- Valida status pertence a paid/preparing/shipped (não emite NF-e antes do pagamento confirmado).
+- Idempotente: se `orders.invoiceKey` já presente, retorna sem chamar Bling.
+- Sucesso: update `orders.invoiceKey` + `invoiceUrl`, insert orderEvents `invoice.issued` (real) ou `invoice.issued_mock`.
+- Falha: emit `fiscal.failed` notification severity=critical com erro inline + link pra pedido.
+
+**UX fix `/checkout/falha`:**
+- Página dedicada faltando — MP redirect failure_url → 404. Criada com error state limpo: ícone ✕ neutro, copy honesta ("não conseguimos finalizar"), CTAs (tentar novamente com retry param, voltar produtos, falar atendimento).
+- Suspense wrapper pra `useSearchParams` (Next.js 15 req).
+
+**Fix MP redirect URLs:**
+- Antes apontavam `/checkout/sucesso` (404). Agora `/checkout/confirmacao` (existente) e `/checkout/falha` (criada). Helper mock + real ambos atualizados.
+
+**Sprint 9 line 504 — coverage updated:**
+- ✓ novo pedido (order.created)
+- ✓ pagamento confirmado (order.paid)
+- ✓ estoque baixo (inventory.low_stock)
+- ✓ avaliação pendente (review.pending)
+- ✓ solicitação de troca (return.requested)
+- ✓ falha fiscal (fiscal.failed via /api/orders/[id]/invoice catch)
+- ✗ churn iminente (precisa cron + IA Analyst trigger — único faltando)
+- ✓ repor produto (restock.demand)
+- ✓ ticket atribuído (ticket.assigned)
+
+**8/9 hooks live.** Único pendente: churn cron.
+
+**Validações:**
+- Tests admin 71/71, storefront 41/41 verde. Typecheck/lint zero.
+- 0 regressão.
+
+**Próximo ciclo:**
+- Botão "Emitir NF-e" em /pedidos/[id] que chama POST /api/orders/[id]/invoice.
+- Cron real low-stock + churn (Trigger.dev ou EasyPanel cron).
+- Confirmacao MP-redirect-flow: aceitar `?order=X` query param + fetch /api/orders?id=X quando sem provider state.
