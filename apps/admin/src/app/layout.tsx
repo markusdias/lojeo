@@ -19,7 +19,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html lang="pt-BR">
       <body style={{ display: 'flex', minHeight: '100vh', margin: 0 }}>
         <ToastProvider>
-          <Sidebar userName={userName} userEmail={userEmail} tenantLabel="Atelier Verde · MEI" />
+          <Sidebar userName={userName} userEmail={userEmail} tenantLabel="Atelier Verde" tenantPlan="MEI" />
           <div style={{ flex: 1, minWidth: 0, overflow: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
             <Topbar userName={userName} userEmail={userEmail} />
             <main style={{ flex: 1 }}>

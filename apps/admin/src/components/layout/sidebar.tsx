@@ -91,6 +91,8 @@ interface SidebarProps {
   userName?: string;
   userEmail?: string;
   tenantLabel?: string;
+  /** Subtítulo opcional do tenant (ex: "MEI", "Pro", "Free") — exibido após `·` no rodapé */
+  tenantPlan?: string;
 }
 
 function initials(name: string): string {
@@ -98,7 +100,7 @@ function initials(name: string): string {
   return parts.map(p => p[0]?.toUpperCase() ?? '').join('') || '?';
 }
 
-export function Sidebar({ userName, userEmail, tenantLabel }: SidebarProps = {}) {
+export function Sidebar({ userName, userEmail, tenantLabel, tenantPlan }: SidebarProps = {}) {
   const pathname = usePathname() ?? '/';
   const [badges, setBadges] = useState<BadgeCounts>({ pedidos: 0, ugc: 0, tickets: 0, devolucoes: 0 });
 
@@ -112,6 +114,9 @@ export function Sidebar({ userName, userEmail, tenantLabel }: SidebarProps = {})
   }, [pathname]);
 
   const display = userName ?? userEmail ?? 'Usuário';
+  const storeLine = tenantLabel
+    ? (tenantPlan ? `${tenantLabel} · ${tenantPlan}` : tenantLabel)
+    : 'Admin';
 
   return (
     <aside style={{
@@ -200,7 +205,7 @@ export function Sidebar({ userName, userEmail, tenantLabel }: SidebarProps = {})
               {display}
             </p>
             <p className="caption" style={{ margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {tenantLabel ?? 'Admin'}
+              {storeLine}
             </p>
           </div>
           <Link href="/api/auth/signout" aria-label="Sair" title="Sair" style={{ color: 'var(--fg-muted)', display: 'inline-flex' }}>

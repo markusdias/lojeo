@@ -437,15 +437,22 @@ export default async function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {recentOrders.map(o => (
+                  {recentOrders.map(o => {
+                    const customerLabel = o.customerEmail
+                      ? (o.customerEmail.split('@')[0] ?? o.customerEmail)
+                          .replace(/[._-]+/g, ' ')
+                          .replace(/\b\w/g, c => c.toUpperCase())
+                      : '—';
+                    const orderLabel = o.orderNumber ? `#${o.orderNumber}` : `#${o.id.slice(0, 8)}`;
+                    return (
                     <tr key={o.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
+                      <td className="mono" style={{ padding: 'var(--space-3) var(--space-4)' }}>
                         <Link href={`/pedidos/${o.id}`} style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 'var(--w-medium)' }}>
-                          {o.orderNumber ?? o.id.slice(0, 8)}
+                          {orderLabel}
                         </Link>
                       </td>
-                      <td style={{ padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)' }}>
-                        {o.customerEmail ?? '—'}
+                      <td style={{ padding: 'var(--space-3) var(--space-4)', color: 'var(--fg)' }}>
+                        {customerLabel}
                       </td>
                       <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
                         <span style={{ color: STATUS_COLOR[o.status] ?? 'var(--fg)', fontWeight: 'var(--w-medium)' }}>
@@ -455,11 +462,12 @@ export default async function DashboardPage() {
                       <td style={{ padding: 'var(--space-3) var(--space-4)', color: 'var(--fg-secondary)' }}>
                         {formatRelativeTime(o.createdAt)}
                       </td>
-                      <td className="numeric" style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right' }}>
+                      <td className="numeric mono" style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'right', fontWeight: 'var(--w-medium)' }}>
                         {fmtBrl(o.totalCents ?? 0)}
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             )}

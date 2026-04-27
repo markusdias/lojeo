@@ -35,6 +35,8 @@ const STATUS_COLOR: Record<string, { bg: string; text: string; label: string }> 
   completed: { bg: '#EFF6FF', text: '#1D4ED8', label: 'Concluído' },
 };
 
+type StatusFilter = 'all' | 'draft' | 'active' | 'paused' | 'completed';
+
 export default function ExperimentsPage() {
   const [list, setList] = useState<Experiment[]>([]);
   const [stats, setStats] = useState<Stats>({});
@@ -42,6 +44,7 @@ export default function ExperimentsPage() {
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [filter, setFilter] = useState<StatusFilter>('all');
 
   // Form state
   const [key, setKey] = useState('');
@@ -215,8 +218,70 @@ export default function ExperimentsPage() {
           action={{ label: '+ Novo experimento', href: '#' }}
         />
       ) : (
+        <>
+          {/* Resumo IA dos testes — análise honesta de status agregado */}
+          {(() => {
+            const counts = {
+              all: list.length,
+              draft: list.filter(e => e.status === 'draft').length,
+              active: list.filter(e => e.status === 'active').length,
+              paused: list.filter(e => e.status === 'paused').length,
+              completed: list.filter(e => e.status === 'completed').length,
+            };
+            const lowSample = list.filter(e => {
+              if (e.status !== 'active') return false;
+              const expStats = stats[e.id] ?? {};
+              const total = Object.values(expStats).reduce((acc, s) => acc + s.exposures, 0);
+              return total > 0 && total < 1000;
+            });
+            const summary = counts.active === 0
+              ? 'Nenhum experimento rodando agora — crie um teste para começar a coletar dados.'
+              : lowSample.length > 0
+                ? `${counts.active} experimento(s) ativo(s). ${lowSample.length} ainda com tráfego baixo (<1k exposições) — confiança estatística limitada por enquanto.`
+                : `${counts.active} experimento(s) ativo(s) coletando dados. Resultados acompanhados em tempo real.`;
+            return (
+              <div className="lj-ai-banner" style={{ flexDirection: 'column', gap: 'var(--space-2)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                  <span aria-hidden style={{ fontSize: 14, color: 'var(--accent)' }}>✦</span>
+                  <span className="lj-ai-eyebrow">IA · Resumo dos testes</span>
+                </div>
+                <p className="body-s" style={{ margin: 0, lineHeight: 1.5 }}>{summary}</p>
+              </div>
+            );
+          })()}
+
+          {/* Filter chips — paridade design oficial */}
+          <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', alignItems: 'center' }}>
+            {([
+              { id: 'all', label: 'Todos' },
+              { id: 'active', label: 'Ativos' },
+              { id: 'paused', label: 'Pausados' },
+              { id: 'completed', label: 'Concluídos' },
+              { id: 'draft', label: 'Rascunhos' },
+            ] as const).map(f => {
+              const count = f.id === 'all' ? list.length : list.filter(e => e.status === f.id).length;
+              const active = filter === f.id;
+              return (
+                <button
+                  key={f.id}
+                  onClick={() => setFilter(f.id)}
+                  className={active ? 'lj-badge lj-badge-accent' : 'lj-badge lj-badge-neutral'}
+                  style={{
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '0.375rem 0.75rem',
+                    fontSize: 'var(--text-body-s)',
+                    fontWeight: active ? 'var(--w-semibold)' : 'var(--w-medium)',
+                  }}
+                >
+                  {f.label} <span className="numeric" style={{ opacity: 0.7, marginLeft: 4 }}>{count}</span>
+                </button>
+              );
+            })}
+          </div>
+
         <div className="space-y-3">
-          {list.map(exp => {
+          {list.filter(e => filter === 'all' ? true : e.status === filter).map(exp => {
             const sc = STATUS_COLOR[exp.status] ?? STATUS_COLOR['draft']!;
             const expStats = stats[exp.id] ?? {};
             return (
@@ -274,6 +339,7 @@ export default function ExperimentsPage() {
             );
           })}
         </div>
+        </>
       )}
     </div>
   );
