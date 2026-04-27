@@ -2666,3 +2666,43 @@ User pediu **agregar features extras (insights funil, ia-analyst, etc), não jog
 **Próximo ciclo:** Settings tabs (Identidade/Pagamentos/Frete/Email/Fiscal/Pixels/IA), Queues unificado, gap audit storefront /comunidade vs Home.jsx UGC seção embedded.
 
 **125 commits totais sessão**, **108 testes globais verdes**, **24 migrations prod**, **zero regressão**.
+
+---
+
+## 2026-04-26 — /filas inbox unificado match Queues.jsx
+
+**Commit:** [feat /filas]
+
+**Gap detectado:** Queues.jsx ref tem 3 tabs em 1 page "Filas operacionais", implementação tinha pages separadas (/avaliacoes, /devolucoes, e shipping embutido em /pedidos). Lojista MEI precisa de inbox triage diário, não 3 sidebars.
+
+**Arquivos:**
+- `apps/admin/src/app/filas/page.tsx` NOVO — server component com 4 fetches paralelos (reviews pending / returns active / shipping pending / counts agregados)
+- `apps/admin/src/app/filas/tabs.tsx` NOVO — 3 tabs client-side, 3 lists especializados:
+  - ReviewsList: card vertical com Stars + verified badge + body + ações inline (link /avaliacoes pra ações reais)
+  - ReturnsList: card com header (orderNumber/customerEmail/reason/relativeTime/total) + timeline horizontal 6 steps coloridos (done=success, current=accent, pending=muted)
+  - ShippingList: filter chips (Todos/Atrasados) + tabela com SLA badge (error se atrasada)
+- `apps/admin/src/components/layout/sidebar.tsx` — novo item "Filas" (icon inbox) entre Pedidos e Produtos
+
+**Decisões pontuais:**
+
+1. **/filas agrega, não substitui** — pages /avaliacoes /devolucoes /pedidos preservadas como deep-dive views (filtros avançados, ações detalhadas, paginação ampla). /filas é entrada rápida pra triage diária do lojista.
+
+2. **Reviews em /filas: ações link, não inline mutation** — implementar Aprovar/Rejeitar inline duplicaria lógica de /avaliacoes. CTAs lincam pra /avaliacoes onde fluxo completo (textarea response, batch actions) já existe. Reduz manutenção.
+
+3. **Returns timeline 6 steps com node colorido** — match Queues.jsx ReturnQueue: indicar visualmente onde cliente está no fluxo (Solicitada → Em análise → Aprovada → Aguardando produto → Recebida → Finalizada). Helper `RETURN_STEPS` mapeia status do schema (requested/analyzing/approved/awaiting_product/received/finalized) pra labels human-readable + ordem.
+
+4. **Shipping SLA derivado de createdAt + shippingDeadlineDays** — schema orders já tem deadline em days; calcula `slaDate = createdAt + days * DAY` e compara com `now`. Atrasados ficam error badge.
+
+5. **Filter chips placeholder em Shipping** — só Todos + Atrasados ativos (count real). "Prioritários" e "Internacionais" não implementados pois prod não tem critério (sem flag de prioridade no schema). Match Queues.jsx mas sem chips fake.
+
+6. **Sidebar Filas em seção principal** (não em "Loja") — match princípio "tudo que precisa do seu olho hoje" — ações operacionais diárias merecem nivel hierárquico igual a Pedidos.
+
+**Tests admin 18/18 verde.** Deploy admin disparado.
+
+**Próximo ciclo:**
+- UX test /filas live
+- Settings.jsx tabs gap (Identidade/Pagamentos/Frete/Email/Fiscal/Pixels/IA — current /settings é single-page form)
+- Storefront /comunidade vs Home.jsx UGC (já embeded na home, validar /comunidade page)
+- /pedidos breadcrumb sub-nav match Image #9
+
+**127 commits totais sessão**, **108 testes globais verdes**, **24 migrations prod**, **zero regressão**.
