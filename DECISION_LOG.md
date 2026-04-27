@@ -4707,3 +4707,50 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - E2E Playwright fluxo checkout completo (Pix + Boleto + Cartão) validando emails mocked + notifications.
 - Validation onBlur (não só onSubmit) — UX feedback antes do user clicar "continuar".
 - Coffee-v1 template Fase 1.2 internacional.
+
+
+---
+
+## 2026-04-27 (continuacao) — Batch 30: Coffee-v1 template scaffold (Fase 1.2 começa)
+
+**Commits:** a11e227.
+
+**Novo workspace packages templates/coffee-v1:**
+- `package.json` espelha jewelry-v1 (deps @lojeo/engine, @lojeo/config). Exports `.`, `./tokens.css`, `./config-schema.json`.
+- `src/index.ts`: TemplateConfig coffee-v1:
+  - locale `en-US`, currency `USD`.
+  - 9 niche fields: origin (11 países specialty), process (washed/natural/honey/anaerobic/wet hulled), roast (5 levels), altitude masl, variety, notes, acidity, body, sweetness.
+  - 3 typography combos: Editorial Warm (Fraunces+Inter), Craft Modern (DM Serif+DM Sans), Roastery Clean (Manrope only).
+  - Palette espresso/caramel/cream — mood roasted-bean artisan.
+- `src/tokens.css`: CSS vars roasted-bean palette + Google Fonts (Fraunces/DM Serif/Manrope/Inter/DM Sans/JetBrains Mono). Spacing/radius/shadow alinhados com jewelry-v1 (storefront genérico reusa componentes).
+- `src/config-schema.json`: JSON Schema validation per-product (origin/process/roast required, altitude 0-3000, enums fechados).
+- `src/template.test.ts`: 5 cases.
+- `tsconfig.json`: extends `@lojeo/config/tsconfig/base` (alinhado jewelry-v1).
+
+**REGISTERED_TEMPLATES atualizado:**
+- `apps/admin/src/app/api/settings/route.ts` agora aceita {jewelry-v1, coffee-v1}. PATCH templateId valida contra Set.
+
+**Trade-offs Fase 1.2 incompleta — V2:**
+- Email templates específicos coffee (subjects EN-US, copy international): atual reusa jewelry-v1 templates BR. Trade-off aceito v1 — funcional mas não polido.
+- Storefront detection de locale: middleware/layout deveria ler tenant.templateId e setar `<html lang="en">` quando coffee-v1. Atualmente hardcoded `pt-BR`. Implement next iter.
+- Stripe + DHL/FedEx integrações: já scaffolded em integrations-config (batch 7), faltam helpers (`createStripePaymentIntent`, `createDhlShipment`).
+- Tests storefront com coffee-v1: hoje só template-jewelry-v1 testa render. V2: testes paramétricos por template.
+
+**Validações:**
+- Tests coffee-v1 5/5 verde. jewelry-v1 3/3 mantido. admin 77/77, storefront 53/53, engine 98/98, db 20, email 6, ai 7, ui 0, tracking 7, logger 0, storage 0, config 0. **Total ~270 tests** ✅. Typecheck/lint zero.
+- 12 packages workspace ativos (era 11; +template-coffee-v1).
+- 0 regressão.
+
+**Fase 1.2 status — desbloqueada:**
+- ✓ Template config + tokens + schema scaffolded
+- ⏳ Email templates EN-US (Fase 1.2.1)
+- ⏳ Storefront locale detection (Fase 1.2.2)
+- ⏳ Stripe payment helper + webhook (Fase 1.2.3)
+- ⏳ DHL/FedEx shipping helpers (Fase 1.2.4)
+- ⏳ Coffee-v1 instance prod deploy (Fase 1.2.5)
+
+**Próximo ciclo:**
+- Storefront layout.tsx detecta coffee-v1 → set lang=en + currency formatter USD.
+- createStripePaymentIntent helper (mesmo padrão dual MP/Bling).
+- Testes render storefront com coffee-v1 ativo (parametric).
+- Email subject EN-US fallback quando locale=en-US.
