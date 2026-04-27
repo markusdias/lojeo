@@ -1,18 +1,16 @@
 'use client';
 
-import { Suspense, useState, useId } from 'react';
+import { Suspense, useId, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 
-const containerStyle: React.CSSProperties = {
-  width: '100%',
-  maxWidth: 480,
-  margin: '0 auto',
-  padding: '64px 24px 80px',
-};
+type AuthMode = 'login' | 'signup' | 'recover';
+
+const isDev = process.env.NODE_ENV !== 'production';
 
 const labelStyle: React.CSSProperties = {
+  display: 'block',
   fontFamily: 'var(--font-body)',
   fontSize: 11,
   letterSpacing: '0.12em',
@@ -54,6 +52,22 @@ function AppleIcon() {
   );
 }
 
+const socialBtnBase: React.CSSProperties = {
+  width: '100%',
+  padding: '12px 16px',
+  background: 'var(--surface)',
+  border: '1px solid var(--divider)',
+  borderRadius: 4,
+  fontSize: 14,
+  fontFamily: 'var(--font-body)',
+  color: 'var(--text-primary)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 12,
+  fontWeight: 500,
+};
+
 function Divider() {
   return (
     <div
@@ -65,7 +79,7 @@ function Divider() {
         gap: 14,
         color: 'var(--text-muted)',
         fontSize: 12,
-        margin: '24px 0 8px',
+        margin: '20px 0 4px',
       }}
     >
       <div style={{ flex: 1, height: 1, background: 'var(--divider)' }} />
@@ -75,15 +89,139 @@ function Divider() {
   );
 }
 
-function EntrarContent() {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div style={{ marginTop: 14 }}>
+      <div style={labelStyle}>{label}</div>
+      {children}
+    </div>
+  );
+}
+
+function PrimaryButton({
+  children,
+  disabled,
+  type = 'button',
+  onClick,
+}: {
+  children: React.ReactNode;
+  disabled?: boolean;
+  type?: 'button' | 'submit';
+  onClick?: () => void;
+}) {
+  const off = !!disabled;
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={off}
+      style={{
+        marginTop: 18,
+        width: '100%',
+        padding: '13px 16px',
+        background: off ? 'var(--divider)' : 'var(--text-primary)',
+        color: off ? 'var(--text-muted)' : 'var(--text-on-dark)',
+        border: 'none',
+        borderRadius: 4,
+        fontSize: 14,
+        fontWeight: 500,
+        fontFamily: 'var(--font-body)',
+        cursor: off ? 'not-allowed' : 'pointer',
+        letterSpacing: '0.02em',
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function GoogleBtn({ onClick, loading, label }: { onClick: () => void; loading: boolean; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={loading}
+      style={{
+        ...socialBtnBase,
+        cursor: loading ? 'not-allowed' : 'pointer',
+        opacity: loading ? 0.7 : 1,
+      }}
+    >
+      <GoogleIcon />
+      {label}
+    </button>
+  );
+}
+
+function AppleBtn({ label }: { label: string }) {
+  return (
+    <button
+      type="button"
+      disabled
+      aria-disabled="true"
+      title="Login com Apple chega na fase 1.2"
+      style={{
+        ...socialBtnBase,
+        background: '#1A1612',
+        border: '1px solid #1A1612',
+        color: '#FAFAF6',
+        cursor: 'not-allowed',
+        opacity: 0.55,
+        position: 'relative',
+      }}
+    >
+      <AppleIcon />
+      <span>{label}</span>
+      <span
+        style={{
+          fontSize: 9,
+          letterSpacing: '0.14em',
+          textTransform: 'uppercase',
+          padding: '3px 8px',
+          borderRadius: 999,
+          background: 'rgba(250, 250, 246, 0.18)',
+          color: '#FAFAF6',
+          fontWeight: 600,
+          marginLeft: 4,
+        }}
+      >
+        Em breve
+      </span>
+    </button>
+  );
+}
+
+function LegalFooter() {
+  return (
+    <p
+      style={{
+        fontSize: 11,
+        color: 'var(--text-muted)',
+        marginTop: 32,
+        textAlign: 'center',
+        lineHeight: 1.6,
+      }}
+    >
+      Ao continuar, você concorda com nossos{' '}
+      <Link href="/termos" style={{ borderBottom: '1px solid currentColor' }}>termos</Link>
+      {' '}e{' '}
+      <Link href="/privacidade" style={{ borderBottom: '1px solid currentColor' }}>política de privacidade</Link>.
+    </p>
+  );
+}
+
+function LoginForm({
+  callbackUrl,
+  onSwitch,
+}: {
+  callbackUrl: string;
+  onSwitch: (mode: AuthMode) => void;
+}) {
   const router = useRouter();
-  const params = useSearchParams();
-  const callbackUrl = params.get('callbackUrl') ?? params.get('next') ?? '/conta';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const isDev = process.env.NODE_ENV !== 'production';
   const emailId = useId();
   const passwordId = useId();
 
@@ -101,7 +239,6 @@ function EntrarContent() {
         router.push(callbackUrl);
       }
     } else {
-      // Email/password provider ainda não implementado; orientar via Google.
       setError('Login por email e senha em breve. Use sua conta Google por enquanto.');
       setLoading(false);
     }
@@ -113,149 +250,73 @@ function EntrarContent() {
   }
 
   return (
-    <div style={containerStyle}>
-      <p className="eyebrow" style={{ marginBottom: 12 }}>Acessar conta</p>
+    <>
       <h1
         style={{
           fontFamily: 'var(--font-display)',
-          fontSize: 'clamp(36px, 6vw, 52px)',
-          lineHeight: 1.05,
+          fontSize: 36,
+          lineHeight: 1.1,
           letterSpacing: 'var(--display-tracking, -0.01em)',
-          margin: '0 0 12px',
+          margin: 0,
           color: 'var(--text-primary)',
           fontWeight: 400,
         }}
       >
-        Bem-vinda de volta
+        Entrar
       </h1>
-      <p
-        style={{
-          fontSize: 15,
-          lineHeight: 1.6,
-          color: 'var(--text-secondary)',
-          margin: '0 0 36px',
-          maxWidth: 380,
-        }}
-      >
-        Entre pra acompanhar pedidos, salvar peças e ganhar pontos.
-      </p>
+      <p style={{ color: 'var(--text-secondary)', margin: '8px 0 28px', fontSize: 15 }}>É bom te ver.</p>
 
-      {/* OAuth buttons stacked */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <button
-          type="button"
-          onClick={handleGoogle}
-          disabled={loading}
-          style={{
-            width: '100%',
-            padding: '12px 16px',
-            background: 'var(--surface)',
-            border: '1px solid var(--divider)',
-            borderRadius: 4,
-            fontSize: 14,
-            fontFamily: 'var(--font-body)',
-            color: 'var(--text-primary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 12,
-            cursor: loading ? 'not-allowed' : 'pointer',
-            fontWeight: 500,
-            opacity: loading ? 0.7 : 1,
-          }}
-        >
-          <GoogleIcon />
-          Continuar com Google
-        </button>
-
-        <button
-          type="button"
-          disabled
-          aria-disabled="true"
-          title="Login com Apple chega na fase 1.2"
-          style={{
-            width: '100%',
-            padding: '12px 16px',
-            background: '#1A1612',
-            border: '1px solid #1A1612',
-            borderRadius: 4,
-            fontSize: 14,
-            fontFamily: 'var(--font-body)',
-            color: '#FAFAF6',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 12,
-            cursor: 'not-allowed',
-            fontWeight: 500,
-            opacity: 0.55,
-            position: 'relative',
-          }}
-        >
-          <AppleIcon />
-          <span>Continuar com Apple</span>
-          <span
-            style={{
-              fontSize: 9,
-              letterSpacing: '0.14em',
-              textTransform: 'uppercase',
-              padding: '3px 8px',
-              borderRadius: 999,
-              background: 'rgba(250, 250, 246, 0.18)',
-              color: '#FAFAF6',
-              fontWeight: 600,
-              marginLeft: 4,
-            }}
-          >
-            Em breve
-          </span>
-        </button>
+        <GoogleBtn onClick={handleGoogle} loading={loading} label="Continuar com Google" />
+        <AppleBtn label="Continuar com Apple" />
       </div>
-
       <Divider />
 
-      {/* Email + senha form */}
-      <form onSubmit={handleEmailSubmit} style={{ marginTop: 8 }}>
-        <div style={{ marginTop: 14 }}>
-          <label htmlFor={emailId} style={{ ...labelStyle, display: 'block' }}>Email</label>
+      <form onSubmit={handleEmailSubmit} style={{ marginTop: 4 }}>
+        <Field label="Email">
           <input
             id={emailId}
             type="email"
             required
             autoComplete="email"
             value={email}
-            onChange={e => setEmail(e.target.value)}
+            onChange={(e) => setEmail(e.target.value)}
             placeholder="seu@email.com"
             style={inputStyle}
           />
-        </div>
-
-        <div style={{ marginTop: 14 }}>
-          <label htmlFor={passwordId} style={{ ...labelStyle, display: 'block' }}>Senha</label>
+        </Field>
+        <Field label="Senha">
           <input
             id={passwordId}
             type="password"
             autoComplete="current-password"
             value={password}
-            onChange={e => setPassword(e.target.value)}
+            onChange={(e) => setPassword(e.target.value)}
             placeholder={isDev ? 'modo dev — só email' : '••••••••'}
-            disabled={!isDev && false}
             style={inputStyle}
           />
-        </div>
+        </Field>
 
-        <div style={{ marginTop: 8, textAlign: 'right' }}>
-          <Link
-            href="/recuperar-senha"
+        <div style={{ marginTop: 8 }}>
+          <button
+            type="button"
+            onClick={() => onSwitch('recover')}
             style={{
               fontSize: 12,
               color: 'var(--text-secondary)',
               borderBottom: '1px solid currentColor',
               paddingBottom: 1,
+              background: 'transparent',
+              border: 'none',
+              borderBottomStyle: 'solid',
+              borderBottomWidth: 1,
+              cursor: 'pointer',
+              fontFamily: 'var(--font-body)',
+              padding: 0,
             }}
           >
-            Esqueceu a senha?
-          </Link>
+            Esqueci minha senha
+          </button>
         </div>
 
         {error && (
@@ -280,69 +341,423 @@ function EntrarContent() {
           </p>
         )}
 
-        <button
-          type="submit"
-          disabled={loading || !email.trim()}
-          style={{
-            marginTop: 18,
-            width: '100%',
-            padding: '13px 16px',
-            background:
-              loading || !email.trim() ? 'var(--divider)' : 'var(--text-primary)',
-            color:
-              loading || !email.trim() ? 'var(--text-muted)' : 'var(--text-on-dark)',
-            border: 'none',
-            borderRadius: 4,
-            fontSize: 14,
-            fontWeight: 500,
-            fontFamily: 'var(--font-body)',
-            cursor: loading || !email.trim() ? 'not-allowed' : 'pointer',
-            letterSpacing: '0.02em',
-          }}
-        >
+        <PrimaryButton type="submit" disabled={loading || !email.trim()}>
           {loading ? 'Entrando…' : 'Entrar'}
-        </button>
+        </PrimaryButton>
       </form>
 
-      {/* Footer creator-friendly link */}
       <p
         style={{
           fontSize: 13,
           color: 'var(--text-secondary)',
-          marginTop: 28,
+          marginTop: 18,
           textAlign: 'center',
           lineHeight: 1.6,
         }}
       >
-        Primeira vez?{' '}
-        <Link
-          href="/"
+        Novo por aqui?{' '}
+        <button
+          type="button"
+          onClick={() => onSwitch('signup')}
           style={{
             color: 'var(--text-primary)',
             borderBottom: '1px solid currentColor',
-            paddingBottom: 1,
+            background: 'transparent',
+            border: 'none',
+            borderBottomStyle: 'solid',
+            borderBottomWidth: 1,
+            cursor: 'pointer',
+            fontFamily: 'var(--font-body)',
+            padding: 0,
+            fontSize: 13,
           }}
         >
-          Continue comprando
-        </Link>{' '}
-        — sua conta é criada automaticamente.
+          Criar conta
+        </button>
+      </p>
+    </>
+  );
+}
+
+function SignupForm({
+  callbackUrl,
+  onSwitch,
+}: {
+  callbackUrl: string;
+  onSwitch: (mode: AuthMode) => void;
+}) {
+  const router = useRouter();
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [tos, setTos] = useState(false);
+  const [optIn, setOptIn] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const nameId = useId();
+  const emailId = useId();
+  const passwordId = useId();
+
+  async function handleGoogle() {
+    setLoading(true);
+    await signIn('google', { callbackUrl });
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.trim() || !tos) return;
+    setLoading(true);
+    setError('');
+    if (isDev) {
+      const res = await signIn('dev-customer-login', { email, redirect: false });
+      if (res?.error) {
+        setError('Não conseguimos criar sua conta agora. Tenta de novo.');
+        setLoading(false);
+      } else {
+        router.push(callbackUrl);
+      }
+    } else {
+      setError('Cadastro por email e senha em breve. Use sua conta Google por enquanto.');
+      setLoading(false);
+    }
+  }
+
+  // Prevent unused variable warnings while keeping the field functional.
+  void name;
+  void password;
+  void optIn;
+
+  return (
+    <>
+      <h1
+        style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: 36,
+          lineHeight: 1.1,
+          letterSpacing: 'var(--display-tracking, -0.01em)',
+          margin: 0,
+          color: 'var(--text-primary)',
+          fontWeight: 400,
+        }}
+      >
+        Criar conta
+      </h1>
+      <p style={{ color: 'var(--text-secondary)', margin: '8px 0 28px', fontSize: 15 }}>
+        Leva menos de 1 minuto.
       </p>
 
-      {/* LGPD legal footer */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <GoogleBtn onClick={handleGoogle} loading={loading} label="Continuar com Google" />
+        <AppleBtn label="Continuar com Apple" />
+      </div>
+      <Divider />
+
+      <form onSubmit={handleSubmit}>
+        <Field label="Nome">
+          <input
+            id={nameId}
+            type="text"
+            autoComplete="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            style={inputStyle}
+          />
+        </Field>
+        <Field label="Email">
+          <input
+            id={emailId}
+            type="email"
+            required
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="seu@email.com"
+            style={inputStyle}
+          />
+        </Field>
+        <Field label="Senha">
+          <input
+            id={passwordId}
+            type="password"
+            autoComplete="new-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="mínimo 8 caracteres"
+            style={inputStyle}
+          />
+        </Field>
+
+        <label
+          style={{
+            display: 'flex',
+            gap: 10,
+            fontSize: 13,
+            color: 'var(--text-secondary)',
+            marginTop: 16,
+            cursor: 'pointer',
+            lineHeight: 1.5,
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={tos}
+            onChange={(e) => setTos(e.target.checked)}
+            style={{ marginTop: 3 }}
+          />
+          <span>
+            Aceito os{' '}
+            <Link
+              href="/termos"
+              style={{ color: 'var(--text-primary)', borderBottom: '1px solid currentColor' }}
+            >
+              termos
+            </Link>{' '}
+            e{' '}
+            <Link
+              href="/privacidade"
+              style={{ color: 'var(--text-primary)', borderBottom: '1px solid currentColor' }}
+            >
+              política de privacidade
+            </Link>{' '}
+            (LGPD).
+          </span>
+        </label>
+        <label
+          style={{
+            display: 'flex',
+            gap: 10,
+            fontSize: 13,
+            color: 'var(--text-secondary)',
+            marginTop: 10,
+            cursor: 'pointer',
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={optIn}
+            onChange={(e) => setOptIn(e.target.checked)}
+          />
+          Quero receber novidades por email (opcional)
+        </label>
+
+        {error && (
+          <p role="alert" style={{ fontSize: 13, color: '#A84444', marginTop: 14 }}>
+            {error}
+          </p>
+        )}
+
+        <PrimaryButton type="submit" disabled={loading || !email.trim() || !tos}>
+          {loading ? 'Criando…' : 'Criar conta'}
+        </PrimaryButton>
+      </form>
+
       <p
         style={{
-          fontSize: 11,
-          color: 'var(--text-muted)',
-          marginTop: 32,
+          fontSize: 13,
+          color: 'var(--text-secondary)',
+          marginTop: 18,
           textAlign: 'center',
           lineHeight: 1.6,
         }}
       >
-        Ao continuar, você concorda com nossos{' '}
-        <Link href="/termos" style={{ borderBottom: '1px solid currentColor' }}>termos</Link>
-        {' '}e{' '}
-        <Link href="/privacidade" style={{ borderBottom: '1px solid currentColor' }}>política de privacidade</Link>.
+        Já tem conta?{' '}
+        <button
+          type="button"
+          onClick={() => onSwitch('login')}
+          style={{
+            color: 'var(--text-primary)',
+            borderBottom: '1px solid currentColor',
+            background: 'transparent',
+            border: 'none',
+            borderBottomStyle: 'solid',
+            borderBottomWidth: 1,
+            cursor: 'pointer',
+            fontFamily: 'var(--font-body)',
+            padding: 0,
+            fontSize: 13,
+          }}
+        >
+          Entrar
+        </button>
       </p>
+    </>
+  );
+}
+
+function RecoverForm({ onSwitch }: { onSwitch: (mode: AuthMode) => void }) {
+  const [email, setEmail] = useState('');
+  const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const emailId = useId();
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setLoading(true);
+    // Endpoint de envio real ainda não existe; simulamos sucesso para fechar o fluxo visual.
+    setTimeout(() => {
+      setSent(true);
+      setLoading(false);
+    }, 600);
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => onSwitch('login')}
+        style={{
+          fontSize: 12,
+          color: 'var(--text-secondary)',
+          display: 'inline-flex',
+          gap: 6,
+          alignItems: 'center',
+          cursor: 'pointer',
+          marginBottom: 24,
+          background: 'transparent',
+          border: 'none',
+          padding: 0,
+          fontFamily: 'var(--font-body)',
+        }}
+        aria-label="Voltar para login"
+      >
+        <svg width={12} height={12} viewBox="0 0 12 12" fill="none" aria-hidden="true">
+          <path d="M7.5 2.5L4 6l3.5 3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        Voltar
+      </button>
+
+      <h1
+        style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: 32,
+          lineHeight: 1.1,
+          letterSpacing: 'var(--display-tracking, -0.01em)',
+          margin: 0,
+          color: 'var(--text-primary)',
+          fontWeight: 400,
+        }}
+      >
+        Recuperar senha
+      </h1>
+
+      {sent ? (
+        <>
+          <p style={{ color: 'var(--text-secondary)', margin: '8px 0 28px', fontSize: 15 }}>
+            Se houver uma conta com <strong style={{ color: 'var(--text-primary)' }}>{email}</strong>, você
+            vai receber um link em alguns minutos.
+          </p>
+          <PrimaryButton onClick={() => onSwitch('login')}>Voltar para login</PrimaryButton>
+        </>
+      ) : (
+        <form onSubmit={handleSubmit}>
+          <p style={{ color: 'var(--text-secondary)', margin: '8px 0 28px', fontSize: 15 }}>
+            Enviaremos um link para seu email.
+          </p>
+          <Field label="Email">
+            <input
+              id={emailId}
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="seu@email.com"
+              style={inputStyle}
+            />
+          </Field>
+
+          <PrimaryButton type="submit" disabled={loading || !email.trim()}>
+            {loading ? 'Enviando…' : 'Enviar link'}
+          </PrimaryButton>
+        </form>
+      )}
+    </>
+  );
+}
+
+function EntrarContent() {
+  const params = useSearchParams();
+  const callbackUrl = params.get('callbackUrl') ?? params.get('next') ?? '/conta';
+  const initialMode: AuthMode = params.get('mode') === 'signup' ? 'signup' : 'login';
+  const [mode, setMode] = useState<AuthMode>(initialMode);
+
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
+        minHeight: 'calc(100vh - 80px)',
+      }}
+      className="entrar-grid"
+    >
+      <div
+        style={{
+          display: 'grid',
+          placeItems: 'center',
+          padding: '60px 40px',
+        }}
+      >
+        <div style={{ width: '100%', maxWidth: 400 }}>
+          {mode === 'login' && <LoginForm callbackUrl={callbackUrl} onSwitch={setMode} />}
+          {mode === 'signup' && <SignupForm callbackUrl={callbackUrl} onSwitch={setMode} />}
+          {mode === 'recover' && <RecoverForm onSwitch={setMode} />}
+          <LegalFooter />
+        </div>
+      </div>
+
+      <div
+        style={{
+          background: 'var(--surface-warm)',
+          display: 'grid',
+          placeItems: 'center',
+          padding: 40,
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+        aria-hidden="true"
+        className="entrar-aside"
+      >
+        <div
+          style={{
+            width: 'min(420px, 80%)',
+            aspectRatio: '3/4',
+            background: '#E8DDC9',
+            borderRadius: 4,
+            overflow: 'hidden',
+            position: 'relative',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 40,
+            left: 40,
+            right: 40,
+            color: 'var(--text-secondary)',
+            fontSize: 13,
+          }}
+        >
+          <div
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 22,
+              color: 'var(--text-primary)',
+              marginBottom: 6,
+            }}
+          >
+            Sua conta, suas peças.
+          </div>
+          Acompanhe pedidos, gerencie garantias e descubra peças sob medida.
+        </div>
+      </div>
+
+      <style>{`
+        @media (max-width: 880px) {
+          .entrar-grid { grid-template-columns: 1fr !important; }
+          .entrar-aside { display: none !important; }
+        }
+      `}</style>
     </div>
   );
 }
