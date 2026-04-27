@@ -2740,3 +2740,43 @@ User pediu **agregar features extras (insights funil, ia-analyst, etc), não jog
 - Empty state do /filas (current text plain dentro de card → migrar pra `<EmptyState>` component)
 
 **128 commits totais sessão**, **108 testes globais verdes**, **24 migrations prod**, **zero regressão**.
+
+---
+
+## 2026-04-26 — UX testing /filas live + polish (REASON_LABELS + EmptyState)
+
+**Commits:** b5a7018 (filas polish), 7e7f2e5 (gitignore robusto)
+
+**Validação Playwright /filas live:**
+
+- Tab Avaliações: 4 cards renderizando match Queues.jsx (Stars + Compra verificada + tempo relativo + customerName + title bold + body + Aprovar/Rejeitar buttons). Visual perfeito.
+- Tab Trocas e devoluções: 2 cards com timeline horizontal 6 steps coloridos (PED-00001 'analyzing' = Solicitada done ✓ + Em análise current; PED-00002 'requested' = Solicitada current). Match visualmente Queues.jsx.
+- Tab Pendentes de envio: vazia (0 paid/preparing orders).
+- Counts no tab strip: Avaliações 4 / Trocas 2 / Pendentes 0 — todos coerentes com seed.
+- Total header: "6 itens" — match counts soma.
+
+**Issues fixados:**
+
+1. **`wrong_size` raw enum em vez de label** — no card Returns aparecia `· wrong_size` em vez de `· Tamanho incorreto`. Adicionado REASON_LABELS map (8 keys: defect/wrong_size/wrong_item/not_as_described/damaged_in_transit/changed_mind/late_delivery/other) + TYPE_LABELS (exchange/refund/store_credit). Display: `Troca · Tamanho incorreto`.
+
+2. **Empty states /filas com text plain** — 3 tabs tinham `<p>Nenhuma...</p>` dentro de `lj-card`. Migrei pra `<EmptyState>` component com:
+   - Reviews: IconStar + "Convites pós-entrega rendem 3× mais nos primeiros 7 dias" + CTA Configurar automação
+   - Returns: IconReturn + 2 CTAs (Configurar política / Ver histórico)
+   - Shipping: IconShoppingBag + "Sinal positivo" + CTA Ver pedidos enviados
+
+3. **Gitignore screenshots Playwright robusto** — pattern anterior `*-admin.png` não pegou `filas-*.png`. Mudei pra `/*.png` `/*.jpg` `/*.jpeg` (root-level only, preserva `docs/design-system/**/*.png` oficiais).
+
+**Observações UX:**
+
+- Performance: page renders com 4 fetches paralelos (reviews + returns + shipping + counts) sem lag perceptível
+- Returns timeline: 6 steps em row coloridos por estado (done=success ✓ / current=accent número / pending=outline) — leitura instantânea de onde cliente está no fluxo
+- Empty state Reviews `pending` agora tem narrative pedagógica (não só "vazio"): pega oportunidade pra educar lojista sobre conversão de avaliação pós-entrega
+
+**Tests admin 18/18 verde.** Deploy admin disparado.
+
+**Próximo ciclo:**
+- Settings.jsx tabs hierarquia (Settings.jsx ref tem 7 tabs em 3 grupos: Loja/Vendas/Comunicação/Inteligência) — atual /settings é single-page com seções; refactor pra anchor nav sticky ou tabs strip
+- Empty state /pedidos quando 0 rows (filtro restrito)
+- /pedidos breadcrumb sub-nav
+
+**130 commits totais sessão**, **108 testes globais verdes**, **24 migrations prod**, **zero regressão**.
