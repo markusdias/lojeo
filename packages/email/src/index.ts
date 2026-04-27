@@ -1,4 +1,11 @@
-export { sendEmail, type SendEmailInput, type SendResult } from './client';
+export {
+  sendEmail,
+  backoffDelayMs,
+  __setSleepFn,
+  __resetSleepFn,
+  type SendEmailInput,
+  type SendResult,
+} from './client';
 export {
   getStoreEmailConfig,
   emailSubjects,

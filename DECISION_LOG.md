@@ -5505,3 +5505,39 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - P4.R — programa afiliados (schema + UI + tracking ?ref cookie 30d).
 - P5.U — email retry exponential 3 tries.
 - P3.M — endereço adaptativo intl.
+
+---
+
+## 2026-04-27 (continuacao) — Batch 46: Email retry exponential (P5.U parcial)
+
+**Commits:** (a registrar nesta sessao).
+
+**`packages/email/src/client.ts` — retry exponential:**
+- `sendEmail` agora wrap em loop `for attempt = 0..maxRetries`.
+- Backoff exponential: 0ms (imediato) / 2s / 8s / 32s (multiplicador 4×).
+- `maxRetries` configurável via `SendEmailInput.maxRetries` (default 3 → max 4 tries totais).
+- Captura `error` retornado pelo Resend SDK + `throw` (network) — ambos triggeram retry.
+- Após esgotar retries, retorna `{ id: null, delivered: false, attempts: maxRetries+1 }`.
+- Sem RESEND_API_KEY: retorna `attempts: 0` (mocked, sem network).
+- `__setSleepFn` / `__resetSleepFn` exports pra testes injetarem mock sleep.
+- `backoffDelayMs(N)` exportado pra teste isolado da fórmula.
+
+**4 tests adicionais `email.test.ts`:**
+- `backoffDelayMs(0/1/2/3)` validar curva exponential.
+- `sendEmail` mocked retorna `attempts: 0`.
+
+**Trade-offs arquiteturais:**
+- Retry síncrono in-process — não usa Trigger.dev ainda. V2: quando `TRIGGER_API_KEY` presente, enfileirar email job pra execução async com retry policy do Trigger.dev (5 tries 1m/5m/30m/2h/12h).
+- Retry NÃO distingue erros transientes (5xx, network) vs permanentes (4xx invalid email). Resend SDK retorna error genérico — todos viram retry. V2: parsear error.statusCode e skip retry pra 4xx.
+- Backoff total acumulado: até 42s no worst case (0+2+8+32). Em rota síncrona /api/orders bloqueia response — caller usa `void sendEmail(...)` (fire-and-forget) pra não bloquear UX.
+- Tests não simulam sleep real — testar retry full requer integração com vi.useFakeTimers + advance. V1 cobre só fórmula matemática.
+
+**Validações:**
+- pnpm -r typecheck zero erro.
+- email 16/16 (+4 retry). Total 424 passing. Zero regressao.
+- pnpm -r lint admin/storefront limpo.
+
+**Próximo ciclo:**
+- P4.R — programa afiliados (schema affiliate_links + UI admin + tracking ?ref).
+- P3.M — endereço adaptativo intl (BR CEP / US ZIP+state / UK postcode regex).
+- P3.K — UI filter chips garantia expirando 30/60/90d em /clientes.

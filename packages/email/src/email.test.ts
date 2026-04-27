@@ -28,6 +28,29 @@ describe('sendEmail', () => {
     });
     expect(r.delivered).toBe(false);
     expect(r.id).toBeNull();
+    expect(r.attempts).toBe(0);
+  });
+});
+
+describe('backoffDelayMs', () => {
+  it('attempt 0 → 0ms', async () => {
+    const { backoffDelayMs } = await import('./client');
+    expect(backoffDelayMs(0)).toBe(0);
+  });
+
+  it('attempt 1 → 2000ms', async () => {
+    const { backoffDelayMs } = await import('./client');
+    expect(backoffDelayMs(1)).toBe(2000);
+  });
+
+  it('attempt 2 → 8000ms (4×)', async () => {
+    const { backoffDelayMs } = await import('./client');
+    expect(backoffDelayMs(2)).toBe(8000);
+  });
+
+  it('attempt 3 → 32000ms (4×)', async () => {
+    const { backoffDelayMs } = await import('./client');
+    expect(backoffDelayMs(3)).toBe(32000);
   });
 });
 
