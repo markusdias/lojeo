@@ -1,7 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { InfoTooltip } from '@/components/ui/info-tooltip';
+import { RoleBadge } from './role-badge';
+import { RoleCards } from './role-cards';
+import { AuditPreview } from './audit-preview';
 
 interface UserRoleRow {
   id: string;
@@ -37,6 +40,29 @@ const ROLES = [
 
 const ROLE_LABEL: Record<string, string> = ROLES.reduce((a, r) => ({ ...a, [r.v]: r.label }), {});
 
+function initialsFor(email: string): string {
+  const local = email.split('@')[0] ?? email;
+  const parts = local.split(/[._-]/).filter(Boolean);
+  const a = parts[0]?.[0] ?? local[0] ?? '?';
+  const b = parts[1]?.[0] ?? local[1] ?? '';
+  return (a + b).toUpperCase();
+}
+
+const AVATAR_GRADIENTS = [
+  'linear-gradient(135deg, #00553D, #34C796)',
+  'linear-gradient(135deg, #1D4ED8, #60A5FA)',
+  'linear-gradient(135deg, #BE123C, #FB7185)',
+  'linear-gradient(135deg, #6D28D9, #A78BFA)',
+  'linear-gradient(135deg, #92400E, #FBBF24)',
+  'linear-gradient(135deg, #134E4A, #2DD4BF)',
+];
+
+function gradientFor(seed: string): string {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return AVATAR_GRADIENTS[h % AVATAR_GRADIENTS.length] as string;
+}
+
 export default function UsersPage() {
   const [rows, setRows] = useState<UserRoleRow[]>([]);
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
@@ -47,6 +73,7 @@ export default function UsersPage() {
   const [saving, setSaving] = useState(false);
   const [issuedInvite, setIssuedInvite] = useState<IssuedInvite | null>(null);
   const [accepted, setAccepted] = useState(false);
+  const [filter, setFilter] = useState<string>('todos');
 
   function buildAbsoluteUrl(path: string): string {
     if (typeof window === 'undefined') return path;
@@ -82,16 +109,27 @@ export default function UsersPage() {
 
   useEffect(() => {
     load();
-    // Mostrar toast de "convite aceito" se vier do redirect
     if (typeof window !== 'undefined' && window.location.search.includes('accepted=1')) {
       setAccepted(true);
-      // Limpa querystring sem reload
       const url = new URL(window.location.href);
       url.searchParams.delete('accepted');
       window.history.replaceState({}, '', url.toString());
       setTimeout(() => setAccepted(false), 5000);
     }
   }, []);
+
+  const filteredRows = useMemo(
+    () => filter === 'todos' ? rows : rows.filter(r => r.role === filter),
+    [rows, filter],
+  );
+
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { todos: rows.length };
+    for (const r of rows) c[r.role] = (c[r.role] ?? 0) + 1;
+    return c;
+  }, [rows]);
+
+  const activeCount = rows.filter(r => r.acceptedAt).length;
 
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault();
@@ -166,11 +204,28 @@ export default function UsersPage() {
     load();
   }
 
+  const filterChips: Array<[string, string]> = [
+    ['todos', 'Todos'],
+    ...ROLES.map(r => [r.v, r.label] as [string, string]),
+  ];
+
   return (
-    <div className="p-8 max-w-4xl space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold">Usuários e papéis</h1>
-        <p className="body-s mt-1">Quem pode acessar este admin e o que cada um pode fazer.</p>
+    <div className="p-8 max-w-5xl space-y-6">
+      <header className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-semibold">Usuários e papéis</h1>
+          <p className="body-s mt-1">
+            {rows.length} {rows.length === 1 ? 'pessoa cadastrada' : 'pessoas cadastradas'}
+            {' · '}
+            <span style={{ color: 'var(--success)' }}>{activeCount} {activeCount === 1 ? 'ativa' : 'ativas'}</span>
+            {pendingInvites.length > 0 && (
+              <>
+                {' · '}
+                <span style={{ color: 'var(--warning)' }}>{pendingInvites.length} {pendingInvites.length === 1 ? 'convite pendente' : 'convites pendentes'}</span>
+              </>
+            )}
+          </p>
+        </div>
       </header>
 
       {accepted && (
@@ -182,7 +237,7 @@ export default function UsersPage() {
       {issuedInvite && (
         <div className="rounded p-4 space-y-2" style={{ background: 'var(--info-soft)', border: '1px solid var(--border)' }}>
           <div className="body-s font-semibold" style={{ color: 'var(--accent)' }}>
-            Convite criado para <span className="mono">{issuedInvite.email}</span> ({issuedInvite.role})
+            Convite criado para <span className="mono">{issuedInvite.email}</span> ({ROLE_LABEL[issuedInvite.role] ?? issuedInvite.role})
           </div>
           <p className="caption" style={{ color: 'var(--accent)' }}>
             Copie e envie a URL abaixo para a pessoa convidada. O convite vale por 7 dias.
@@ -214,7 +269,7 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* Invite form */}
+      {/* Convidar pessoa */}
       <form onSubmit={handleInvite} className="lj-card p-5">
         <h2 className="body-s font-semibold mb-3">Convidar pessoa</h2>
         <div className="flex gap-2 items-end flex-wrap">
@@ -247,13 +302,43 @@ export default function UsersPage() {
             disabled={saving}
             className="lj-btn-primary"
           >
-            {saving ? 'Enviando...' : 'Convidar'}
+            {saving ? 'Enviando...' : '+ Convidar por e-mail'}
           </button>
         </div>
         <p className="caption mt-3">{ROLES.find(r => r.v === role)?.desc}</p>
       </form>
 
-      {/* Pending invites */}
+      {/* Filter chips */}
+      {rows.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="caption" style={{ fontWeight: 500 }}>Filtrar:</span>
+          {filterChips.map(([id, label]) => {
+            const isActive = filter === id;
+            const n = counts[id] ?? 0;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setFilter(id)}
+                className="caption"
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: 'var(--radius-full)',
+                  border: '1px solid ' + (isActive ? 'var(--accent)' : 'var(--border)'),
+                  background: isActive ? 'var(--accent-soft)' : 'var(--bg-elevated)',
+                  color: isActive ? 'var(--accent)' : 'var(--fg-secondary)',
+                  fontWeight: isActive ? 600 : 500,
+                  cursor: 'pointer',
+                }}
+              >
+                {label}<span style={{ opacity: 0.6, marginLeft: 4 }}>· {n}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Convites pendentes */}
       {pendingInvites.length > 0 && (
         <section className="lj-card p-5">
           <h2 className="body-s font-semibold mb-3">
@@ -273,7 +358,7 @@ export default function UsersPage() {
               {pendingInvites.map(inv => (
                 <tr key={inv.id} style={{ borderTop: '1px solid var(--border)' }}>
                   <td className="py-2">{inv.email}</td>
-                  <td className="py-2 caption">{ROLE_LABEL[inv.role] ?? inv.role}</td>
+                  <td className="py-2"><RoleBadge role={inv.role} label={ROLE_LABEL[inv.role] ?? inv.role} /></td>
                   <td className="py-2 caption">
                     {new Date(inv.expiresAt).toLocaleDateString('pt-BR')}
                   </td>
@@ -302,19 +387,21 @@ export default function UsersPage() {
         </section>
       )}
 
-      {/* List */}
+      {/* Lista membros */}
       {loading ? (
         <p className="body-s">Carregando...</p>
       ) : error ? (
         <div className="rounded p-3 body-s" style={{ background: 'var(--warning-soft)', border: '1px solid var(--border)', color: 'var(--warning)' }}>{error}</div>
       ) : rows.length === 0 ? (
         <p className="body-s">Nenhum usuário cadastrado ainda.</p>
+      ) : filteredRows.length === 0 ? (
+        <p className="body-s">Nenhum membro com este filtro.</p>
       ) : (
         <div className="lj-card overflow-hidden" style={{ padding: 0 }}>
           <table className="w-full text-sm">
             <thead className="eyebrow" style={{ background: 'var(--bg-subtle)' }}>
               <tr>
-                <th className="text-left px-4 py-2">Email</th>
+                <th className="text-left px-4 py-2">Membro</th>
                 <th className="text-left px-4 py-2">Papel</th>
                 <th className="text-left px-4 py-2">Status</th>
                 <th className="text-left px-4 py-2">Convidado em</th>
@@ -322,23 +409,43 @@ export default function UsersPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map(u => (
+              {filteredRows.map(u => (
                 <tr key={u.id} style={{ borderTop: '1px solid var(--border)' }}>
-                  <td className="px-4 py-2">{u.email}</td>
+                  <td className="px-4 py-2">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div
+                        aria-hidden
+                        style={{
+                          width: 32, height: 32, borderRadius: 'var(--radius-full)',
+                          background: gradientFor(u.email),
+                          color: '#fff',
+                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 'var(--text-caption)', fontWeight: 600, letterSpacing: 0,
+                        }}
+                      >
+                        {initialsFor(u.email)}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 500, color: 'var(--fg)' }}>{u.email.split('@')[0]}</div>
+                        <div className="caption" style={{ marginTop: 2 }}>{u.email}</div>
+                      </div>
+                    </div>
+                  </td>
                   <td className="px-4 py-2">
                     <select
                       value={u.role}
                       onChange={e => changeRole(u.id, e.target.value)}
                       className="lj-input caption"
+                      aria-label={`Alterar papel de ${u.email}`}
                     >
                       {ROLES.map(r => <option key={r.v} value={r.v}>{r.label}</option>)}
                     </select>
                   </td>
                   <td className="px-4 py-2 caption">
                     {u.acceptedAt ? (
-                      <span style={{ color: 'var(--success)' }}>Ativo</span>
+                      <span className="lj-badge lj-badge-success">Ativo</span>
                     ) : (
-                      <span style={{ color: 'var(--warning)' }}>Aguardando login</span>
+                      <span className="lj-badge lj-badge-warning">Aguardando login</span>
                     )}
                   </td>
                   <td className="px-4 py-2 caption">
@@ -350,7 +457,7 @@ export default function UsersPage() {
                       className="caption hover:underline"
                       style={{ color: 'var(--error)' }}
                     >
-                      Remover
+                      Revogar
                     </button>
                   </td>
                 </tr>
@@ -359,6 +466,12 @@ export default function UsersPage() {
           </table>
         </div>
       )}
+
+      {/* Funções disponíveis */}
+      <RoleCards />
+
+      {/* Audit preview (últimas 10 ações) */}
+      <AuditPreview />
     </div>
   );
 }
