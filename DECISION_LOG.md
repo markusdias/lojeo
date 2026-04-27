@@ -4367,3 +4367,57 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - Coffee-v1 template Fase 1.2 (após Fase 1 100%).
 - Pix Payment direto MP — desbloqueia PixGenerated email.
 - Refactor: dual-mode helper único pra integrations (DRY entre MP/Bling/email).
+
+
+---
+
+## 2026-04-27 (continuacao) — Batch 23: Pix Payment direto MP + PixGenerated email — Sprint 13 email 5/5
+
+**Commits:** f18af9d.
+
+**createMercadoPagoPixPayment helper:**
+- Adicionado em `apps/storefront/src/lib/payments/mercado-pago.ts`. Padrão dual (mock/real):
+  - Sem token: mock {paymentId: 'mock-pix-{orderId}', qrCode: 'MOCK-PIX-{orderNumber}-{value}BRL', qrCodeBase64: '', ticketUrl: null}.
+  - Com token: POST `/v1/payments` com payment_method_id=pix + payer.email + payer.first_name/last_name (split do nome) + external_reference=orderId + **x-idempotency-key=orderId** (evita double-charge em retry). Body inclui transaction_amount em BRL (cents/100), description, notification_url.
+  - Resposta MP: extrai `point_of_interaction.transaction_data.qr_code` (copia-e-cola string EMV-payload), `qr_code_base64` (PNG embedded), `ticket_url` (fallback painel MP).
+  - Fail-safe mock fallback se API 5xx ou throw — preserva fluxo storefront.
+
+**POST /api/orders integra Pix flow:**
+- Após criar preference (rota normal), se `paymentMethod === 'pix' && customerEmail`, chama createMercadoPagoPixPayment paralelamente.
+- Persiste gatewayPaymentId + gatewayStatus='pending' quando source='mp'.
+- Retorna pixData {qrCode, qrCodeBase64, ticketUrl} no response payload — frontend pode renderizar QR direto na confirmacao em vez de redirect MP.
+
+**sendPixGeneratedEmail plugado:**
+- Helper em `apps/storefront/src/lib/email/transactional.ts`.
+- Template `PixGenerated` (jewelry-v1) com props {storeName, qrImageUrl: data:image/png;base64,..., pixCopyPaste, amount fmt BRL, expiresInLabel default '30 minutos'}.
+- Subject `Seu Pix · {orderCode}`.
+- Email enviado fire-and-forget após createMercadoPagoPixPayment retorna (mock OR real).
+
+**Tests adicionados (3):**
+- Mock sem token retorna 'MOCK-PIX' qrCode + paymentId 'mock-pix-{orderId}'.
+- API real com x-idempotency-key header validado + extração de qr_code/base64/ticket_url do payload.
+- Fallback mock em 500 retorna paymentId 'mock-pix-fallback-{orderId}'.
+
+**Sprint 13 email transacional — coverage 5/5 ✅**
+- ✓ OrderConfirmation (POST /api/orders)
+- ✓ ShippingNotification (transition shipped + tracking)
+- ✓ TradeApproved (transition return.approved)
+- ✓ Welcome (NextAuth events.createUser)
+- ✓ **PixGenerated** (POST /api/orders quando paymentMethod=pix)
+
+**Trade-offs:**
+- Pix payment vs preference dual: criamos AMBOS quando pix é selecionado. Preference fica pra fallback init_point se cliente quer ir pro painel MP. Pix payment dá QR direto.
+- payer.first_name/last_name split do nome ou email — inputs do checkout não capturam nome separadamente. V2: capturar `customerName` no checkout form.
+- expiresInLabel hardcoded '30 minutos' — Pix MP padrão. V2: ler do payment response (não retornado direto, vem em metadata).
+- Sem polling client-side do payment status: cliente confirma pagamento, MP webhook atualiza status. UX confirmacao deve mostrar "aguardando confirmação" + auto-refresh ou SSE futuro.
+
+**Validações:**
+- Tests storefront 49/49 (+3), admin 77/77, db 20, engine 87. Total ~250+. Typecheck/lint zero.
+- 0 regressão.
+- Deploy storefront disparado.
+
+**Próximo ciclo:**
+- Confirmacao page render QR Pix quando paymentMethod=pix (use pixData do orders POST response).
+- Polling status em /checkout/confirmacao (intervalo 5s) pra detectar pagamento confirmado.
+- E2E tests Playwright: criar order via API + assertar QR retorna + email mock log.
+- Audit visual hover/focus storefront (homologar com admin).
