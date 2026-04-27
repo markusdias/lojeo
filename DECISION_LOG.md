@@ -3647,3 +3647,38 @@ V2: trocar por react-markdown + sanitizer quando implementar UGC blog/comentario
 - Fresh deploy via API EasyPanel se webhook continuar cacheado
 - Modo degradado E2E (Resend, gateway, FaqZap fallback)
 - GDPR basico prep coffee internacional
+
+
+---
+
+## 2026-04-27 (continuacao) — Batch 6: Notificações lojista in-app (Sprint 9 fechado)
+
+**Commits:** 32e5e53 (schema + bell + página + emit order/return), 677c253 (review/ticket-assign/low-stock).
+
+**Sprint 9 — Central de avisos lojista:**
+- Schema `seller_notifications` (tenant+user dirigida ou broadcast NULL, type `<entity>.<event>`, severity info/warning/critical, title/body/link/entityType/entityId/metadata, readAt). Indexes (tenant, user, created), (tenant, read_at), (tenant, type).
+- Helper `emitSellerNotification` em `@lojeo/db` — best-effort com try/catch, nunca derruba fluxo principal. Title cap 200 chars.
+- API admin: `GET /api/notifications` (escopo userId match OR NULL broadcast, filtro `unread=1`, retorna `{notifications, unreadCount}`), `PATCH /api/notifications/:id` (mark read/unread idempotente), `POST /api/notifications/mark-all-read` (bulk). Sem permission scope — qualquer admin auth válido pode ver suas notificações + as broadcast tenant-wide.
+- Component `NotificationsBell` (client) substitui botão dead em topbar. Badge unread (99+ cap), dropdown 360px com 15 últimas, auto-poll 60s, click-outside close. Mark read no click. Severity dot color (champagne/orange/red).
+- Página `/notificacoes` (server) lista 200 com filtro Todas/Não lidas, botão Marcar todas como lidas, empty state "Tudo em dia" / "Nenhuma notificação ainda".
+- Emit hooks: `order.created` (storefront POST /api/orders, broadcast — mostra orderNumber + total + payment + email), `return.requested` (storefront POST /api/returns, broadcast — warning, mostra type/reason/orderNumber), `review.pending` (storefront POST /api/reviews, broadcast — info, mostra rating + nome), `ticket.assigned` (admin lib/ticket-assignment, **dirigida ao assignee** — info, body=subject).
+- Cron-like endpoint POST `/api/cron/low-stock-check` (auth required): detecta `qty - reserved <= lowStockThreshold` AND `threshold > 0`, dedup 24h por entityId+type, severity=critical se available=0. Botão "Verificar estoque baixo" em `/inventory` com feedback inline (emitidos / já avisados / total).
+
+**Trade-offs arquiteturais:**
+- Helper em `@lojeo/db` (não engine) — engine permanece puro sem postgres-js. db já é importado por admin+storefront. Trade-off: se um dia tivermos workers/jobs separados, helper precisa ser refatorado pra engine + db handle injetado. V1 aceita acoplamento.
+- Emit best-effort com `void` (fire-and-forget) — pequena janela de race se transaction abortar depois do emit. Aceitável: notification fica "fantasma" mas duplicação evitada por dedup interno e UX permite ignorar.
+- Sem WebSocket / SSE — auto-poll 60s suficiente p/ MEI (latência aceitável vs custo infra). V2: SSE quando volume justificar.
+- Sidebar admin sem item dedicado "Notificações" — topbar bell + "Ver todas" link basta. Reduz poluição navegação.
+
+**Validações:**
+- Tests admin 44/44 verde, storefront verde, typecheck zero, lint zero warnings novos.
+- Migration prod aplicada com sucesso (`seller_notifications: ok` em /api/migrate).
+- Deploy EasyPanel admin+storefront aplicado, /notificacoes retorna 307 (redirect login = rota ativa).
+- 0 regressão.
+
+**Próximo ciclo:**
+- Audit prod completo: criar notification dummy via seed/insert, validar bell renderiza badge, dropdown carrega, marca lida persiste.
+- Cron real para low-stock-check (EasyPanel cron job ou Trigger.dev v2).
+- Emit em fiscal failed (Bling/Olist), churn detection (IA Analyst), high-cart-abandonment.
+- /clientes/[id] já existe (audit estava errado) — ok como está.
+- Empty states audit: passar por rotas vazias e padronizar componente `EmptyState` (já existe, só falta cobertura).
