@@ -28,3 +28,4 @@ export {
   type RecoverCartProps,
   type RecoverCartItem,
 } from './templates/recover-cart';
+export { DailyDigest, type DailyDigestProps } from './templates/daily-digest';

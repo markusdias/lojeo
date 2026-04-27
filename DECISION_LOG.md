@@ -5316,3 +5316,47 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 **Próximo ciclo:**
 - P2.H — Cron daily-digest lojista (orders, revenue, tickets, low stock, alerts).
 - Plugar emitMultichannelNotification em low-stock-check + churn-check.
+
+---
+
+## 2026-04-27 (continuacao) — Batch 42: Daily digest cron lojista (P2.H)
+
+**Commits:** (a registrar nesta sessao).
+
+**Email template `DailyDigest` em `packages/email/src/templates/daily-digest.tsx`:**
+- React Email seguindo `_shell.tsx` (jewelry-v1 mood) + atoms `Line` + `btnPrimary`.
+- Bilingue PT-BR / EN-US baseado em prop `locale`.
+- Renders 5 metricas: orders, revenue, tickets, low stock, critical alerts.
+- CTA "Abrir painel" / "Open dashboard".
+
+**Aggregator `apps/admin/src/lib/digest/daily.ts`:**
+- `aggregateDailyDigest({ tenantId, windowHours?, database? })` retorna snapshot:
+  - ordersCount + revenueCents (sum totalCents) ultimas 24h.
+  - ticketsOpenCount (status='open' all-time).
+  - lowStockCount ((qty - reserved) <= threshold AND threshold > 0).
+  - criticalAlertsCount (severity='critical' AND readAt IS NULL).
+- `formatDailyDigestDateLabel(date, locale)` Intl wrapper (pt-BR / en-US weekday short + day + month).
+- 3 tests vitest cobrem locale formatting.
+
+**Cron `/api/cron/daily-digest`:**
+- Auth via `authorizeCronRequest`.
+- Le `tenant.config.notifications.email.{recipientsCsv, dailyDigest.enabled}`.
+- Skip se `dailyDigest.enabled === false` ou recipients vazios.
+- Executa aggregateDailyDigest, renderiza email com formatMoney currency-aware (BRL/USD), envia via sendEmail.
+- Subject bilingue baseado em `conf.locale`.
+- Response inclui snapshot pra observability.
+
+**Trade-offs arquiteturais:**
+- `tenant.config.notifications.email.dailyDigest` shape: `{ enabled, hour }` — cron route só usa `enabled`. `hour` deve ser respeitado pelo scheduler externo (EasyPanel cron / Trigger.dev) que dispara com cron expression apropriado por timezone do lojista.
+- Snapshot windowHours default 24 — V2: extender pra digestPeriod 'daily' | 'weekly' (resumo semanal).
+- `dashboardUrl` constructed via storefrontBase regex replace — V2 separar `STOREFRONT_ADMIN_URL` env explicit em vez de derivar.
+- Aggregator não mock-testado com vitest spyOn(db) porque schema-binding Drizzle complica vi.mock cross-package. Tests cobrem helper puro de formatação. Cron route cobertura via dogfood (skipped sem DATABASE_URL real).
+- emailSubjects(locale) importado mas não usado direto — V2 adicionar dailyDigest key e usar.
+
+**Validações:**
+- pnpm -r typecheck zero erro.
+- admin 102/102 (+3 daily). storefront 109/109. email 12/12. Total 384 passing. Zero regressao.
+- pnpm -r lint admin/storefront limpo.
+
+**Próximo ciclo:**
+- P2.I — permission scopes em ~28 endpoints sem requirePermission (ordens/customers/UGC/etc.).
