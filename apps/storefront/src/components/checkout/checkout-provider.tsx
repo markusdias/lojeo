@@ -12,6 +12,7 @@ export interface CheckoutAddress {
   neighborhood: string;
   city: string;
   state: string;
+  country?: string; // ISO-2 — default BR no consumer
 }
 
 export interface ShippingOption {

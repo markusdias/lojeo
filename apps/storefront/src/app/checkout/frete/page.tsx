@@ -7,44 +7,10 @@ import { useCart } from '../../../components/cart/cart-provider';
 import { useTracker } from '../../../components/tracker-provider';
 import { CheckoutSummary } from '../../../components/checkout/checkout-summary';
 
-// Sprint 4: Melhor Envio OAuth + cálculo real de frete por CEP
-// Por agora: opções simuladas baseadas no subtotal
-function getShippingOptions(subtotalCents: number, postalCode: string): ShippingOption[] {
-  const state = postalCode.slice(0, 5);
-  const isSP = state >= '01000' && state <= '19999';
-  const base = isSP ? 1200 : 2400;
-
-  return [
-    {
-      id: 'correios-pac',
-      carrier: 'Correios',
-      service: 'PAC',
-      deadlineDays: isSP ? 5 : 10,
-      priceCents: subtotalCents >= 50000 ? 0 : base,
-      label: `Correios PAC — até ${isSP ? 5 : 10} dias úteis`,
-    },
-    {
-      id: 'correios-sedex',
-      carrier: 'Correios',
-      service: 'SEDEX',
-      deadlineDays: isSP ? 2 : 4,
-      priceCents: subtotalCents >= 50000 ? 0 : Math.round(base * 2.2),
-      label: `Correios SEDEX — até ${isSP ? 2 : 4} dias úteis`,
-    },
-    {
-      id: 'jadlog-package',
-      carrier: 'Jadlog',
-      service: 'Package',
-      deadlineDays: isSP ? 3 : 7,
-      priceCents: subtotalCents >= 50000 ? 0 : Math.round(base * 1.5),
-      label: `Jadlog Package — até ${isSP ? 3 : 7} dias úteis`,
-    },
-  ];
-}
-
-function fmt(cents: number) {
-  if (cents === 0) return 'Grátis';
-  return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+function fmt(cents: number, currency = 'BRL') {
+  if (cents === 0) return currency === 'BRL' ? 'Grátis' : 'Free';
+  const locale = currency === 'BRL' ? 'pt-BR' : 'en-US';
+  return (cents / 100).toLocaleString(locale, { style: 'currency', currency });
 }
 
 export default function FretePage() {
@@ -53,6 +19,9 @@ export default function FretePage() {
   const { subtotalCents } = useCart();
   const tracker = useTracker();
   const [selectedId, setSelectedId] = useState(state.shipping?.id ?? '');
+  const [options, setOptions] = useState<ShippingOption[]>([]);
+  const [currency, setCurrency] = useState<string>('BRL');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!state.address.postalCode) {
@@ -62,8 +31,30 @@ export default function FretePage() {
     tracker?.track({ type: 'checkout_step_start', entityType: 'checkout', entityId: 'frete', metadata: { step: 2 } });
   }, [state.address.postalCode, router, tracker]);
 
-  const options = getShippingOptions(subtotalCents, state.address.postalCode ?? '');
-  const selected = options.find(o => o.id === selectedId);
+  useEffect(() => {
+    if (!state.address.postalCode) return;
+    setLoading(true);
+    fetch('/api/shipping/quote', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        country: state.address.country ?? 'BR',
+        postalCode: state.address.postalCode,
+        subtotalCents,
+      }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { options?: ShippingOption[]; currency?: string } | null) => {
+        if (d?.options) {
+          setOptions(d.options);
+          setCurrency(d.currency ?? 'BRL');
+        }
+      })
+      .catch(() => null)
+      .finally(() => setLoading(false));
+  }, [state.address.postalCode, state.address.country, subtotalCents]);
+
+  const selected = options.find((o) => o.id === selectedId);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -90,6 +81,16 @@ export default function FretePage() {
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {loading && (
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', padding: '12px 4px' }}>
+              Calculando frete…
+            </p>
+          )}
+          {!loading && options.length === 0 && (
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', padding: '12px 4px' }}>
+              Nenhuma opção de frete disponível para este destino.
+            </p>
+          )}
           {options.map(opt => (
             <label
               key={opt.id}
@@ -118,7 +119,7 @@ export default function FretePage() {
                 fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 400,
                 color: opt.priceCents === 0 ? 'var(--success)' : 'var(--text-primary)',
               }}>
-                {fmt(opt.priceCents)}
+                {fmt(opt.priceCents, currency)}
               </span>
             </label>
           ))}

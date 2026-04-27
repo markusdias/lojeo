@@ -5082,3 +5082,54 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 
 **Proximo ciclo:**
 - P1.C — shipping intl UI: detect address.country no checkout/frete, pull DHL/FedEx vs Melhor Envio.
+
+---
+
+## 2026-04-27 (continuacao) — Batch 37: Shipping international UI checkout (P1.C)
+
+**Commits:** (a registrar nesta sessao).
+
+**Helper consolidado `apps/storefront/src/lib/shipping/options.ts`:**
+- `buildShippingOptions({ country, postalCode, subtotalCents, currency, weightG })` retorna `ShippingOption[]`.
+- BR: 3 opções domésticas (Correios PAC/SEDEX + Jadlog Package) com tabela mock SP-vs-BR + free-shipping >= R$500 (parity com lógica histórica).
+- Intl (USD/EUR/GBP/CAD): chama `getInternationalShippingQuotes` (DHL + FedEx + Correios Intl mock) → `quoteToOption(q)`.
+- `defaultFromCountry(currency)` → `BR`/`US`/`GB`/`DE` (Eurozone genérico).
+
+**11 tests vitest (`options.test.ts`):**
+- defaultFromCountry/defaultToCountry: 4 cenários (BRL/USD/CAD/GBP/EUR).
+- quoteToOption: 2 cenários (DHL Express + FedEx Priority).
+- buildShippingOptions: 5 cenários (BR 3 opções / BR free shipping / US intl quotes / GB EUR / country undefined→BR).
+
+**Endpoint server `/api/shipping/quote` POST:**
+- Recebe `{ country, postalCode, subtotalCents, weightG? }`.
+- Resolve currency via `getActiveTemplate` + `asSupportedCurrency`.
+- Default country quando vazio: BR (BRL) ou US (intl).
+- Retorna `{ options, currency, country }`.
+
+**`/checkout/frete/page.tsx` plugado:**
+- `useEffect` faz fetch `/api/shipping/quote` baseado em `address.country` + `postalCode` + `subtotalCents`.
+- State `options` agora vem do server, não da função inline.
+- State `currency` recebido do server pra formatar `priceCents` (`fmt(cents, currency)` agora multi-moeda BRL pt-BR / USD en-US).
+- Loading state "Calculando frete…" antes da resposta. Empty state "Nenhuma opção" quando server retorna [].
+- Função inline `getShippingOptions` REMOVIDA — toda lógica em options.ts.
+
+**`CheckoutAddress` ganha `country?: string` (ISO-2):**
+- Storefront agora pode persistir país do destinatário.
+- Fallback 'BR' quando vazio.
+- Endereço UI form ainda BR-centric (fora de escopo deste batch). V2: form adaptativo intl (P3.M).
+
+**Trade-offs arquiteturais:**
+- Endpoint server vs client-side helper: necessário porque DHL/FedEx API keys vivem em env vars server-only. Endpoint thin layer.
+- `weightG` default 500g — V2 calcular do carrinho real (sum variant.weight_g). Por agora o cliente final paga frete proporcional a peso fixo.
+- `defaultFromCountry` tabela hardcoded — V2 persistir `tenant.config.shippingOrigin` por loja.
+- Frete BR mantém lógica original (Correios/Jadlog) — sem breaking change pro fluxo jewelry-v1.
+
+**Validações:**
+- pnpm -r typecheck zero erro.
+- storefront 99/99 tests passing (+11 options).
+- Total ~356 tests verde (admin 90, storefront 99, engine 107, db 20, email 6, ai 7, tracking 7, ui 1, logger 2, storage 9, jewelry-v1 3, coffee-v1 5).
+- pnpm -r lint zero warning admin/storefront. 2 pre-existentes packages/db.
+
+**Próximo ciclo:**
+- P1.D — tokens.css condicional baseado em tpl.id em layout.tsx.
+- P1.E — email subjects + copy fallback EN-US baseado em tpl.locale.
