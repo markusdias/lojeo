@@ -4075,3 +4075,38 @@ curl -X POST -H "x-cron-secret: $CRON_SECRET" \
 - Documentar CRON_SECRET + endpoints cron em README.md/onboarding.
 - UX testing prod completo (Playwright + login admin).
 - Sub-aba "Notificações" em /settings com link pra /notificacoes/preferencias.
+
+
+---
+
+## 2026-04-27 (continuacao) — Batch 16: README setup + emit helper mock tests
+
+**Commits:** 30dfb22.
+
+**README.md expansão:**
+- Tabela 11 integrações conectáveis (Mercado Pago, Stripe, Pagar.me, Bling, Olist, Melhor Envio, Resend, SendGrid, FaqZap, Anthropic, Trigger.dev) com env vars + status modo degradado.
+- Seção Cron jobs com setup CRON_SECRET + 2 endpoints disponíveis + exemplo cronjob EasyPanel hourly via curl.
+- Seção Notificações lojista listando 9 hooks ativos + link /notificacoes/preferencias pra opt-out.
+
+**Tests emit helper (mock-based):**
+- `vi.mock('./client')` antes do import faz db.select retornar tenantConfig controlado e db.insert simular returning row.
+- 6 cases:
+  1. Insert quando type fora de disabledTypes
+  2. Skip silencioso (return null) quando type listed
+  3. Default sem prefs habilita todos
+  4. Cache reset → update prefs visível imediato
+  5. disabledTypes vazio aceita todos (não interpreta como "tudo desabilitado")
+  6. Title cap 200 chars (não throw)
+
+**Total tests do projeto após este batch:**
+- engine: 87, db: 20, admin: 77/77 (25 skipped), storefront: 41, template-jewelry-v1: 3, tracking: 7.
+- Total: 235 testes passing, 25 skipped (dogfood DB-real). Typecheck/lint zero.
+
+**Trade-offs:**
+- vi.mock de drizzle client é frágil (chain `.select().from().where().limit()` precisa retornar promise). Refactor v2: separar `getNotificationPrefs` em módulo testável puro com injeção do db client.
+
+**Próximo ciclo:**
+- UX testing prod completo via Playwright (login admin + percorrer rotas críticas).
+- Sub-aba "Notificações" em /settings linkando pra /notificacoes/preferencias.
+- Dashboard banner alertando quando há notification crítica não lida.
+- Audit visual hover/focus/active states em botões/links (interaction polish).
