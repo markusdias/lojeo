@@ -3335,3 +3335,36 @@ UI checkout pagamento:
 - UX validation /ia-analyst + /comunidade live
 - Sprint 7 IA backoffice gaps (modo econômico já tem? Painel uso já tem?)
 - Sprint 9 Trigger.dev mocks (BLOQUEADO real, mas pode estruturar)
+
+---
+
+## 2026-04-26 — Sprint 13 LGPD a11y + Sprint 7 /ia-uso painel
+
+**Commits:** f78850f (LGPD) · 79ed136 (/ia-uso)
+
+**Sprint 13 LGPD a11y storefront (worktree acdcf906):**
+- /privacidade nova seção "Exercer direitos" com CTA → /conta/privacidade + Gerenciar cookies button
+- ManageCookiesButton novo (variantes ghost/footer): dispatcha lojeo:open-cookie-banner event
+- CookieBanner escuta event, lê getConsent atual, abre modo custom pré-preenchido
+- Footer Ajuda agora tem "Gerenciar cookies" link
+- PreferenceRow id agora explicit (essential/analytics/marketing) — sem acentos PT-BR fragéis
+
+**Audit existente (já passa):** skip-link main-content, --text-muted #6B6055 (5.7:1 AA), imagens com alt, buttons icone com aria-label, /conta/privacidade tem export JSON + delete confirm.
+
+**Sprint 7 /ia-uso (worktree a5f815a8):**
+- API /api/ia-usage estendido: byModel + recent[50] + totalCostBrl (USD×5 estimativa) + totalInputTokens/OutputTokens
+- Page reescrita: 4 metric cards (Chamadas mês / Tokens / Custo BRL / vs Limite) + progress bar Orçamento + tabela Por modelo (Haiku/Sonnet/Opus) + tabela Últimas chamadas 50 itens + CTA "Configurar limite" → /settings#ia
+- Trocado Tailwind cru por tokens design system Lojeo (lj-card, lj-badge-*, var(--accent), var(--space-*))
+- Tooltip BRL: "estimativa, trocar por exchange-rate real depois"
+
+**Sprint 13 + Sprint 7 critérios fechados parciais:**
+- ✅ LGPD direitos titular CTA + cookie banner reabrir
+- ✅ a11y skip-link + alt + aria-label + contraste AA
+- ✅ Painel uso IA (gerações mês + custo USD/BRL + por modelo)
+- ✅ Limite configurável + progress bar
+
+**Tests engine 44/44 + admin 18/18 + storefront 14/14 + email 6/6 + ai 7/7 verde. 11/11 packages.**
+
+**164 commits totais sessão**, **120 testes globais verdes**, **25 migrations prod**, **zero regressão**.
+
+**Próximo ciclo:** Sprint 9 Trigger.dev mocks + UX validation /ia-uso + privacy live.
