@@ -3,7 +3,7 @@
 // Sem RESEND_API_KEY: sendEmail loga e retorna {delivered: false} (mock).
 // Com key: send real via Resend API.
 
-import { sendEmail, render, OrderConfirmation, Welcome, PixGenerated, getStoreEmailConfig, type OrderItem } from '@lojeo/email';
+import { sendEmail, render, OrderConfirmation, Welcome, PixGenerated, BoletoGenerated, getStoreEmailConfig, type OrderItem } from '@lojeo/email';
 import { logger } from '@lojeo/logger';
 
 function cfg() { return getStoreEmailConfig(); }
@@ -23,6 +23,41 @@ function fmtBrlAmount(cents: number): string {
     currency: 'BRL',
     maximumFractionDigits: 2,
   });
+}
+
+interface BoletoEmailInput {
+  customerEmail: string;
+  orderCode: string;
+  amountCents: number;
+  boletoUrl: string;
+  barcode: string;
+  expiresInLabel?: string;
+}
+
+export async function sendBoletoGeneratedEmail(input: BoletoEmailInput): Promise<{ ok: boolean }> {
+  if (!input.customerEmail || !input.boletoUrl) return { ok: false };
+  try {
+    const html = await render(
+      BoletoGenerated({
+        storeName: cfg().storeName,
+        boletoUrl: input.boletoUrl,
+        barcode: input.barcode,
+        amount: fmtBrlAmount(input.amountCents),
+        expiresInLabel: input.expiresInLabel ?? '3 dias úteis',
+        supportEmail: cfg().fromEmail,
+      }),
+    );
+    const result = await sendEmail({
+      to: input.customerEmail,
+      from: cfg().fromEmail,
+      subject: `Seu boleto · ${input.orderCode}`,
+      html,
+    });
+    return { ok: result.delivered };
+  } catch (err) {
+    logger.warn({ err: err instanceof Error ? err.message : err }, 'sendBoletoGeneratedEmail failed');
+    return { ok: false };
+  }
 }
 
 export async function sendPixGeneratedEmail(input: PixEmailInput): Promise<{ ok: boolean }> {

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db, orders, orderItems, orderEvents, coupons, calcCouponDiscountCents, emitSellerNotification } from '@lojeo/db';
 import { createMercadoPagoPreference, createMercadoPagoPixPayment, createMercadoPagoBoletoPayment } from '../../../lib/payments/mercado-pago';
-import { sendOrderConfirmationEmail, sendPixGeneratedEmail } from '../../../lib/email/transactional';
+import { sendOrderConfirmationEmail, sendPixGeneratedEmail, sendBoletoGeneratedEmail } from '../../../lib/email/transactional';
 import { eq, and, sql } from 'drizzle-orm';
 import { checkRateLimit, getClientIp } from '../../../lib/rate-limit';
 
@@ -335,6 +335,14 @@ export async function POST(req: Request) {
         updateData.gatewayStatus = 'pending';
       }
       await db.update(orders).set(updateData).where(eq(orders.id, order.id));
+
+      void sendBoletoGeneratedEmail({
+        customerEmail: body.customerEmail,
+        orderCode: order.orderNumber,
+        amountCents: totalCents,
+        boletoUrl: boleto.boletoUrl,
+        barcode: boleto.barcode,
+      });
     }
 
     if (body.customerEmail) {

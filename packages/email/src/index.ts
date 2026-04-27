@@ -10,6 +10,7 @@ export {
   type OrderItem,
 } from './templates/order-confirmation';
 export { PixGenerated, type PixGeneratedProps } from './templates/pix';
+export { BoletoGenerated, type BoletoGeneratedProps } from './templates/boleto';
 export {
   ShippingNotification,
   type ShippingNotificationProps,
