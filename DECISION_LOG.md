@@ -2587,3 +2587,45 @@ User pediu **agregar features extras (insights funil, ia-analyst, etc), não jog
 
 **Seed token atual prod:** `458502e6fbb1bdb5f3d57796a7ae2650`
 **Cleanup completo:** `curl -X DELETE /api/seed/order` + `curl -X DELETE /api/seed/all` (ambos com x-seed-token + Origin)
+
+---
+
+## 2026-04-26 — UX testing prod via Playwright + 3 fixes
+
+**Commits:** 6bf0d2a (fix UX), 82b451e (cleanup PNGs)
+
+**Cobertura:**
+- Storefront: home / PLP /produtos / PLP categoria / PDP / carrinho / wishlist / conta (redirect entrar) / comunidade / colecoes / rastreio
+- Admin: dashboard / pedidos / produtos / clientes / wishlist / tickets / ugc / avaliacoes / devolucoes / settings / integracoes / aparencia / experiments / insights / garantias / cupons / recomendacoes
+
+**Resultado:** 0 crashes, 0 404s, 1 console error encontrado e fixado.
+
+**3 issues fixados:**
+
+1. **`/api/recently-viewed` POST 401 anônimo** — hook `useTrackRecentlyViewed` chamava indiscriminadamente em PDP, gerando ruído no console pra anônimos. Fix: route retorna `200 { skipped: true }` quando `!userId` (localStorage cobre o caso anônimo). Console PDP limpo.
+
+2. **Storefront SECTIONS Home faltava Pulseiras** — header `/components/layout/header.tsx` lista 4 categorias (anéis/brincos/colares/pulseiras) mas `apps/storefront/src/app/page.tsx` SECTIONS lista só 3. Inconsistência entre nav e grid de categorias da home. Fix: SECTIONS adiciona `pulseiras` (label/blurb), grid muda `repeat(3, 1fr)` → `repeat(4, 1fr)`. Footer Loja inclui Pulseiras link.
+
+3. **`/avaliacoes` tabs sem counts** — comparado com `/tickets` que mostra "Suporte / 1 aberto", `/avaliacoes` tabs Pendentes/Aprovadas/Rejeitadas só com label. Fix: API GET `/api/reviews` retorna `{ rows, counts }` (Promise.all com agregação por status separada). UI tabs com chip count match pattern (active accent-soft, inactive neutral-50). Back-compat: aceita `Review[]` legado também.
+
+**Issues observados não-críticos (low priority):**
+- `/clientes` lista mostra Carolina At Risk com R/F/M 2/5/4 mas pill chips DEMO no `/clientes/[email]` mostram "At Risk 2/4/4" — divergência data real vs spec demo (1 ponto F)
+- `/pedidos` filtro padrão 30d limita a 3 pedidos seedados (outros 15 estão fora janela 30d)
+- `/ugc` empty state em "Pendente" só com texto — Empty.jsx ref tem visual mais rico
+- `/avaliacoes` page usa tailwind-style classes (`px-4 py-2`) em vez de tokens design system (`var(--space-*)`) — funcional mas inconsistente
+
+**Decisões:**
+
+- **Cleanup PNGs Playwright** — removidos 10 screenshots commitados acidentalmente; .gitignore agora exclui `*-admin.png`, `*-storefront.png`, `.playwright-mcp/`. Commit separado dedicado.
+- **Não-issues como issues** — variants 0 nos 2 produtos prod explica restock seed = 0; LTV/AOV/recência variam vs spec Customer.jsx pq cálculos derivam de dados reais (engine puro). Aceitar.
+- **Sidebar enxuto preservado** — items secundários (/garantias /cupons /experiments /insights) acessíveis via URL direta + cards pages-pai, mantém cognitive load baixo.
+
+**Tests 11/11 packages verde.** Deploy admin + storefront paralelo. Zero regressão.
+
+**Próximo ciclo:** 
+- Audit Settings.jsx ref vs `/settings` atual (Identidade/Pagamentos/Frete/Email/Fiscal/Pixels/IA tabs vs single-page form)
+- Queues unificado (Reviews/Returns/Shipping em 1 page) match Queues.jsx
+- Empty states branded match Empty.jsx (Orders/Products/Customers/Reviews)
+- /pedidos default filter 90d em vez de 30d (cobrir histórico seedado)
+
+**121 commits totais sessão**, **108 testes globais verdes**, **24 migrations prod**, **zero regressão**.
