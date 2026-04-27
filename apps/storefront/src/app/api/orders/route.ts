@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
-import { db, orders, orderItems, orderEvents, coupons, calcCouponDiscountCents, emitSellerNotification } from '@lojeo/db';
+import { db, orders, orderItems, orderEvents, coupons, calcCouponDiscountCents, emitSellerNotification, tenants } from '@lojeo/db';
 import { createMercadoPagoPreference, createMercadoPagoPixPayment, createMercadoPagoBoletoPayment } from '../../../lib/payments/mercado-pago';
 import { createStripePaymentIntent } from '../../../lib/payments/stripe';
 import { selectGateway, isGatewayDecision, stripeCurrency } from '../../../lib/payments/gateway';
 import { sendOrderConfirmationEmail, sendPixGeneratedEmail, sendBoletoGeneratedEmail } from '../../../lib/email/transactional';
+import { sendMetaPurchase } from '../../../lib/pixels/conversions-api';
 import { eq, and, sql } from 'drizzle-orm';
 import { checkRateLimit, getClientIp } from '../../../lib/rate-limit';
 import { getActiveTemplate } from '../../../template';
@@ -435,6 +436,40 @@ export async function POST(req: Request) {
         paymentMethod: body.paymentMethod,
       },
     });
+
+    // Meta Conversions API server-side — Purchase event (bypassa iOS/ATT/ad-blocker).
+    // Lê tenant.config.pixels.{metaPixelId, metaConversionsApiToken}. Sem token: mocked.
+    void (async () => {
+      try {
+        const [tenantRow] = await db
+          .select({ config: tenants.config })
+          .from(tenants)
+          .where(eq(tenants.id, tid))
+          .limit(1);
+        const cfg = (tenantRow?.config ?? {}) as {
+          pixels?: { metaPixelId?: string; metaConversionsApiToken?: string };
+        };
+        const pixelId = cfg.pixels?.metaPixelId;
+        const accessToken = cfg.pixels?.metaConversionsApiToken;
+        if (!pixelId || !accessToken) return;
+        await sendMetaPurchase({
+          pixelId,
+          accessToken,
+          orderId: order.id,
+          orderTotalCents: totalCents,
+          currency,
+          customerEmail: body.customerEmail ?? null,
+          customerPhone: body.shippingAddress?.phone ?? null,
+          contentIds: body.items.map((it) => it.variantId ?? it.sku ?? '').filter(Boolean),
+          numItems: body.items.reduce((s, it) => s + it.qty, 0),
+          eventSourceUrl: baseUrl ? `${baseUrl}/checkout/confirmacao?order=${order.id}` : undefined,
+          clientIp: getClientIp(req),
+          clientUserAgent: req.headers.get('user-agent') ?? null,
+        });
+      } catch (err) {
+        console.warn('[meta capi]', err instanceof Error ? err.message : err);
+      }
+    })();
 
     return NextResponse.json({
       orderId: order.id,

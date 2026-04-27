@@ -5270,3 +5270,49 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - Plugar emitMultichannelNotification em low-stock-check + churn-check (severity=critical/warning).
 - UI form admin pra tenant.config.notifications.
 - Push PWA real (web-push lib + VAPID keys).
+
+---
+
+## 2026-04-27 (continuacao) — Batch 41: Meta Conversions API server-side (P2.G)
+
+**Commits:** (a registrar nesta sessao).
+
+**Helper `apps/storefront/src/lib/pixels/conversions-api.ts`:**
+- `hashSha256(input)` — usa `node:crypto` createHash, hex lowercase. Email/phone hashed pra Meta privacy.
+- `sendMetaConversion({ pixelId, accessToken, eventName, eventTime?, eventId?, userData?, customData?, testEventCode?, ... })`:
+  - POST `https://graph.facebook.com/v18.0/{pixelId}/events?access_token=...`.
+  - Normaliza email (trim+lowercase), phone (digits-only E.164 sem '+').
+  - Builda `user_data` com `em[]`, `ph[]`, `external_id[]`, IP, UA, fbc, fbp.
+  - `custom_data` mapeado camelCase→snake_case (contentIds → content_ids, numItems → num_items).
+  - Sem `pixelId` ou `accessToken`: `{ ok: false, mocked: true }`.
+- `sendMetaPurchase({ orderId, orderTotalCents, currency, customerEmail, customerPhone, contentIds, numItems, ... })` convenience wrapper:
+  - eventName: 'Purchase'.
+  - eventId: `order-${orderId}` (dedup com client-side pixel).
+  - value: cents/100 (USD/BRL/EUR depending on currency).
+
+**10 tests vitest `conversions-api.test.ts`:**
+- hashSha256: estabilidade + case-sensitivity (callers normalizam).
+- sendMetaConversion: 5 cenários (mocked sem pixelId / sem accessToken / POST com hash + body shape / test_event_code / status 400 / fetch throw).
+- sendMetaPurchase: 2 cenários (mocked sem keys / event_name + event_id + value + currency + content_ids + num_items).
+
+**Hook em `/api/orders/route.ts`:**
+- Após `emitSellerNotification('order.created')`, dispara `void (async () => sendMetaPurchase(...))()` IIFE não-bloqueante.
+- Lê `tenant.config.pixels.{metaPixelId, metaConversionsApiToken}` via SELECT tenants.
+- Captura email + phone (shippingAddress) + IP + UA + variantIds/SKUs como contentIds.
+- Sem credentials: skip silencioso (mocked é tratado pelo helper).
+- IIFE try/catch — não quebra response em caso de network error.
+
+**Trade-offs arquiteturais:**
+- Acesso direto a `tenant.config.pixels.metaConversionsApiToken` em DB — sentinel pattern (mask em GET) deve aplicar quando UI integrações for ampliada. Token nunca volta ao client.
+- Hash SHA256 via `node:crypto` (not Web Crypto subtle) — funciona em Node runtime API routes; Edge runtime exigiria SubtleCrypto. /api/orders já é Node por causa de @lojeo/db.
+- Não implementei AddToCart/ViewContent/InitiateCheckout server-side — V2 plug em /api/track endpoint quando eventos behaviorais chegam ao server.
+- Google Ads Enhanced Conversions (Customer Match) NÃO incluído — API exige OAuth Google Ads e MCC. V2: roadmap Sprint 22.3.
+
+**Validações:**
+- pnpm -r typecheck zero erro.
+- storefront 109/109 (+10). Total 381 passing. Zero regressao.
+- pnpm -r lint admin/storefront limpo.
+
+**Próximo ciclo:**
+- P2.H — Cron daily-digest lojista (orders, revenue, tickets, low stock, alerts).
+- Plugar emitMultichannelNotification em low-stock-check + churn-check.
