@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db, orders, orderItems, orderEvents, coupons, calcCouponDiscountCents, emitSellerNotification } from '@lojeo/db';
+import { createMercadoPagoPreference } from '../../../lib/payments/mercado-pago';
 import { eq, and, sql } from 'drizzle-orm';
 import { checkRateLimit, getClientIp } from '../../../lib/rate-limit';
 
@@ -254,8 +255,30 @@ export async function POST(req: Request) {
       metadata: { paymentMethod: body.paymentMethod, channel: 'storefront' },
     });
 
-    // Sprint 3 full: trigger Mercado Pago preference creation here
-    // For now: return order details, payment happens out-of-band
+    // Mercado Pago preference creation (modo mock se sem ACCESS_TOKEN)
+    const baseUrl = process.env.STOREFRONT_PUBLIC_URL ?? '';
+    const preference = await createMercadoPagoPreference({
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      totalCents,
+      payerEmail: body.customerEmail ?? null,
+      items: body.items.map((it) => ({
+        title: it.productName,
+        quantity: it.qty,
+        unit_price: it.unitPriceCents / 100,
+        currency_id: 'BRL',
+      })),
+      notificationUrl: baseUrl ? `${baseUrl}/api/webhooks/mercado-pago` : undefined,
+      successUrl: baseUrl ? `${baseUrl}/checkout/sucesso?order=${order.id}` : `/checkout/sucesso?order=${order.id}`,
+      failureUrl: baseUrl ? `${baseUrl}/checkout/falha?order=${order.id}` : `/checkout/falha?order=${order.id}`,
+    });
+
+    if (preference.source === 'mp') {
+      await db
+        .update(orders)
+        .set({ gatewayPaymentId: preference.id, paymentGateway: 'mercadopago' })
+        .where(eq(orders.id, order.id));
+    }
 
     void emitSellerNotification({
       tenantId: tid,
@@ -278,7 +301,11 @@ export async function POST(req: Request) {
       orderNumber: order.orderNumber,
       totalCents,
       paymentMethod: body.paymentMethod,
-      // pixQrCode: null — populated after MP integration
+      payment: {
+        provider: preference.source,
+        preferenceId: preference.id,
+        initPoint: preference.initPoint,
+      },
     }, { status: 201 });
   } catch (err) {
     console.error('[POST /api/orders]', err);

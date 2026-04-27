@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { logger } from '@lojeo/logger';
+import { eq, and } from 'drizzle-orm';
 import crypto from 'node:crypto';
+import { logger } from '@lojeo/logger';
+import { db, orders, orderEvents, emitSellerNotification } from '@lojeo/db';
+import { fetchMercadoPagoPayment, mpStatusToOrderStatus } from '../../../../lib/payments/mercado-pago';
 
 export const dynamic = 'force-dynamic';
+
+const tenantId = () => process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
 
 function verifySignature(req: NextRequest, _body: string): boolean {
   const secret = process.env.MERCADO_PAGO_WEBHOOK_SECRET;
@@ -27,6 +32,72 @@ export async function POST(req: NextRequest) {
     logger.warn({ provider: 'mercado-pago' }, 'webhook signature invalid');
     return NextResponse.json({ error: 'invalid_signature' }, { status: 401 });
   }
-  logger.info({ provider: 'mercado-pago', type: body.type, action: body.action, dataId: body.data?.id }, 'webhook received (stub)');
-  return NextResponse.json({ ok: true, received: true, processed: false });
+  logger.info({ provider: 'mercado-pago', type: body.type, action: body.action, dataId: body.data?.id }, 'webhook received');
+
+  const isPaymentEvent = body.type === 'payment' || body.action?.startsWith('payment.');
+  const paymentId = body.data?.id;
+
+  if (!isPaymentEvent || !paymentId) {
+    return NextResponse.json({ ok: true, received: true, processed: false, reason: 'not_payment_event' });
+  }
+
+  const payment = await fetchMercadoPagoPayment(paymentId);
+  if (!payment || !payment.external_reference) {
+    return NextResponse.json({ ok: true, received: true, processed: false, reason: 'payment_lookup_failed' });
+  }
+
+  const orderId = payment.external_reference;
+  const tid = tenantId();
+
+  const [order] = await db
+    .select()
+    .from(orders)
+    .where(and(eq(orders.tenantId, tid), eq(orders.id, orderId)))
+    .limit(1);
+
+  if (!order) {
+    logger.warn({ orderId, paymentId }, 'webhook: order not found');
+    return NextResponse.json({ ok: true, received: true, processed: false, reason: 'order_not_found' });
+  }
+
+  const newStatus = mpStatusToOrderStatus(payment.status);
+  if (order.status === newStatus) {
+    return NextResponse.json({ ok: true, received: true, processed: false, reason: 'no_status_change' });
+  }
+
+  await db
+    .update(orders)
+    .set({
+      status: newStatus,
+      gatewayPaymentId: paymentId,
+      gatewayStatus: payment.status,
+      updatedAt: new Date(),
+    })
+    .where(eq(orders.id, order.id));
+
+  await db.insert(orderEvents).values({
+    orderId: order.id,
+    tenantId: tid,
+    eventType: `payment.${payment.status}`,
+    fromStatus: order.status,
+    toStatus: newStatus,
+    actor: 'gateway',
+    metadata: { paymentId, paymentMethod: payment.payment_method_id, transactionAmount: payment.transaction_amount },
+  });
+
+  if (newStatus === 'paid') {
+    void emitSellerNotification({
+      tenantId: tid,
+      type: 'order.paid',
+      severity: 'info',
+      title: `Pagamento confirmado · #${order.orderNumber}`,
+      body: `R$ ${(order.totalCents / 100).toFixed(2).replace('.', ',')} via ${payment.payment_method_id}. Hora de separar.`,
+      link: `/pedidos/${order.id}`,
+      entityType: 'order',
+      entityId: order.id,
+      metadata: { orderNumber: order.orderNumber, paymentMethod: payment.payment_method_id },
+    });
+  }
+
+  return NextResponse.json({ ok: true, received: true, processed: true, orderId, newStatus });
 }
