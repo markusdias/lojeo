@@ -16,3 +16,4 @@ export * from './attribution';
 export * from './markdown';
 export * from './experiments-stats';
 export * from './cpf';
+export * from './currency';

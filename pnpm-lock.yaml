@@ -153,6 +153,9 @@ importers:
       '@lojeo/storage':
         specifier: workspace:*
         version: link:../../packages/storage
+      '@lojeo/template-coffee-v1':
+        specifier: workspace:*
+        version: link:../../templates/coffee-v1
       '@lojeo/template-jewelry-v1':
         specifier: workspace:*
         version: link:../../templates/jewelry-v1

@@ -22,6 +22,7 @@
     "@lojeo/engine": "workspace:*",
     "@lojeo/logger": "workspace:*",
     "@lojeo/storage": "workspace:*",
+    "@lojeo/template-coffee-v1": "workspace:*",
     "@lojeo/template-jewelry-v1": "workspace:*",
     "@lojeo/tracking": "workspace:*",
     "@lojeo/ui": "workspace:*",
