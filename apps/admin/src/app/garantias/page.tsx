@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { InfoTooltip } from '../../components/ui/info-tooltip';
+import { EmptyState, IconShieldCheck } from '../../components/ui/empty-state';
 
 interface Warranty {
   orderId: string;
@@ -98,7 +99,15 @@ export default function GarantiasPage() {
       ) : error ? (
         <div className="bg-amber-50 border border-amber-200 rounded p-3 text-sm text-amber-800">{error}</div>
       ) : warranties.length === 0 ? (
-        <p className="text-sm text-gray-500">Nenhuma garantia encontrada com este filtro.</p>
+        <EmptyState
+          icon={<IconShieldCheck />}
+          title={filter ? `Nenhuma garantia ${filter === '30' ? 'expirando em 30 dias' : filter === '60' ? 'expirando em 60 dias' : 'expirando em 90 dias'}` : 'Nenhuma garantia ativa ainda'}
+          description={filter
+            ? 'Limpe o filtro para ver todas as garantias ativas e seus prazos.'
+            : 'Garantias são criadas automaticamente assim que pedidos forem entregues. É normal nas primeiras semanas — ainda não há histórico suficiente.'
+          }
+          action={filter ? { label: 'Limpar filtro', href: '/garantias' } : { label: 'Ver pedidos', href: '/pedidos' }}
+        />
       ) : (
         <div className="lj-card overflow-hidden">
           <table className="w-full text-sm">

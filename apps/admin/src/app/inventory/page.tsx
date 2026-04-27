@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { EmptyState, IconBoxes } from '../../components/ui/empty-state';
 
 interface StockRow {
   id: string;
@@ -64,10 +65,13 @@ export default function InventoryPage() {
       {loading && <p style={{ color: 'var(--fg-secondary)', fontSize: 14 }}>Carregando…</p>}
 
       {!loading && stock.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '64px 0', color: 'var(--fg-muted)' }}>
-          <p style={{ fontSize: 16 }}>Nenhum registro de estoque.</p>
-          <p style={{ fontSize: 13, marginTop: 8 }}>Use a API POST /api/inventory para registrar entradas de estoque.</p>
-        </div>
+        <EmptyState
+          icon={<IconBoxes />}
+          title="Nenhum registro de estoque"
+          description="Cadastre produtos com SKU para começar a controlar quantidade, reservas e alertas de mínimo. Entradas também podem ser registradas via API POST /api/inventory."
+          action={{ label: '+ Novo produto', href: '/products/new' }}
+          secondaryAction={{ label: 'Ver produtos', href: '/products' }}
+        />
       )}
 
       {!loading && stock.length > 0 && (

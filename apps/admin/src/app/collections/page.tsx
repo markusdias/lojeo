@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { EmptyState, IconLayers } from '../../components/ui/empty-state';
 
 interface Collection {
   id: string;
@@ -72,7 +73,11 @@ export default function CollectionsPage() {
       {loading && <p style={{ color: 'var(--fg-secondary)', fontSize: 14 }}>Carregando…</p>}
 
       {!loading && list.length === 0 && (
-        <p style={{ color: 'var(--fg-muted)', fontSize: 14 }}>Nenhuma coleção criada ainda.</p>
+        <EmptyState
+          icon={<IconLayers />}
+          title="Nenhuma coleção criada ainda"
+          description="Coleções agrupam produtos por tema, ocasião ou curadoria — facilitam navegação no storefront e campanhas direcionadas. Use o formulário acima para criar a primeira."
+        />
       )}
 
       {!loading && list.length > 0 && (

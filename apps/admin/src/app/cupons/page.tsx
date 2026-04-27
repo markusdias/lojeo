@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { EmptyState, IconTag } from '../../components/ui/empty-state';
 
 interface Coupon {
   id: string;
@@ -293,7 +294,11 @@ export default function CuponsPage() {
       ) : error ? (
         <div className="bg-amber-50 border border-amber-200 rounded p-3 text-sm text-amber-800">{error}</div>
       ) : list.length === 0 ? (
-        <p className="text-sm text-gray-500">Nenhum cupom criado ainda.</p>
+        <EmptyState
+          icon={<IconTag />}
+          title="Nenhum cupom criado ainda"
+          description="Cupons funcionam tanto para campanhas pontuais quanto para retenção pós-compra. É normal nas primeiras semanas — comece com um simples (10% OFF, primeiro pedido)."
+        />
       ) : (
         <div className="lj-card overflow-hidden">
           <table className="w-full text-sm">
