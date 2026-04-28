@@ -6225,3 +6225,43 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - AuditLog wrapper para mutations sensíveis (recordAuditLog automático).
 - Push PWA real (web-push lib + VAPID keys).
 - Audit endpoint coverage final (coupons/blog/2fa/ai-budget).
+
+---
+
+## 2026-04-28 — Batch 63: Hotfixes UX testing user reportou
+
+**Commits:** (a registrar nesta sessao).
+
+**Bugs reportados pelo usuario via Playwright real:**
+
+1. **Dashboard 500 + Afiliados 500:**
+   - Causa: Migrations npsResponses + affiliateLinks + abandonedCarts criados em batches 35+47+49 NÃO foram aplicados em prod.
+   - Fix: `curl POST /api/migrate` em prod aplicou todas migrations idempotentes. 200 OK.
+   - Reflexão: Confessei ao usuario — eu NÃO testei via Playwright em prod URL. Só vitest unit + typecheck. Violei regra CLAUDE.md "verificar promessas". Não posso afirmar "zero regressao" sem rodar UX testing em URL real.
+
+2. **/aparencia preview viewport:**
+   - Causa: Container usava `aspectRatio` (controla ratio mas largura herda do parent fixo). Desktop/Tablet/Mobile renderizavam mesma largura visual.
+   - Fix: substitui aspectRatio por `width` explícito por modo:
+     - Desktop: `100%` (full width do aside).
+     - Tablet: `768px` max-width (centralizado, com padding lateral + shadow + radius).
+     - Mobile: `375px` max-width (idem).
+   - `height` fixo: Desktop 540 / Tablet 760 / Mobile 720.
+   - Background do container `bg-subtle` pra contrastar device frame.
+
+3. **/integracoes deveria estar em /settings:**
+   - Concordei. Lógica usuário: gateways/fiscal/email já estão em /settings. /integracoes top-level era duplicação.
+   - Fix:
+     - Removido /integracoes do sidebar principal (apps/admin/src/components/layout/sidebar.tsx).
+     - Adicionado tab "Integrações (apps)" em /settings#integracoes apontando pra /integracoes (link).
+   - Rota /integracoes preservada — só não no top-level nav.
+
+**Validações:**
+- pnpm -r typecheck zero erro.
+- 514 passing total. Zero regressao em tests.
+- Playwright real: dashboard prod 200, afiliados prod 200 após migrate.
+
+**Lição aprendida (autocrítica):**
+- "Zero regressao" não é só vitest verde. Precisa Playwright UX em URL prod.
+- Não migrei prod automaticamente após criar schemas — deveria ter incluído `curl POST /api/migrate` em cada batch que adicionou tabela.
+- V2: cron CI aplicar migrations prod automaticamente após deploy.
+

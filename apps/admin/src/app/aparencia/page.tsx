@@ -495,8 +495,29 @@ export default function AparenciaPage() {
                   </Link>
                 </div>
               </div>
-              <div style={{ aspectRatio: previewMode === 'mobile' ? '9/16' : previewMode === 'tablet' ? '4/3' : '16/10', position: 'relative', overflow: 'auto' }}>
-                <StorefrontPreview config={{ typo, accent, bgTone, photoStyle, imgRadius, hero, trustSignals }} />
+              <div
+                style={{
+                  position: 'relative',
+                  overflow: 'auto',
+                  background: 'var(--bg-subtle)',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  padding: previewMode === 'desktop' ? 0 : 'var(--space-4)',
+                  height: previewMode === 'mobile' ? 720 : previewMode === 'tablet' ? 760 : 540,
+                }}
+              >
+                <div
+                  style={{
+                    width: previewMode === 'mobile' ? 375 : previewMode === 'tablet' ? 768 : '100%',
+                    maxWidth: '100%',
+                    background: 'var(--surface)',
+                    boxShadow: previewMode === 'desktop' ? 'none' : '0 4px 24px rgba(0,0,0,0.08)',
+                    borderRadius: previewMode === 'desktop' ? 0 : 8,
+                    overflow: 'auto',
+                  }}
+                >
+                  <StorefrontPreview config={{ typo, accent, bgTone, photoStyle, imgRadius, hero, trustSignals }} />
+                </div>
               </div>
               <div className="mono" style={{ padding: '10px 14px', background: 'var(--bg-subtle)', borderTop: '1px solid var(--border)', fontSize: 11, color: 'var(--fg-muted)' }}>
                 Mudanças aplicam só depois de <strong>publicar</strong>. Quem visita a loja agora vê a versão anterior.

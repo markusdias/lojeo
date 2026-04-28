@@ -44,6 +44,7 @@ const TABS: TabItem[] = [
   { id: 'identidade', label: 'Identidade da loja', iconPath: ICONS.store, group: 'Loja' },
   { id: 'aparencia', label: 'Aparência', iconPath: ICONS.palette, group: 'Loja' },
   { id: 'pagamentos', label: 'Gateways', iconPath: ICONS.card, group: 'Vendas' },
+  { id: 'integracoes' as SettingsTab, label: 'Integrações (apps)', iconPath: ICONS.globe, group: 'Vendas', href: '/integracoes' },
   { id: 'frete', label: 'Frete', iconPath: ICONS.truck, group: 'Vendas' },
   { id: 'fiscal', label: 'Fiscal e ERP', iconPath: ICONS.receipt, group: 'Vendas' },
   { id: 'comercial', label: 'Políticas comerciais', iconPath: ICONS.tag, group: 'Vendas' },
