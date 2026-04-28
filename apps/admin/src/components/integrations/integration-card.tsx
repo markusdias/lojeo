@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface ProviderField {
   key: string;
@@ -33,11 +33,21 @@ interface Resp {
   integrations: Integration[];
 }
 
-const STATUS_STYLE: Record<Integration['status'], { bg: string; text: string; label: string; dot: string }> = {
-  connected: { bg: 'var(--success-soft, #DCFCE7)', text: 'var(--success, #166534)', label: 'Conectado', dot: 'var(--success, #166534)' },
-  partial: { bg: 'var(--warning-soft, #FEF3C7)', text: 'var(--warning, #92400E)', label: 'Parcial', dot: 'var(--warning, #92400E)' },
-  disconnected: { bg: 'var(--neutral-50, #F5F5F5)', text: 'var(--fg-muted, #737373)', label: 'Desconectada', dot: 'var(--fg-muted, #737373)' },
-  optional: { bg: 'var(--neutral-50, #F5F5F5)', text: 'var(--fg-secondary, #525252)', label: 'Opcional', dot: 'var(--fg-muted, #737373)' },
+type TestStatus = 'idle' | 'testing' | 'ok' | 'error';
+
+interface BadgeStyle { bg: string; text: string; label: string; dot: string }
+
+const BASE_BADGE: Record<Integration['status'], BadgeStyle> = {
+  connected:    { bg: '#FEF9C3', text: '#854D0E', label: 'Salvo, não verificado', dot: '#CA8A04' },
+  partial:      { bg: '#FEF3C7', text: '#92400E', label: 'Parcial',              dot: '#92400E' },
+  disconnected: { bg: '#F5F5F5', text: '#737373', label: 'Não configurado',      dot: '#737373' },
+  optional:     { bg: '#F5F5F5', text: '#525252', label: 'Opcional',             dot: '#737373' },
+};
+
+const TEST_BADGE: Record<Exclude<TestStatus, 'idle'>, BadgeStyle> = {
+  testing: { bg: '#EFF6FF', text: '#1E40AF', label: 'Verificando…',      dot: '#3B82F6' },
+  ok:      { bg: '#DCFCE7', text: '#166534', label: 'Conectado ✓',       dot: '#166534' },
+  error:   { bg: '#FEE2E2', text: '#B91C1C', label: 'Falha na conexão',  dot: '#EF4444' },
 };
 
 // Provider field definitions — espelha lib/integrations-config.ts
@@ -94,9 +104,7 @@ const PROVIDER_FIELDS: Record<string, ProviderDef> = {
   ]},
 };
 
-interface Props {
-  providerId: string;
-}
+interface Props { providerId: string }
 
 let _statusCachePromise: Promise<Resp> | null = null;
 const _subscribers = new Set<() => void>();
@@ -108,25 +116,24 @@ async function fetchStatus(force = false): Promise<Resp> {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return (await r.json()) as Resp;
       })
-      .catch((err) => {
-        _statusCachePromise = null;
-        throw err;
-      });
+      .catch((err) => { _statusCachePromise = null; throw err; });
   }
   return _statusCachePromise;
 }
 
-function notifyAll() {
-  _subscribers.forEach((fn) => fn());
-}
+function notifyAll() { _subscribers.forEach((fn) => fn()); }
 
 export function IntegrationCard({ providerId }: Props) {
   const [integration, setIntegration] = useState<Integration | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(false);
-  const [formValues, setFormValues] = useState<Record<string, string>>({});
-  const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  const [loading, setLoading]         = useState(true);
+  const [editing, setEditing]         = useState(false);
+  const [formValues, setFormValues]   = useState<Record<string, string>>({});
+  const [saving, setSaving]           = useState(false);
+  const [msg, setMsg]                 = useState<{ text: string; ok: boolean } | null>(null);
+  const [testStatus, setTestStatus]   = useState<TestStatus>('idle');
+  const [testMsg, setTestMsg]         = useState('');
+  const [testReason, setTestReason]   = useState('');
+  const autoTested                    = useRef(false);
 
   async function load(force = false) {
     setLoading(true);
@@ -143,12 +150,40 @@ export function IntegrationCard({ providerId }: Props) {
 
   useEffect(() => {
     load();
-    const sub = () => load(true);
+    const sub = () => { autoTested.current = false; load(true); };
     _subscribers.add(sub);
-    return () => {
-      _subscribers.delete(sub);
-    };
+    return () => { _subscribers.delete(sub); };
   }, [providerId]);
+
+  // Auto-testa ao montar quando já há credenciais salvas
+  useEffect(() => {
+    if (!integration || autoTested.current) return;
+    if (integration.status === 'connected' && integration.source !== 'env') {
+      autoTested.current = true;
+      void handleTest();
+    }
+  }, [integration]);
+
+  async function handleTest() {
+    setTestStatus('testing');
+    setTestMsg('');
+    setTestReason('');
+    try {
+      const r = await fetch('/api/integrations/test', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ provider: providerId }),
+      });
+      const d = (await r.json()) as { ok: boolean; message: string; reason?: string };
+      setTestStatus(d.ok ? 'ok' : 'error');
+      setTestMsg(d.message);
+      setTestReason(d.reason ?? '');
+    } catch (err) {
+      setTestStatus('error');
+      setTestMsg('Erro ao chamar endpoint de teste');
+      setTestReason(err instanceof Error ? err.message : String(err));
+    }
+  }
 
   const provider = PROVIDER_FIELDS[providerId];
 
@@ -176,8 +211,15 @@ export function IntegrationCard({ providerId }: Props) {
     );
   }
 
-  const sc = STATUS_STYLE[integration.status];
   const isViaEnv = integration.source === 'env';
+  const isConnected = integration.status === 'connected';
+
+  // Badge: prioridade ao resultado do teste; env vars não são testadas (confiamos no processo)
+  const badge: BadgeStyle = isViaEnv
+    ? { bg: '#DCFCE7', text: '#166534', label: 'Conectado (env)', dot: '#166534' }
+    : testStatus !== 'idle'
+      ? TEST_BADGE[testStatus]
+      : BASE_BADGE[integration.status];
 
   function startEdit() {
     setFormValues({ ...integration!.storedCredentials });
@@ -198,9 +240,13 @@ export function IntegrationCard({ providerId }: Props) {
         const d = (await r.json().catch(() => ({}))) as { error?: string; field?: string };
         setMsg({ text: d.field ? `Campo obrigatório: ${d.field}` : (d.error ?? `HTTP ${r.status}`), ok: false });
       } else {
-        setMsg({ text: 'Credenciais salvas — conectado.', ok: true });
+        setMsg({ text: 'Credenciais salvas.', ok: true });
         setEditing(false);
+        setTestStatus('idle');
+        autoTested.current = false;
         notifyAll();
+        // Testa imediatamente após salvar
+        setTimeout(() => void handleTest(), 300);
       }
     } catch (err) {
       setMsg({ text: err instanceof Error ? err.message : 'erro', ok: false });
@@ -210,12 +256,14 @@ export function IntegrationCard({ providerId }: Props) {
   }
 
   async function disconnect() {
-    if (!provider) return;
-    if (!confirm(`Desconectar ${provider.name} e remover credenciais?`)) return;
+    if (!confirm(`Desconectar ${provider?.name ?? providerId} e remover credenciais?`)) return;
     setSaving(true);
     try {
       const r = await fetch(`/api/integrations/${providerId}`, { method: 'DELETE' });
       if (r.ok) {
+        setTestStatus('idle');
+        setTestMsg('');
+        setTestReason('');
         setMsg({ text: 'Desconectado.', ok: true });
         notifyAll();
       } else {
@@ -230,76 +278,105 @@ export function IntegrationCard({ providerId }: Props) {
     <div className="lj-card" style={{ padding: 'var(--space-4)' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 240 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 4 }}>
+
+          {/* Nome + badge */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 4, flexWrap: 'wrap' }}>
             <p style={{ fontWeight: 'var(--w-medium)', margin: 0 }}>{integration.name}</p>
-            <span
-              style={{
-                padding: '2px 10px',
-                fontSize: 11,
-                fontWeight: 500,
-                borderRadius: 999,
-                background: sc.bg,
-                color: sc.text,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-              }}
-            >
-              <span style={{ width: 5, height: 5, borderRadius: '50%', background: sc.dot, display: 'inline-block' }} />
-              {sc.label}
+            <span style={{
+              padding: '2px 10px', fontSize: 11, fontWeight: 500, borderRadius: 999,
+              background: badge.bg, color: badge.text,
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+            }}>
+              <span style={{ width: 5, height: 5, borderRadius: '50%', background: badge.dot, display: 'inline-block' }} />
+              {badge.label}
             </span>
             {isViaEnv && (
               <span style={{ fontSize: 11, color: 'var(--fg-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>via env</span>
             )}
           </div>
-          <p style={{ fontSize: 13, color: 'var(--fg-secondary)', margin: 0 }}>{integration.message}</p>
-          {integration.helper && !editing && (
-            <p style={{ fontSize: 12, marginTop: 4, color: 'var(--fg-muted)', margin: '4px 0 0', whiteSpace: 'pre-line' }}>{integration.helper}</p>
+
+          {/* Resultado do teste */}
+          {testStatus === 'ok' && testMsg && (
+            <p style={{ fontSize: 12, color: '#166534', margin: '2px 0 4px', display: 'flex', alignItems: 'center', gap: 4 }}>
+              ✓ {testMsg}
+            </p>
           )}
-          {integration.docsUrl && !editing && integration.status !== 'connected' && (
-            <a
-              href={integration.docsUrl}
-              target="_blank"
-              rel="noreferrer"
-              style={{ fontSize: 12, color: 'var(--accent, #6B7280)', textDecoration: 'underline', marginTop: 6, display: 'inline-block' }}
-            >
+          {testStatus === 'error' && (
+            <div style={{ margin: '2px 0 4px' }}>
+              <p style={{ fontSize: 12, color: '#B91C1C', margin: 0 }}>✗ {testMsg}</p>
+              {testReason && (
+                <p style={{ fontSize: 11, color: '#B91C1C', margin: '2px 0 0', opacity: 0.8 }}>
+                  Motivo: {testReason}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Mensagem de save */}
+          {msg && (
+            <p style={{ fontSize: 12, marginTop: 4, color: msg.ok ? 'var(--success)' : 'var(--error)', margin: '4px 0 0' }}>
+              {msg.text}
+            </p>
+          )}
+
+          {/* Helper + docs (só quando não editando) */}
+          {integration.helper && !editing && (
+            <p style={{ fontSize: 12, marginTop: 6, color: 'var(--fg-muted)', margin: '6px 0 0', whiteSpace: 'pre-line' }}>
+              {integration.helper}
+            </p>
+          )}
+          {integration.docsUrl && !editing && !isConnected && (
+            <a href={integration.docsUrl} target="_blank" rel="noreferrer"
+              style={{ fontSize: 12, color: 'var(--accent, #6B7280)', textDecoration: 'underline', marginTop: 6, display: 'inline-block' }}>
               Ver documentação ↗
             </a>
           )}
-          {msg && (
-            <p style={{ fontSize: 12, marginTop: 8, color: msg.ok ? 'var(--success)' : 'var(--error)' }}>{msg.text}</p>
-          )}
         </div>
+
+        {/* Botões de ação */}
         {!isViaEnv && (
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+            {!editing && isConnected && (
+              <button
+                type="button"
+                onClick={() => void handleTest()}
+                disabled={testStatus === 'testing'}
+                style={{
+                  padding: '6px 14px', fontSize: 13, fontWeight: 500,
+                  background: 'transparent',
+                  color: testStatus === 'error' ? '#B91C1C' : 'var(--fg, #1A1A1A)',
+                  border: `1px solid ${testStatus === 'error' ? '#FECACA' : 'var(--border)'}`,
+                  borderRadius: 'var(--radius-md, 8px)',
+                  cursor: testStatus === 'testing' ? 'wait' : 'pointer',
+                }}
+              >
+                {testStatus === 'testing' ? 'Testando…' : 'Testar'}
+              </button>
+            )}
             {!editing && (
               <button
                 type="button"
                 onClick={startEdit}
                 style={{
-                  padding: '6px 14px',
-                  fontSize: 13,
-                  fontWeight: 500,
-                  background: integration.status === 'connected' ? 'transparent' : 'var(--fg, #1A1A1A)',
-                  color: integration.status === 'connected' ? 'var(--fg, #1A1A1A)' : '#fff',
+                  padding: '6px 14px', fontSize: 13, fontWeight: 500,
+                  background: isConnected ? 'transparent' : 'var(--fg, #1A1A1A)',
+                  color: isConnected ? 'var(--fg, #1A1A1A)' : '#fff',
                   border: '1px solid var(--border)',
                   borderRadius: 'var(--radius-md, 8px)',
                   cursor: 'pointer',
                 }}
               >
-                {integration.status === 'connected' ? 'Editar' : 'Conectar'}
+                {isConnected ? 'Editar' : 'Conectar'}
               </button>
             )}
-            {integration.status === 'connected' && integration.source === 'config' && !editing && (
+            {isConnected && integration.source === 'config' && !editing && (
               <button
                 type="button"
                 onClick={disconnect}
                 disabled={saving}
                 style={{
-                  padding: '6px 14px',
-                  fontSize: 13,
-                  background: 'transparent',
-                  color: 'var(--error, #B91C1C)',
+                  padding: '6px 14px', fontSize: 13,
+                  background: 'transparent', color: 'var(--error, #B91C1C)',
                   border: '1px solid var(--border)',
                   borderRadius: 'var(--radius-md, 8px)',
                   cursor: saving ? 'wait' : 'pointer',
@@ -312,6 +389,7 @@ export function IntegrationCard({ providerId }: Props) {
         )}
       </div>
 
+      {/* Formulário de edição */}
       {editing && (
         <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
           {provider.fields.map((f) => (
@@ -325,9 +403,7 @@ export function IntegrationCard({ providerId }: Props) {
                 value={formValues[f.key] ?? ''}
                 onChange={(e) => setFormValues({ ...formValues, [f.key]: e.target.value })}
                 style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  fontSize: 13,
+                  width: '100%', padding: '8px 12px', fontSize: 13,
                   fontFamily: f.type === 'password' ? 'monospace' : 'inherit',
                   border: '1px solid var(--border)',
                   borderRadius: 'var(--radius-md, 6px)',
@@ -342,13 +418,9 @@ export function IntegrationCard({ providerId }: Props) {
               onClick={() => { setEditing(false); setMsg(null); }}
               disabled={saving}
               style={{
-                padding: '6px 14px',
-                fontSize: 13,
-                background: 'transparent',
-                color: 'var(--fg-secondary)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-md, 8px)',
-                cursor: 'pointer',
+                padding: '6px 14px', fontSize: 13, background: 'transparent',
+                color: 'var(--fg-secondary)', border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md, 8px)', cursor: 'pointer',
               }}
             >
               Cancelar
@@ -358,17 +430,12 @@ export function IntegrationCard({ providerId }: Props) {
               onClick={save}
               disabled={saving}
               style={{
-                padding: '6px 14px',
-                fontSize: 13,
-                fontWeight: 500,
-                background: 'var(--fg, #1A1A1A)',
-                color: '#fff',
-                border: 'none',
-                borderRadius: 'var(--radius-md, 8px)',
-                cursor: saving ? 'wait' : 'pointer',
+                padding: '6px 14px', fontSize: 13, fontWeight: 500,
+                background: 'var(--fg, #1A1A1A)', color: '#fff', border: 'none',
+                borderRadius: 'var(--radius-md, 8px)', cursor: saving ? 'wait' : 'pointer',
               }}
             >
-              {saving ? 'Salvando…' : 'Salvar'}
+              {saving ? 'Salvando…' : 'Salvar e Testar'}
             </button>
           </div>
         </div>
@@ -377,7 +444,6 @@ export function IntegrationCard({ providerId }: Props) {
   );
 }
 
-/** Wrapper grupos por categoria pra distribuir nos tabs settings. */
 export function GatewaysCardsLive() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
