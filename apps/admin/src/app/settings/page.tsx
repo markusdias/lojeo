@@ -3,7 +3,14 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { InfoTooltip } from '@/components/ui/info-tooltip';
 import { SettingsSidebar, useTabHash } from './sidebar-tabs';
-import { GatewaysCards, FreteCards, FiscalCards, EmailCards } from './integration-cards';
+import {
+  GatewaysCardsLive,
+  FreteCardsLive,
+  FiscalCardsLive,
+  EmailCardsLive,
+  WhatsappCardsLive,
+  IaCardsLive,
+} from '../../components/integrations/integration-card';
 
 interface BrandGuide {
   brandName?: string;
@@ -167,7 +174,7 @@ export default function SettingsPage() {
   const showSection = (tab: typeof activeTab) => activeTab === tab ? {} : { display: 'none' };
 
   // Cards-only tabs (Vendas/Comunicação) renderizam fora do form
-  const isCardsTab = activeTab === 'pagamentos' || activeTab === 'frete' || activeTab === 'fiscal' || activeTab === 'email';
+  const isCardsTab = activeTab === 'pagamentos' || activeTab === 'frete' || activeTab === 'fiscal' || activeTab === 'email' || activeTab === ('whatsapp' as typeof activeTab);
 
   return (
     <main style={{ padding: 'var(--space-6) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }}>
@@ -207,10 +214,11 @@ export default function SettingsPage() {
 
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* Tabs cards-only (Vendas/Comunicação): renderizam fora do form */}
-          {activeTab === 'pagamentos' && <GatewaysCards />}
-          {activeTab === 'frete' && <FreteCards />}
-          {activeTab === 'fiscal' && <FiscalCards />}
-          {activeTab === 'email' && <EmailCards />}
+          {activeTab === 'pagamentos' && <GatewaysCardsLive />}
+          {activeTab === 'frete' && <FreteCardsLive />}
+          {activeTab === 'fiscal' && <FiscalCardsLive />}
+          {activeTab === 'email' && <EmailCardsLive />}
+          {activeTab === ('whatsapp' as typeof activeTab) && <WhatsappCardsLive />}
 
           {!isCardsTab && (
       <form onSubmit={handleSave} className="space-y-8">
@@ -526,6 +534,14 @@ export default function SettingsPage() {
         {/* Brand Guide IA */}
         <section id="brand-guide" className="bg-white rounded-lg shadow p-6 space-y-4" style={showSection('ia')}>
           <div>
+            <h2 className="font-semibold text-lg">Provedores IA</h2>
+            <p className="text-xs text-neutral-500 mt-1 mb-4">
+              Conecte sua chave Anthropic para habilitar geração de descrições, busca semântica e IA Analyst.
+            </p>
+            <IaCardsLive />
+          </div>
+
+          <div style={{ marginTop: 'var(--space-6)' }}>
             <h2 className="font-semibold text-lg">Brand Guide para IA</h2>
             <p className="text-xs text-neutral-500 mt-1">
               Controla o tom e vocabulário quando IA gera descrições e SEO de produtos.
