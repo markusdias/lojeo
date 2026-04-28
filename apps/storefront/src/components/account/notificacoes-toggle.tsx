@@ -32,14 +32,14 @@ interface CardProps {
 
 function Card({ title, description, action, tone = 'info' }: CardProps) {
   const bg =
-    tone === 'ok' ? 'var(--accent-soft, #DCFCE7)' :
-    tone === 'warn' ? '#FEF3C7' :
-    tone === 'error' ? '#FEE2E2' :
+    tone === 'ok' ? 'var(--success-bg, #EEF2E8)' :
+    tone === 'warn' ? 'var(--warning-bg, #FEF3C7)' :
+    tone === 'error' ? 'var(--error-bg, #FEE2E2)' :
     'var(--surface, #fff)';
   const border =
-    tone === 'ok' ? 'var(--accent, #16A34A)' :
-    tone === 'warn' ? '#FCD34D' :
-    tone === 'error' ? '#FCA5A5' :
+    tone === 'ok' ? 'var(--success, #5C7A4A)' :
+    tone === 'warn' ? 'var(--warning, #B8853A)' :
+    tone === 'error' ? 'var(--error, #B23B3B)' :
     'var(--divider, #E5E7EB)';
   return (
     <div
@@ -217,7 +217,7 @@ export function NotificacoesToggle() {
             onClick={subscribe}
             disabled={!vapidKey || (status as Status) === 'subscribing'}
             style={{
-              background: 'var(--accent, #16A34A)',
+              background: 'var(--accent, #B8956A)',
               color: 'var(--text-on-dark, #fff)',
               border: 'none',
               borderRadius: 4,

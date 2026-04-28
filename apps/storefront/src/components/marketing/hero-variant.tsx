@@ -95,13 +95,13 @@ export function HeroVariant({ variant, children }: { variant: Variant; children:
 
   return (
     <div style={{
-      position: 'relative', borderRadius: 8, overflow: 'hidden',
+      position: 'relative', borderRadius: 'var(--r-image, 8px)', overflow: 'hidden',
       aspectRatio: '16/9',
-      background: 'linear-gradient(135deg, #E8DDC9 0%, #D4C5A8 100%)',
+      background: 'linear-gradient(135deg, var(--accent-soft, #F2EAD9) 0%, var(--accent-soft, #F2EAD9) 40%, var(--accent, #B8956A) 160%)',
     }}>
       <div aria-hidden style={{
         position: 'absolute', inset: 0,
-        background: 'linear-gradient(90deg, rgba(232,221,201,0.92) 0%, rgba(232,221,201,0.4) 50%, rgba(232,221,201,0) 70%)',
+        background: 'linear-gradient(90deg, var(--surface, #fff) 0%, color-mix(in srgb, var(--surface, #fff) 70%, transparent) 50%, transparent 75%)',
       }} />
       <div style={{
         position: 'absolute', left: 'clamp(24px, 5vw, 80px)',

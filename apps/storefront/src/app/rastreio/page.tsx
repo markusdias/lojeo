@@ -69,7 +69,7 @@ export default async function RastreioFormPage({ searchParams }: PageProps) {
             type="submit"
             style={{
               padding: '14px 24px', fontSize: 14, fontWeight: 500,
-              background: 'var(--text-primary)', color: 'var(--text-on-dark)',
+              background: 'var(--accent)', color: 'var(--text-on-accent, #fff)',
               border: 'none', borderRadius: 8, cursor: 'pointer',
             }}
           >

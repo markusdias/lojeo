@@ -304,15 +304,16 @@ function CollectionCard({ c, highlight }: { c: CollectionItem; highlight?: boole
       }}
     >
       <div
+        data-product-image
         style={{
           aspectRatio: '1 / 1',
-          background: '#F4F1E9',
           position: 'relative',
           overflow: 'hidden',
           display: 'grid',
           placeItems: 'center',
         }}
       >
+        <div data-product-placeholder style={{ position: 'absolute', inset: 0 }} />
         <span
           aria-hidden="true"
           style={{

@@ -133,11 +133,14 @@ export async function ContinueWhereLeftOffSection({ currency }: Props) {
           color: 'inherit',
         }}
       >
-        <div style={{
+        <div data-product-image style={{
           aspectRatio: '3/4',
-          background: 'linear-gradient(135deg, #D4C5A8 0%, #B8956A22 100%)',
           borderRadius: 'var(--r-image)',
-        }} />
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
+          <div data-product-placeholder style={{ position: 'absolute', inset: 0 }} />
+        </div>
         <div>
           <p className="eyebrow" style={{ marginBottom: 8 }}>Continue de onde parou</p>
           <h3 style={{ margin: '0 0 6px', fontSize: 22 }}>{product.name}</h3>

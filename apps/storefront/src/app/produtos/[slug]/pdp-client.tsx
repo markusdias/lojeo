@@ -328,7 +328,7 @@ function RestockButton({ productId, variantId }: { productId: string; variantId:
 
   if (sent) {
     return (
-      <div style={{ flex: 1, padding: '14px 20px', fontSize: 14, textAlign: 'center', color: 'var(--accent)', border: '1px solid var(--divider)', borderRadius: 8 }}>
+      <div style={{ flex: 1, padding: '14px 20px', fontSize: 14, textAlign: 'center', color: 'var(--success, #5C7A4A)', background: 'var(--success-bg, #EEF2E8)', border: '1px solid var(--success, #5C7A4A)', borderRadius: 8 }}>
         ✓ Avisaremos quando voltar ao estoque
       </div>
     );
@@ -521,8 +521,9 @@ export function PDPClient({ product, variants, images, urgency, viewersNow, tota
 
           {/* Main image — aspectRatio 1/1 (match ref jewelry-v1) */}
           <div
+            data-product-image
             style={{
-              aspectRatio: '1/1', borderRadius: 8, overflow: 'hidden',
+              aspectRatio: '1/1', borderRadius: 'var(--r-image, 8px)', overflow: 'hidden',
               background: 'var(--surface-sunken)', position: 'relative',
               cursor: images[imgIdx] ? 'zoom-in' : 'default',
             }}
@@ -535,9 +536,8 @@ export function PDPClient({ product, variants, images, urgency, viewersNow, tota
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             ) : (
-              <div style={{
+              <div data-product-placeholder style={{
                 width: '100%', height: '100%',
-                background: 'linear-gradient(135deg, #EDE8DE 0%, #D8D0C0 100%)',
                 display: 'grid', placeItems: 'center',
               }}>
                 <span style={{ fontSize: 48, color: 'var(--text-muted)' }}>◈</span>
@@ -546,7 +546,7 @@ export function PDPClient({ product, variants, images, urgency, viewersNow, tota
             {discount && (
               <span style={{
                 position: 'absolute', top: 16, left: 16,
-                background: 'var(--accent)', color: '#fff',
+                background: 'var(--promo-bg, var(--warning, #B8853A))', color: '#fff',
                 fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 2,
               }}>
                 -{discount}%
@@ -632,7 +632,7 @@ export function PDPClient({ product, variants, images, urgency, viewersNow, tota
                 onClick={handleAddToCart}
                 style={{
                   flex: 1, padding: '14px 28px', fontSize: 14, fontWeight: 500,
-                  background: 'var(--text-primary)', color: 'var(--text-on-dark)',
+                  background: 'var(--accent)', color: 'var(--text-on-accent, #fff)',
                   border: 'none', borderRadius: 8, cursor: 'pointer',
                   transition: 'background 200ms',
                 }}

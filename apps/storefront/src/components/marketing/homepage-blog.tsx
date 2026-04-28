@@ -41,14 +41,18 @@ export function HomepageBlog() {
             style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}
           >
             <div
+              data-product-image
               aria-hidden
               style={{
                 aspectRatio: '4/3',
-                background: 'linear-gradient(140deg, #EFE6D2 0%, #D8C9AC 100%)',
                 borderRadius: 'var(--r-image, 8px)',
                 marginBottom: 18,
+                position: 'relative',
+                overflow: 'hidden',
               }}
-            />
+            >
+              <div data-product-placeholder style={{ position: 'absolute', inset: 0 }} />
+            </div>
             <p className="eyebrow" style={{ marginBottom: 8 }}>{p.eyebrow}</p>
             <h3 style={{ fontSize: 22, margin: '0 0 8px', lineHeight: 1.2 }}>{p.title}</h3>
             <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>{p.excerpt}</p>

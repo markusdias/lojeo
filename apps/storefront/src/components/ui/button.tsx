@@ -8,7 +8,7 @@ import { forwardRef, type ButtonHTMLAttributes, type CSSProperties, type ReactNo
  * Usa tokens jewelry-v1 (--text-primary, --text-on-dark, --accent, --font-body).
  * NAO confundir com packages/ui/Button (generico Tailwind, sem tokens jewelry-v1).
  */
-export type ButtonVariant = 'primary' | 'accent' | 'ghost' | 'link';
+export type ButtonVariant = 'primary' | 'accent' | 'dark' | 'ghost' | 'link';
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
@@ -32,8 +32,9 @@ const baseStyle: CSSProperties = {
 };
 
 const variantStyles: Record<ButtonVariant, CSSProperties> = {
-  primary: { background: 'var(--text-primary)', color: 'var(--text-on-dark)' },
-  accent: { background: 'var(--accent)', color: '#fff' },
+  primary: { background: 'var(--accent)', color: 'var(--text-on-accent, #fff)' },
+  accent: { background: 'var(--accent)', color: 'var(--text-on-accent, #fff)' },
+  dark: { background: 'var(--text-primary)', color: 'var(--text-on-dark)' },
   ghost: {
     background: 'transparent',
     color: 'var(--text-primary)',

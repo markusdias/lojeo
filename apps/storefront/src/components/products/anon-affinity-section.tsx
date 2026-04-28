@@ -62,18 +62,14 @@ export function AnonAffinitySection({ currency }: Props) {
             href={`/produtos/${p.slug}`}
             style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}
           >
-            <div style={{
+            <div data-product-image style={{
               aspectRatio: '3/4',
-              background: 'var(--surface-sunken)',
               borderRadius: 'var(--r-image)',
               marginBottom: 12,
-              display: 'grid', placeItems: 'center',
+              position: 'relative',
+              overflow: 'hidden',
             }}>
-              <div style={{
-                width: '60%', height: '60%',
-                background: 'linear-gradient(135deg, #D4C5A8 0%, #B8956A22 100%)',
-                borderRadius: '50%',
-              }} />
+              <div data-product-placeholder style={{ position: 'absolute', inset: 0 }} />
             </div>
             <h3 style={{ fontSize: 15, fontWeight: 500, lineHeight: 1.3, margin: '0 0 4px' }}>{p.name}</h3>
             <p style={{ fontSize: 14, color: 'var(--text-primary)', margin: 0 }}>{formatPrice(p.priceCents)}</p>

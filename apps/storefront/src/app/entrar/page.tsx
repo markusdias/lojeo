@@ -731,15 +731,17 @@ function EntrarContent() {
         className="entrar-aside"
       >
         <div
+          data-product-image
           style={{
             width: 'min(420px, 80%)',
             aspectRatio: '3/4',
-            background: '#E8DDC9',
             borderRadius: 4,
             overflow: 'hidden',
             position: 'relative',
           }}
-        />
+        >
+          <div data-product-placeholder style={{ position: 'absolute', inset: 0 }} />
+        </div>
         <div
           style={{
             position: 'absolute',

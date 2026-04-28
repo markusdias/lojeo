@@ -231,7 +231,7 @@ function ConfirmacaoInner() {
           href="/conta/pedidos"
           style={{
             display: 'inline-block', padding: '14px 24px',
-            background: 'var(--text-primary)', color: 'var(--text-on-dark)',
+            background: 'var(--accent)', color: 'var(--text-on-accent, #fff)',
             fontSize: 14, fontWeight: 500, borderRadius: 8, textDecoration: 'none',
           }}
         >

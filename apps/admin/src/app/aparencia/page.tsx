@@ -138,11 +138,11 @@ const PHOTO_STYLES = [
   { id: 'mix', label: 'Mix', desc: 'Alternância — IA decide por produto' },
 ];
 
-const HERO_OPTIONS = [
+const HERO_OPTIONS: { id: string; label: string; comingSoon?: boolean }[] = [
   { id: 'image', label: 'Imagem' },
-  { id: 'video', label: 'Vídeo' },
-  { id: 'carousel', label: 'Carrossel' },
   { id: 'grid', label: 'Grid 3 cols' },
+  { id: 'video', label: 'Vídeo', comingSoon: true },
+  { id: 'carousel', label: 'Carrossel', comingSoon: true },
 ];
 
 const HOMEPAGE_SECTIONS_REGISTRY: { id: string; label: string; defaultOff: boolean }[] = [
@@ -374,6 +374,17 @@ export default function AparenciaPage() {
 
             {/* Estilo fotográfico */}
             <ConfigSection title="Estilo fotográfico" open={openSection === 'photo'} onToggle={() => setOpenSection(openSection === 'photo' ? null : 'photo')}>
+              <div style={{
+                padding: 'var(--space-3)',
+                marginBottom: 'var(--space-3)',
+                background: 'var(--accent-soft)',
+                color: 'var(--accent)',
+                borderRadius: 'var(--radius-md)',
+                fontSize: 'var(--text-caption)',
+                lineHeight: 1.5,
+              }}>
+                <strong>Hint pra IA</strong> — orienta novas gerações de imagem (gerador de produto, lifestyle automático). <em style={{ fontStyle: 'normal', color: 'var(--fg-secondary)' }}>Não regenera fotos de produtos já cadastrados.</em>
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-2)' }}>
                 {PHOTO_STYLES.map(p => {
                   const active = photoStyle === p.id;
@@ -431,17 +442,44 @@ export default function AparenciaPage() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--space-2)' }}>
                 {HERO_OPTIONS.map(h => {
                   const active = hero === h.id;
+                  const disabled = h.comingSoon;
                   const mock = h.id === 'image' ? 'linear-gradient(135deg, #C8A24B, #B8923B)'
                     : h.id === 'video' ? 'linear-gradient(135deg, #1A1A1A, #5C3A2E)'
                     : h.id === 'carousel' ? 'linear-gradient(90deg, #C8A24B 33%, #B8923B 33%, #B8923B 66%, #5C3A2E 66%)'
                     : 'linear-gradient(90deg, #C8A24B 33%, #fff 33%, #fff 34%, #B8923B 34%, #B8923B 66%, #fff 66%, #fff 67%, #5C3A2E 67%)';
                   return (
-                    <button key={h.id} type="button" onClick={() => setAppearance({ hero: h.id as 'image' | 'video' | 'carousel' | 'grid' })}
-                      style={{ padding: 10, border: active ? '1.5px solid var(--accent)' : '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: active ? 'var(--accent-soft)' : 'transparent', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--fg)' }}>
+                    <button
+                      key={h.id}
+                      type="button"
+                      disabled={disabled}
+                      title={disabled ? 'Em breve — flow de upload em desenvolvimento' : undefined}
+                      onClick={() => { if (!disabled) setAppearance({ hero: h.id as 'image' | 'video' | 'carousel' | 'grid' }); }}
+                      style={{
+                        padding: 10,
+                        border: active ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                        background: active ? 'var(--accent-soft)' : 'transparent',
+                        cursor: disabled ? 'not-allowed' : 'pointer',
+                        opacity: disabled ? 0.5 : 1,
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                        fontSize: 12, color: 'var(--fg)',
+                        position: 'relative',
+                      }}
+                    >
                       <span aria-hidden style={{ width: '100%', height: 40, background: mock, borderRadius: 4, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 14 }}>
                         {h.id === 'video' ? '▶' : ''}
                       </span>
                       <span>{h.label}</span>
+                      {disabled && (
+                        <span style={{
+                          position: 'absolute', top: 6, right: 6,
+                          background: 'var(--neutral-200)', color: 'var(--fg-muted)',
+                          fontSize: 9, fontWeight: 600, letterSpacing: '0.04em',
+                          padding: '2px 6px', borderRadius: 4, textTransform: 'uppercase',
+                        }}>
+                          em breve
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -485,6 +523,17 @@ export default function AparenciaPage() {
 
             {/* Brand guide pra IA */}
             <ConfigSection title="Brand guide pra IA" open={openSection === 'ai'} onToggle={() => setOpenSection(openSection === 'ai' ? null : 'ai')}>
+              <div style={{
+                padding: 'var(--space-3)',
+                marginBottom: 'var(--space-3)',
+                background: 'var(--accent-soft)',
+                color: 'var(--accent)',
+                borderRadius: 'var(--radius-md)',
+                fontSize: 'var(--text-caption)',
+                lineHeight: 1.5,
+              }}>
+                <strong>Aplicado em novas gerações</strong> — descrições, e-mails e copy criados a partir de agora seguem estas regras. <em style={{ fontStyle: 'normal', color: 'var(--fg-secondary)' }}>Pra regenerar textos antigos, vá em <Link href="/products" style={{ color: 'var(--accent)', borderBottom: '1px solid currentColor', textDecoration: 'none' }}>Produtos</Link> e use &ldquo;Regerar copy&rdquo;.</em>
+              </div>
               <p className="caption" style={{ marginBottom: 'var(--space-3)' }}>A IA usa essas regras pra escrever descrições, e-mails, copy de campanha. Quanto mais específico, mais a voz fica reconhecível.</p>
 
               <label style={{ display: 'block', marginBottom: 14 }}>
@@ -583,7 +632,7 @@ export default function AparenciaPage() {
                     overflow: 'auto',
                   }}
                 >
-                  <StorefrontPreview config={{ typo, accent, bgTone, photoStyle, imgRadius, typeScale, hero, trustSignals }} />
+                  <StorefrontPreview config={{ typo, accent, bgTone, photoStyle, imgRadius, typeScale, hero, trustSignals, slogan, tagline }} />
                 </div>
               </div>
               <div className="mono" style={{ padding: '10px 14px', background: 'var(--bg-subtle)', borderTop: '1px solid var(--border)', fontSize: 11, color: 'var(--fg-muted)' }}>

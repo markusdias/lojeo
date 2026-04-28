@@ -80,7 +80,7 @@ export default function WishlistPage() {
           href="/produtos"
           style={{
             display: 'inline-block', padding: '14px 32px',
-            background: 'var(--text-primary)', color: 'var(--text-on-dark)',
+            background: 'var(--accent)', color: 'var(--text-on-accent, #fff)',
             fontSize: 14, fontWeight: 500, borderRadius: 8,
           }}
         >
@@ -106,9 +106,9 @@ export default function WishlistPage() {
           return (
             <div key={item.productId} style={{ position: 'relative' }}>
               <Link href={`/produtos/${item.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                <div style={{
-                  aspectRatio: '3/4', background: 'var(--surface-sunken)',
-                  borderRadius: 8, overflow: 'hidden', marginBottom: 12,
+                <div data-product-image style={{
+                  aspectRatio: '3/4',
+                  borderRadius: 'var(--r-image, 8px)', overflow: 'hidden', marginBottom: 12,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   position: 'relative',
                   filter: outOfStock ? 'grayscale(0.5) opacity(0.7)' : undefined,
@@ -116,7 +116,10 @@ export default function WishlistPage() {
                   {item.imageUrl ? (
                     <img src={item.imageUrl} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
-                    <span style={{ fontSize: 32, color: 'var(--text-muted)' }}>◆</span>
+                    <>
+                      <div data-product-placeholder style={{ position: 'absolute', inset: 0 }} />
+                      <span style={{ fontSize: 32, color: 'var(--text-muted)', position: 'relative' }}>◆</span>
+                    </>
                   )}
 
                   {/* Badge overlay top-left */}

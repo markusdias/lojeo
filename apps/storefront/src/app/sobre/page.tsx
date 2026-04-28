@@ -12,7 +12,7 @@ export default function SobrePage() {
       {/* Hero match Static.jsx PageAbout */}
       <section style={{
         aspectRatio: '21/8',
-        background: 'linear-gradient(135deg, #E8DDC9, #D4C5A8)',
+        background: 'linear-gradient(135deg, var(--accent-soft, #F2EAD9) 0%, var(--accent-soft, #F2EAD9) 40%, var(--accent, #B8956A) 160%)',
         display: 'grid',
         placeItems: 'center',
         color: 'var(--text-primary)',
@@ -57,19 +57,20 @@ export default function SobrePage() {
           {[0, 1, 2].map(i => (
             <div
               key={i}
+              data-product-image
               style={{
                 aspectRatio: i === 1 ? '3/4' : '4/5',
-                background: '#F4F1E9',
-                borderRadius: 4,
+                borderRadius: 'var(--r-image, 4px)',
                 overflow: 'hidden',
                 display: 'grid',
                 placeItems: 'center',
-                color: '#A89B8C',
                 fontSize: 32,
+                position: 'relative',
               }}
               aria-hidden
             >
-              ◆
+              <div data-product-placeholder style={{ position: 'absolute', inset: 0 }} />
+              <span style={{ position: 'relative', color: 'var(--text-muted)' }}>◆</span>
             </div>
           ))}
         </div>
@@ -94,11 +95,11 @@ export default function SobrePage() {
             style={{
               display: 'inline-block',
               padding: '14px 32px',
-              background: 'var(--text-primary)',
-              color: 'var(--text-on-dark)',
+              background: 'var(--accent)',
+              color: 'var(--text-on-accent, #fff)',
               fontSize: 14,
               fontWeight: 500,
-              borderRadius: 8,
+              borderRadius: 'var(--r-button, 8px)',
               textDecoration: 'none',
             }}
           >

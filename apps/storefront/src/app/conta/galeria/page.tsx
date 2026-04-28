@@ -121,7 +121,7 @@ export default function GaleriaPage() {
             const s = STATUS[p.status] ?? STATUS['pending']!;
             return (
               <div key={p.id} style={{ border: '1px solid var(--divider)', borderRadius: 8, overflow: 'hidden', background: 'var(--surface)' }}>
-                <div style={{ aspectRatio: '1', background: '#f3f4f6', position: 'relative' }}>
+                <div data-product-image style={{ aspectRatio: '1', background: 'var(--surface-sunken)', position: 'relative' }}>
                   <img
                     src={p.thumbnailUrl ?? p.imageUrl}
                     alt={p.caption ?? 'Foto enviada pelo cliente'}

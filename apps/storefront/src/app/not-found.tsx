@@ -62,11 +62,11 @@ export default function NotFound() {
           style={{
             display: 'inline-block',
             padding: '14px 32px',
-            background: 'var(--text-primary)',
-            color: 'var(--text-on-dark)',
+            background: 'var(--accent)',
+            color: 'var(--text-on-accent, #fff)',
             fontSize: 14,
             fontWeight: 500,
-            borderRadius: 4,
+            borderRadius: 'var(--r-button, 4px)',
             textDecoration: 'none',
           }}
         >

@@ -98,7 +98,7 @@ function NotFoundView({ code }: { code: string }) {
             type="submit"
             style={{
               padding: '14px 24px', fontSize: 14, fontWeight: 500,
-              background: 'var(--text-primary)', color: 'var(--text-on-dark)',
+              background: 'var(--accent)', color: 'var(--text-on-accent, #fff)',
               border: 'none', borderRadius: 8, cursor: 'pointer',
             }}
           >
@@ -331,7 +331,7 @@ export default async function RastreioCodePage({ params }: PageProps) {
               rel="noopener noreferrer"
               style={{
                 display: 'inline-block', padding: '10px 20px', fontSize: 13, fontWeight: 500,
-                background: 'var(--text-primary)', color: 'var(--text-on-dark)',
+                background: 'var(--accent)', color: 'var(--text-on-accent, #fff)',
                 borderRadius: 8, textDecoration: 'none',
               }}
             >
@@ -359,7 +359,7 @@ export default async function RastreioCodePage({ params }: PageProps) {
             href="/produtos"
             style={{
               padding: '12px 24px', fontSize: 13, fontWeight: 500,
-              background: 'var(--text-primary)', color: 'var(--text-on-dark)',
+              background: 'var(--accent)', color: 'var(--text-on-accent, #fff)',
               borderRadius: 8, textDecoration: 'none',
             }}
           >

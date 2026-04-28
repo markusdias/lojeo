@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import { db, products } from '@lojeo/db';
-import { eq, and, desc } from 'drizzle-orm';
+import { db, products, productReviews } from '@lojeo/db';
+import { eq, and, desc, sql } from 'drizzle-orm';
 import { getActiveTemplate } from '../template';
 import { ProductCard } from '../components/ui/product-card';
 import { PersonalizedHero } from '../components/marketing/personalized-hero';
@@ -27,13 +27,19 @@ export const dynamic = 'force-dynamic';
 const tenantId = () => process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
 
 const SECTIONS = [
-  { slug: 'aneis',     label: 'Anéis',     blurb: 'Solitários, eternidades e bandas.', tone: 'linear-gradient(140deg, #EDE3CE 0%, #D4C5A8 100%)' },
-  { slug: 'brincos',   label: 'Brincos',   blurb: 'Argolas, ear cuffs, gotas.',         tone: 'linear-gradient(140deg, #F2EAD8 0%, #D8C9AC 100%)' },
-  { slug: 'colares',   label: 'Colares',   blurb: 'Pingentes e correntes finas.',       tone: 'linear-gradient(140deg, #E8DCC2 0%, #C9B894 100%)' },
-  { slug: 'pulseiras', label: 'Pulseiras', blurb: 'Riviera, elos e pingentes.',         tone: 'linear-gradient(140deg, #EFE6D2 0%, #D0C0A0 100%)' },
+  { slug: 'aneis',     label: 'Anéis',     blurb: 'Solitários, eternidades e bandas.' },
+  { slug: 'brincos',   label: 'Brincos',   blurb: 'Argolas, ear cuffs, gotas.'         },
+  { slug: 'colares',   label: 'Colares',   blurb: 'Pingentes e correntes finas.'       },
+  { slug: 'pulseiras', label: 'Pulseiras', blurb: 'Riviera, elos e pingentes.'         },
 ];
 
-const TRUST_REGISTRY: Record<string, { icon: React.ReactNode; label: string; desc: string }> = {
+function buildTrustRegistry(rating: { avg: number | null; count: number }): Record<string, { icon: React.ReactNode; label: string; desc: string }> {
+  const hasReal = rating.avg !== null && rating.count > 0;
+  const ratingLabel = hasReal ? `Avaliação ${rating.avg!.toFixed(1)}★` : 'Avaliação 4.8★';
+  const ratingDesc = hasReal
+    ? `${rating.count.toLocaleString('pt-BR')} ${rating.count === 1 ? 'cliente' : 'clientes'}`
+    : 'mais de 1.200 clientes';
+  return ({
   warranty: {
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -92,31 +98,46 @@ const TRUST_REGISTRY: Record<string, { icon: React.ReactNode; label: string; des
         <path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z" />
       </svg>
     ),
-    label: 'Avaliação 4.8★',
-    desc: 'mais de 1.200 clientes',
+    label: ratingLabel,
+    desc: ratingDesc,
   },
-};
+  });
+}
 
 export default async function HomePage() {
   const tid = tenantId();
   const tpl = await getActiveTemplate();
   const { appearance } = await getTenantRuntimeConfig();
 
-  const [newArrivals] = await Promise.all([
+  const [newArrivals, ratingAgg] = await Promise.all([
     db.select().from(products)
       .where(and(eq(products.tenantId, tid), eq(products.status, 'active')))
       .orderBy(desc(products.createdAt))
       .limit(4),
+    db.select({
+      avg: sql<string>`avg(${productReviews.rating})`,
+      count: sql<string>`count(*)`,
+    })
+      .from(productReviews)
+      .where(and(eq(productReviews.tenantId, tid), eq(productReviews.status, 'approved')))
+      .then(rows => rows[0] ?? { avg: null, count: '0' })
+      .catch(() => ({ avg: null, count: '0' })),
   ]);
+  const avgRating = ratingAgg.avg ? Number(ratingAgg.avg) : null;
+  const ratingCount = Number(ratingAgg.count ?? 0);
 
   const slogan = appearance.slogan?.trim() || 'Peças que ficam.';
   const tagline = appearance.tagline?.trim()
     || 'Joalheria contemporânea, finalizada à mão no nosso ateliê. Ouro 18k e prata 925 com garantia de um ano.';
-  const heroVariant = appearance.hero ?? 'image';
+  // hero=video/carousel ainda não tem flow de upload (UI marca "em breve").
+  // Storefront cai em image como fallback robusto até flows existirem.
+  const rawHero = appearance.hero ?? 'image';
+  const heroVariant: 'image' | 'grid' = rawHero === 'grid' ? 'grid' : 'image';
   const trustIds = (appearance.trustSignals && appearance.trustSignals.length > 0)
     ? appearance.trustSignals
     : DEFAULT_TRUST_SIGNALS;
-  const trustItems = trustIds.map(id => TRUST_REGISTRY[id]).filter(Boolean) as Array<typeof TRUST_REGISTRY[string]>;
+  const trustRegistry = buildTrustRegistry({ avg: avgRating, count: ratingCount });
+  const trustItems = trustIds.map(id => trustRegistry[id]).filter(Boolean) as Array<typeof trustRegistry[string]>;
   const sections = resolveHomepageSections(appearance).filter(s => !s.off);
 
   const HERO_DEFAULTS = {
@@ -155,16 +176,16 @@ export default async function HomePage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24 }}>
           {SECTIONS.map(c => (
             <Link key={c.slug} href={`/produtos?categoria=${c.slug}`} style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
-              <div style={{
+              <div data-product-image style={{
                 aspectRatio: '3/4',
-                background: c.tone,
                 borderRadius: 'var(--r-image)',
                 overflow: 'hidden', marginBottom: 18,
                 position: 'relative',
               }}>
+                <div data-product-placeholder style={{ position: 'absolute', inset: 0 }} />
                 <div style={{
                   position: 'absolute', inset: 0,
-                  background: 'radial-gradient(ellipse at 30% 35%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 55%)',
+                  background: 'radial-gradient(ellipse at 30% 35%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 55%)',
                 }} />
               </div>
               <h3 style={{ margin: '0 0 6px', fontSize: 24 }}>{c.label}</h3>
@@ -210,16 +231,16 @@ export default async function HomePage() {
     about: (
       <section key="about" style={{ maxWidth: 'var(--container-max)', margin: '120px auto 0', padding: '0 var(--container-pad)' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center' }}>
-          <div style={{
+          <div data-product-image style={{
             aspectRatio: '4/5',
-            background: 'linear-gradient(140deg, #EFE6D2 0%, #D8C9AC 60%, #C9B894 100%)',
-            borderRadius: 8,
+            borderRadius: 'var(--r-image, 8px)',
             position: 'relative',
             overflow: 'hidden',
           }}>
+            <div data-product-placeholder style={{ position: 'absolute', inset: 0 }} />
             <div style={{
               position: 'absolute', inset: 0,
-              background: 'radial-gradient(ellipse at 25% 20%, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 55%)',
+              background: 'radial-gradient(ellipse at 25% 20%, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0) 55%)',
             }} />
           </div>
           <div>

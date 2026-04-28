@@ -320,7 +320,7 @@ export default function EnderecoPage() {
           type="submit"
           style={{
             marginTop: 32, width: '100%', padding: '15px 24px',
-            background: 'var(--text-primary)', color: 'var(--text-on-dark)',
+            background: 'var(--accent)', color: 'var(--text-on-accent, #fff)',
             fontSize: 14, fontWeight: 500, border: 'none', borderRadius: 8, cursor: 'pointer',
           }}
         >

@@ -24,7 +24,15 @@ interface StaticHeroProps {
 export function StaticHero({ headline, subheadline, cta, eyebrow = "Coleção · Outono '26" }: StaticHeroProps) {
   return (
     <div style={{ maxWidth: 560, color: 'var(--text-primary)' }}>
-      <p className="eyebrow" style={{ marginBottom: 20 }}>{eyebrow}</p>
+      <p
+        className="eyebrow"
+        style={{
+          marginBottom: 20,
+          color: 'var(--accent)',
+        }}
+      >
+        {eyebrow}
+      </p>
       <h1 style={{ margin: '0 0 20px', lineHeight: 1.05 }}>{headline}</h1>
       <p
         style={{
@@ -43,11 +51,11 @@ export function StaticHero({ headline, subheadline, cta, eyebrow = "Coleção ·
           style={{
             display: 'inline-block',
             padding: '14px 28px',
-            background: 'var(--text-primary)',
-            color: 'var(--text-on-dark)',
+            background: 'var(--accent)',
+            color: 'var(--text-on-accent, #fff)',
             fontSize: 14,
             fontWeight: 500,
-            borderRadius: 8,
+            borderRadius: 'var(--r-button, 8px)',
             letterSpacing: '0.02em',
           }}
         >
@@ -63,7 +71,7 @@ export function StaticHero({ headline, subheadline, cta, eyebrow = "Coleção ·
             border: '1px solid var(--text-primary)',
             fontSize: 14,
             fontWeight: 500,
-            borderRadius: 8,
+            borderRadius: 'var(--r-button, 8px)',
           }}
         >
           Nossa história

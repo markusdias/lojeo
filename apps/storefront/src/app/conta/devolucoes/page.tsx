@@ -166,7 +166,7 @@ export default function ContaDevolucoesPage() {
             onClick={() => setShowForm(true)}
             style={{
               padding: '10px 20px', fontSize: 13, fontWeight: 500,
-              background: 'var(--text-primary)', color: 'var(--text-on-dark)',
+              background: 'var(--accent)', color: 'var(--text-on-accent, #fff)',
               borderRadius: 6, border: 'none', cursor: 'pointer',
             }}
           >
@@ -261,7 +261,7 @@ export default function ContaDevolucoesPage() {
               disabled={submitting}
               style={{
                 padding: '10px 20px', fontSize: 13, fontWeight: 500,
-                background: 'var(--text-primary)', color: 'var(--text-on-dark)',
+                background: 'var(--accent)', color: 'var(--text-on-accent, #fff)',
                 borderRadius: 6, border: 'none', cursor: 'pointer',
               }}
             >

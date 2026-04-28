@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { NewsletterForm } from './newsletter-form';
 import { ManageCookiesButton } from '../marketing/manage-cookies-button';
 
-export function Footer({ storeName }: { storeName: string }) {
+export function Footer({ storeName, tagline }: { storeName: string; tagline?: string }) {
   return (
     <footer style={{
       background: 'var(--footer-bg)',
@@ -26,7 +26,7 @@ export function Footer({ storeName }: { storeName: string }) {
             {storeName}
           </p>
           <p style={{ fontSize: 13, color: 'var(--footer-muted)', lineHeight: 1.6, maxWidth: '28ch', margin: 0 }}>
-            Joalheria contemporânea em ouro 18k e prata 925, com garantia de um ano.
+            {tagline || 'Joalheria contemporânea em ouro 18k e prata 925, com garantia de um ano.'}
           </p>
         </div>
 

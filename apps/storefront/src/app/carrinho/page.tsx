@@ -87,8 +87,8 @@ export default function CartPage() {
         </p>
         <Link href="/produtos" style={{
           display: 'inline-block', padding: '14px 32px',
-          background: 'var(--text-primary)', color: 'var(--text-on-dark)',
-          fontSize: 14, fontWeight: 500, borderRadius: 8,
+          background: 'var(--accent)', color: 'var(--text-on-accent, #fff)',
+          fontSize: 14, fontWeight: 500, borderRadius: 'var(--r-button, 8px)',
         }}>
           Ver coleção
         </Link>
@@ -152,11 +152,10 @@ export default function CartPage() {
                     background: '#F4F1E9', overflow: 'hidden',
                   }}>
                     {item.imageUrl ? (
-                      <img src={item.imageUrl} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <img data-product-image src={item.imageUrl} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
-                      <div style={{
+                      <div data-product-placeholder style={{
                         width: '100%', height: '100%',
-                        background: 'linear-gradient(135deg, #EDE8DE 0%, #D8D0C0 100%)',
                         display: 'grid', placeItems: 'center',
                       }}>
                         <span style={{ fontSize: 20, color: 'var(--text-muted)' }}>◈</span>
@@ -361,8 +360,8 @@ export default function CartPage() {
             type="button"
             style={{
               width: '100%', padding: '15px 24px', marginTop: 20,
-              background: 'var(--text-primary)', color: 'var(--text-on-dark)',
-              fontSize: 14, fontWeight: 500, border: 'none', borderRadius: 8,
+              background: 'var(--accent)', color: 'var(--text-on-accent, #fff)',
+              fontSize: 14, fontWeight: 500, border: 'none', borderRadius: 'var(--r-button, 8px)',
               cursor: 'pointer',
             }}
             onClick={() => {

@@ -178,9 +178,9 @@ export default function GiftCardsPage() {
                 setDeliveryDate('');
               }}
               style={{
-                padding: '14px 28px', background: 'var(--text-primary)',
-                color: 'var(--text-on-dark)', fontSize: 14, fontWeight: 500,
-                border: 'none', borderRadius: 8, cursor: 'pointer',
+                padding: '14px 28px', background: 'var(--accent)',
+                color: 'var(--text-on-accent, #fff)', fontSize: 14, fontWeight: 500,
+                border: 'none', borderRadius: 'var(--r-button, 8px)', cursor: 'pointer',
               }}
             >
               Gerar outro gift card
@@ -290,9 +290,9 @@ export default function GiftCardsPage() {
                     aria-pressed={active}
                     style={{
                       padding: '14px 12px',
-                      background: active ? 'var(--text-primary)' : 'var(--bg)',
-                      color: active ? 'var(--text-on-dark)' : 'var(--text-primary)',
-                      border: active ? '1px solid var(--text-primary)' : '1px solid var(--divider)',
+                      background: active ? 'var(--accent)' : 'var(--bg)',
+                      color: active ? 'var(--text-on-accent, #fff)' : 'var(--text-primary)',
+                      border: active ? '1px solid var(--accent)' : '1px solid var(--divider)',
                       borderRadius: 4, fontSize: 15, fontFamily: 'var(--font-display)',
                       letterSpacing: '0.01em', cursor: 'pointer',
                       transition: 'background 120ms, color 120ms, border-color 120ms',
@@ -309,9 +309,9 @@ export default function GiftCardsPage() {
                 style={{
                   gridColumn: 'span 2',
                   padding: '14px 12px',
-                  background: selectedCents === 'custom' ? 'var(--text-primary)' : 'var(--bg)',
-                  color: selectedCents === 'custom' ? 'var(--text-on-dark)' : 'var(--text-primary)',
-                  border: selectedCents === 'custom' ? '1px solid var(--text-primary)' : '1px solid var(--divider)',
+                  background: selectedCents === 'custom' ? 'var(--accent)' : 'var(--bg)',
+                  color: selectedCents === 'custom' ? 'var(--text-on-accent, #fff)' : 'var(--text-primary)',
+                  border: selectedCents === 'custom' ? '1px solid var(--accent)' : '1px solid var(--divider)',
                   borderRadius: 4, fontSize: 14, cursor: 'pointer',
                   transition: 'background 120ms, color 120ms, border-color 120ms',
                 }}
@@ -465,7 +465,7 @@ export default function GiftCardsPage() {
             disabled={submitting}
             style={{
               width: '100%', padding: '15px 24px',
-              background: 'var(--text-primary)', color: 'var(--text-on-dark)',
+              background: 'var(--accent)', color: 'var(--text-on-accent, #fff)',
               fontSize: 14, fontWeight: 500, border: 'none', borderRadius: 8,
               cursor: submitting ? 'not-allowed' : 'pointer',
               opacity: submitting ? 0.7 : 1,

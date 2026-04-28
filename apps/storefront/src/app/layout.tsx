@@ -28,9 +28,14 @@ import '@lojeo/active-template-tokens.css';
 // generateMetadata permite tpl-conditional (description vem do template config).
 export async function generateMetadata() {
   const tpl = await getActiveTemplate();
+  const { appearance } = await getTenantRuntimeConfig();
+  const slogan = appearance.slogan?.trim();
+  const tagline = appearance.tagline?.trim();
+  const title = slogan ? `${tpl.name} — ${slogan}` : tpl.name;
+  const description = tagline || tpl.description || '';
   return {
-    title: tpl.name,
-    description: tpl.description ?? '',
+    title,
+    description,
     manifest: '/manifest.webmanifest',
     appleWebApp: { capable: true, statusBarStyle: 'default' as const, title: tpl.name },
     alternates: {
@@ -77,7 +82,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <SiteJsonLd
           baseUrl={STOREFRONT_URL}
           storeName={tpl.name}
-          description={tpl.description ?? ''}
+          description={appearance.tagline?.trim() || tpl.description || ''}
         />
         <Pixels config={pixelConfig} />
         <ServiceWorkerRegister />
@@ -86,7 +91,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           <TrackerProvider tenantId={tenantId} endpoint="/api/track" userId={userId}>
             <Header storeName={tpl.name} isAuthenticated={!!session} />
             <main id="main-content">{children}</main>
-            <Footer storeName={tpl.name} />
+            <Footer storeName={tpl.name} tagline={appearance.tagline?.trim()} />
             <CookieBanner />
             <ChatWidget />
           </TrackerProvider>

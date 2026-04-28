@@ -77,7 +77,7 @@ export default async function PedidosPage() {
             href="/produtos"
             style={{
               display: 'inline-block', padding: '12px 28px', fontSize: 14, fontWeight: 500,
-              background: 'var(--text-primary)', color: 'var(--text-on-dark)',
+              background: 'var(--accent)', color: 'var(--text-on-accent, #fff)',
               borderRadius: 6, textDecoration: 'none',
             }}
           >

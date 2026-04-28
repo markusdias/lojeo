@@ -123,10 +123,10 @@ export function StickyBuyBar({
           padding: '14px 22px',
           fontSize: 14,
           fontWeight: 500,
-          background: isOutOfStock ? 'var(--surface-sunken)' : 'var(--text-primary)',
-          color: isOutOfStock ? 'var(--text-muted)' : 'var(--text-on-dark)',
+          background: isOutOfStock ? 'var(--surface-sunken)' : 'var(--accent)',
+          color: isOutOfStock ? 'var(--text-muted)' : 'var(--text-on-accent, #fff)',
           border: 'none',
-          borderRadius: 8,
+          borderRadius: 'var(--r-button, 8px)',
           cursor: isOutOfStock ? 'not-allowed' : 'pointer',
           whiteSpace: 'nowrap',
         }}
