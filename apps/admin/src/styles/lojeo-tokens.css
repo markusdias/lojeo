@@ -52,12 +52,14 @@
 
   /* ---------- Cross-camada aliases (jewelry-v1 / storefront tokens) ---------- */
   /* Compat: components copy-paste de storefront usam estes nomes. */
+  /* IMPORTANTE: NÃO redeclarar --surface aqui — já existe na linha 11 e
+     --bg-elevated aponta pra --surface; ciclar quebra o token e produz
+     background transparent silencioso. */
   --text-primary:   var(--fg);
   --text-secondary: var(--fg-secondary);
   --text-muted:     var(--fg-muted);
   --text-on-dark:   var(--fg-on-accent);
   --divider:        var(--border);
-  --surface:        var(--bg-elevated);
   --surface-sunken: var(--bg-subtle);
   --success-soft:   #DCFCE7;
   --success:        #166534;
