@@ -10,7 +10,12 @@ export const dynamic = 'force-dynamic';
 
 const patchSchema = z.object({
   active: z.boolean().optional(),
+  archived: z.boolean().optional(), // true => set archivedAt; false => clear
   commissionBps: z.number().int().min(0).max(10000).optional(),
+  cookieDays: z.number().int().min(1).max(365).optional(),
+  maxUses: z.number().int().positive().nullable().optional(),
+  expiresAt: z.string().datetime().nullable().optional(),
+  tag: z.string().max(40).nullable().optional(),
   notes: z.string().max(500).nullable().optional(),
   affiliateName: z.string().min(2).max(200).optional(),
   affiliateEmail: z.string().email().nullable().optional(),
@@ -36,7 +41,20 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const updates: Record<string, unknown> = { updatedAt: new Date() };
   for (const [k, v] of Object.entries(parsed.data)) {
-    if (v !== undefined) updates[k] = v;
+    if (v === undefined) continue;
+    if (k === 'archived') {
+      updates['archivedAt'] = v ? new Date() : null;
+      // Arquivar implica desativar pra parar de creditar.
+      if (v === true && parsed.data.active === undefined) {
+        updates['active'] = false;
+      }
+      continue;
+    }
+    if (k === 'expiresAt' && typeof v === 'string') {
+      updates[k] = new Date(v);
+      continue;
+    }
+    updates[k] = v;
   }
 
   const updated = await db

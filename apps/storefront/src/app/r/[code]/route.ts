@@ -32,13 +32,16 @@ export async function GET(req: Request, { params }: { params: Promise<{ code: st
     return NextResponse.redirect(new URL(redirectUrl, url.origin), 307);
   }
 
-  // Increment atomic (best-effort) — sem aguardar resultado pra UX rápido.
+  // Increment atomic best-effort. Guards: archivado, expirado, atingiu maxUses → não credita click.
   void db.execute(sql`
     UPDATE affiliate_links
-    SET clicks = clicks + 1, updated_at = NOW()
+    SET clicks = clicks + 1, last_click_at = NOW(), updated_at = NOW()
     WHERE tenant_id = ${TENANT_ID}
       AND code = ${code}
       AND active = TRUE
+      AND archived_at IS NULL
+      AND (expires_at IS NULL OR expires_at > NOW())
+      AND (max_uses IS NULL OR conversions < max_uses)
   `).catch(() => null);
 
   void affiliateLinks; // mantém import — usado em type chain.

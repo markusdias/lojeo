@@ -782,6 +782,18 @@ export async function POST(req: NextRequest) {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_affiliates_user ON affiliate_links(user_id)`);
     results.push('affiliate_links: ok');
 
+    // Fase 1.2 v2 — extensões: archive, validade, max_uses, tag, last activity timestamps
+    await db.execute(sql`ALTER TABLE affiliate_links ADD COLUMN IF NOT EXISTS archived_at timestamptz`);
+    await db.execute(sql`ALTER TABLE affiliate_links ADD COLUMN IF NOT EXISTS cookie_days integer DEFAULT 30 NOT NULL`);
+    await db.execute(sql`ALTER TABLE affiliate_links ADD COLUMN IF NOT EXISTS max_uses integer`);
+    await db.execute(sql`ALTER TABLE affiliate_links ADD COLUMN IF NOT EXISTS expires_at timestamptz`);
+    await db.execute(sql`ALTER TABLE affiliate_links ADD COLUMN IF NOT EXISTS tag varchar(40)`);
+    await db.execute(sql`ALTER TABLE affiliate_links ADD COLUMN IF NOT EXISTS last_click_at timestamptz`);
+    await db.execute(sql`ALTER TABLE affiliate_links ADD COLUMN IF NOT EXISTS last_conversion_at timestamptz`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_affiliates_tenant_archived ON affiliate_links(tenant_id, archived_at)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_affiliates_tenant_tag ON affiliate_links(tenant_id, tag)`);
+    results.push('affiliate_links_v2: ok');
+
     // Fase 1.2 — abandoned_carts (recuperação de carrinho via cron)
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS abandoned_carts (

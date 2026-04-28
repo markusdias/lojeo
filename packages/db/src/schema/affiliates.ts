@@ -35,6 +35,18 @@ export const affiliateLinks = pgTable(
     /** Cents acumulados pendentes de payout. */
     pendingCents: integer('pending_cents').default(0).notNull(),
     active: boolean('active').default(true).notNull(),
+    /** Soft-archive: oculta da lista principal sem perder histórico. Status efetivo: archived → active=false → active=true. */
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    /** Cookie attribution window por afiliado (default 30, suportado 7..120). */
+    cookieDays: integer('cookie_days').default(30).notNull(),
+    /** Cap de conversões; null = ilimitado. */
+    maxUses: integer('max_uses'),
+    /** Data limite após qual o link para de creditar (null = sem expiração). */
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    /** Categoria livre: influencer / ambassador / partner / vip / staff / outro. */
+    tag: varchar('tag', { length: 40 }),
+    lastClickAt: timestamp('last_click_at', { withTimezone: true }),
+    lastConversionAt: timestamp('last_conversion_at', { withTimezone: true }),
     notes: text('notes'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -43,6 +55,8 @@ export const affiliateLinks = pgTable(
     uniqueIndex('uniq_affiliates_tenant_code').on(t.tenantId, t.code),
     index('idx_affiliates_tenant_active').on(t.tenantId, t.active),
     index('idx_affiliates_user').on(t.userId),
+    index('idx_affiliates_tenant_archived').on(t.tenantId, t.archivedAt),
+    index('idx_affiliates_tenant_tag').on(t.tenantId, t.tag),
   ],
 );
 

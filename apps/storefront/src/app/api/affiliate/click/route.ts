@@ -29,10 +29,13 @@ export async function POST(req: Request) {
     // Increment clicks atomic — só se afiliado existe e ativo
     const updated = await db.execute(sql`
       UPDATE affiliate_links
-      SET clicks = clicks + 1, updated_at = NOW()
+      SET clicks = clicks + 1, last_click_at = NOW(), updated_at = NOW()
       WHERE tenant_id = ${TENANT_ID}
         AND code = ${ref}
         AND active = TRUE
+        AND archived_at IS NULL
+        AND (expires_at IS NULL OR expires_at > NOW())
+        AND (max_uses IS NULL OR conversions < max_uses)
       RETURNING id
     `);
     const rows = (updated as unknown as { rows?: unknown[] }).rows

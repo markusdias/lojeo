@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 interface AffiliateRow {
   id: string;
@@ -8,235 +8,1175 @@ interface AffiliateRow {
   affiliateEmail: string | null;
   code: string;
   commissionBps: number;
+  cookieDays: number;
+  maxUses: number | null;
+  expiresAt: string | null;
+  tag: string | null;
   clicks: number;
   conversions: number;
   payoutCents: number;
   pendingCents: number;
   active: boolean;
+  archivedAt: string | null;
+  lastClickAt: string | null;
+  lastConversionAt: string | null;
+  notes: string | null;
+  createdAt: string;
+}
+
+interface Meta {
+  page: number;
+  pageSize: number;
+  total: number;
+  pages: number;
+  sort: string;
+  dir: string;
+  status: string;
+  q: string;
+  tag: string | null;
+  tagFacets: Array<{ tag: string | null; n: number }>;
 }
 
 interface Props {
   initial: AffiliateRow[];
+  initialMeta: Meta;
+  storefrontOrigin: string;
 }
+
+const TAG_OPTIONS = [
+  { value: 'influencer', label: 'Influenciador' },
+  { value: 'ambassador', label: 'Embaixador' },
+  { value: 'partner', label: 'Parceiro' },
+  { value: 'vip', label: 'VIP' },
+  { value: 'staff', label: 'Staff/interno' },
+  { value: 'campaign', label: 'Campanha' },
+  { value: 'outro', label: 'Outro' },
+];
+
+const COMMISSION_PRESETS = [5, 10, 15, 20, 25, 30, 40, 50];
+const COOKIE_PRESETS = [
+  { value: 7, label: '7 dias' },
+  { value: 15, label: '15 dias' },
+  { value: 30, label: '30 dias' },
+  { value: 60, label: '60 dias' },
+  { value: 90, label: '90 dias' },
+  { value: 120, label: '120 dias' },
+];
+
+const STATUS_TABS: Array<{ value: string; label: string }> = [
+  { value: 'active', label: 'Ativos' },
+  { value: 'paused', label: 'Pausados' },
+  { value: 'archived', label: 'Arquivados' },
+  { value: 'all', label: 'Todos' },
+];
+
+const SORT_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: 'created', label: 'Mais recentes' },
+  { value: 'name', label: 'Nome (A-Z)' },
+  { value: 'conversions', label: 'Mais conversões' },
+  { value: 'pending', label: 'Maior pendente' },
+  { value: 'paid', label: 'Maior pago' },
+  { value: 'clicks', label: 'Mais cliques' },
+  { value: 'lastClick', label: 'Click recente' },
+  { value: 'lastConversion', label: 'Conversão recente' },
+];
+
+const SORT_DEFAULT_DIR: Record<string, 'asc' | 'desc'> = {
+  created: 'desc',
+  name: 'asc',
+  conversions: 'desc',
+  pending: 'desc',
+  paid: 'desc',
+  clicks: 'desc',
+  lastClick: 'desc',
+  lastConversion: 'desc',
+};
 
 function fmtBRL(cents: number): string {
   return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-export function AffiliatesPanel({ initial }: Props) {
-  const [rows, setRows] = useState<AffiliateRow[]>(initial);
-  const [showForm, setShowForm] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    affiliateName: '',
-    affiliateEmail: '',
-    code: '',
-    commissionBps: 1000,
-  });
+function bpsToPercent(bps: number): number {
+  return Math.round((bps / 100) * 10) / 10;
+}
 
-  async function handleCreate(e: React.FormEvent) {
+function fmtRelative(iso: string | null): string {
+  if (!iso) return '—';
+  const ms = Date.now() - new Date(iso).getTime();
+  if (ms < 0) return '—';
+  const min = Math.floor(ms / 60000);
+  if (min < 1) return 'agora';
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h} h`;
+  const d = Math.floor(h / 24);
+  if (d < 30) return `${d} d`;
+  const mo = Math.floor(d / 30);
+  if (mo < 12) return `${mo} mês`;
+  return `${Math.floor(mo / 12)} ano`;
+}
+
+function statusOf(r: AffiliateRow): 'active' | 'paused' | 'archived' {
+  if (r.archivedAt) return 'archived';
+  if (!r.active) return 'paused';
+  return 'active';
+}
+
+const STATUS_BADGE: Record<'active' | 'paused' | 'archived', { label: string; bg: string; fg: string }> = {
+  active: { label: 'Ativo', bg: 'var(--success-soft)', fg: 'var(--success)' },
+  paused: { label: 'Pausado', bg: 'var(--warning-soft)', fg: 'var(--warning)' },
+  archived: { label: 'Arquivado', bg: 'var(--neutral-100)', fg: 'var(--fg-muted)' },
+};
+
+interface FormState {
+  affiliateName: string;
+  affiliateEmail: string;
+  code: string;
+  commissionPercent: string;
+  customPercent: boolean;
+  cookieDays: number;
+  maxUsesEnabled: boolean;
+  maxUses: string;
+  expiresAt: string;
+  tag: string;
+  notes: string;
+}
+
+const EMPTY_FORM: FormState = {
+  affiliateName: '',
+  affiliateEmail: '',
+  code: '',
+  commissionPercent: '10',
+  customPercent: false,
+  cookieDays: 30,
+  maxUsesEnabled: false,
+  maxUses: '',
+  expiresAt: '',
+  tag: '',
+  notes: '',
+};
+
+export function AffiliatesPanel({ initial, initialMeta, storefrontOrigin }: Props) {
+  const [rows, setRows] = useState<AffiliateRow[]>(initial);
+  const [meta, setMeta] = useState<Meta>(initialMeta);
+  const [loading, setLoading] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+
+  // Filtros — controlled
+  const [search, setSearch] = useState(initialMeta.q);
+  const [status, setStatus] = useState(initialMeta.status);
+  const [tag, setTag] = useState<string>(initialMeta.tag ?? '');
+  const [sort, setSort] = useState(initialMeta.sort);
+  const [dir, setDir] = useState(initialMeta.dir);
+  const [page, setPage] = useState(initialMeta.page);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  const refetch = useCallback(async (overrides?: Partial<{ q: string; status: string; tag: string; sort: string; dir: string; page: number }>) => {
+    setLoading(true);
+    const params = new URLSearchParams();
+    const q = overrides?.q ?? search;
+    const st = overrides?.status ?? status;
+    const tg = overrides?.tag ?? tag;
+    const so = overrides?.sort ?? sort;
+    const di = overrides?.dir ?? dir;
+    const pg = overrides?.page ?? page;
+    if (q) params.set('q', q);
+    if (st) params.set('status', st);
+    if (tg) params.set('tag', tg);
+    if (so) params.set('sort', so);
+    if (di) params.set('dir', di);
+    params.set('page', String(pg));
+    params.set('pageSize', String(meta.pageSize));
+    try {
+      const res = await fetch(`/api/affiliates?${params.toString()}`);
+      const data = (await res.json()) as { affiliates: AffiliateRow[]; meta: Meta };
+      setRows(data.affiliates);
+      setMeta(data.meta);
+    } finally {
+      setLoading(false);
+    }
+  }, [search, status, tag, sort, dir, page, meta.pageSize]);
+
+  // Search debounce
+  function onSearchChange(v: string) {
+    setSearch(v);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setPage(1);
+      void refetch({ q: v, page: 1 });
+    }, 300);
+  }
+
+  function applyStatus(s: string) {
+    setStatus(s);
+    setPage(1);
+    void refetch({ status: s, page: 1 });
+  }
+
+  function applyTag(t: string) {
+    setTag(t);
+    setPage(1);
+    void refetch({ tag: t, page: 1 });
+  }
+
+  function applySort(value: string) {
+    const newDir = SORT_DEFAULT_DIR[value] ?? 'desc';
+    setSort(value);
+    setDir(newDir);
+    setPage(1);
+    void refetch({ sort: value, dir: newDir, page: 1 });
+  }
+
+  function goPage(p: number) {
+    if (p < 1 || p > meta.pages) return;
+    setPage(p);
+    void refetch({ page: p });
+  }
+
+  function openCreate() {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setFormError(null);
+    setShowForm(true);
+  }
+
+  function openEdit(r: AffiliateRow) {
+    setEditingId(r.id);
+    const pct = bpsToPercent(r.commissionBps);
+    setForm({
+      affiliateName: r.affiliateName,
+      affiliateEmail: r.affiliateEmail ?? '',
+      code: r.code,
+      commissionPercent: String(pct),
+      customPercent: !COMMISSION_PRESETS.includes(pct),
+      cookieDays: r.cookieDays ?? 30,
+      maxUsesEnabled: r.maxUses != null,
+      maxUses: r.maxUses != null ? String(r.maxUses) : '',
+      expiresAt: r.expiresAt ? r.expiresAt.slice(0, 10) : '',
+      tag: r.tag ?? '',
+      notes: r.notes ?? '',
+    });
+    setFormError(null);
+    setShowForm(true);
+  }
+
+  function closeForm() {
+    setShowForm(false);
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setFormError(null);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/affiliates', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          affiliateName: form.affiliateName,
-          affiliateEmail: form.affiliateEmail || null,
-          code: form.code.toUpperCase(),
-          commissionBps: form.commissionBps,
-        }),
-      });
-      const data = (await res.json()) as { ok?: boolean; affiliate?: AffiliateRow; error?: string };
-      if (!res.ok || !data.affiliate) {
-        setError(data.error ?? `HTTP ${res.status}`);
+    setFormError(null);
+
+    const pct = parseFloat(form.commissionPercent.replace(',', '.'));
+    if (!isFinite(pct) || pct < 0 || pct > 100) {
+      setFormError('Comissão deve ser entre 0% e 100%');
+      setSubmitting(false);
+      return;
+    }
+    const commissionBps = Math.round(pct * 100);
+
+    let maxUses: number | null = null;
+    if (form.maxUsesEnabled) {
+      const n = parseInt(form.maxUses, 10);
+      if (!isFinite(n) || n <= 0) {
+        setFormError('Limite de usos deve ser número positivo');
+        setSubmitting(false);
         return;
       }
-      setRows((prev) => [data.affiliate!, ...prev]);
-      setForm({ affiliateName: '', affiliateEmail: '', code: '', commissionBps: 1000 });
-      setShowForm(false);
+      maxUses = n;
+    }
+
+    const payload = {
+      affiliateName: form.affiliateName.trim(),
+      affiliateEmail: form.affiliateEmail.trim() || null,
+      code: form.code.toUpperCase(),
+      commissionBps,
+      cookieDays: form.cookieDays,
+      maxUses,
+      expiresAt: form.expiresAt ? new Date(form.expiresAt + 'T23:59:59').toISOString() : null,
+      tag: form.tag || null,
+      notes: form.notes.trim() || null,
+    };
+
+    try {
+      const url = editingId ? `/api/affiliates/${editingId}` : '/api/affiliates';
+      const method = editingId ? 'PATCH' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = (await res.json()) as { affiliate?: AffiliateRow; error?: string };
+      if (!res.ok) {
+        if (data.error === 'code_already_exists') {
+          setFormError('Já existe um afiliado com este código');
+        } else if (data.error === 'validation_error') {
+          setFormError('Preencha os campos obrigatórios corretamente');
+        } else {
+          setFormError(data.error ?? `HTTP ${res.status}`);
+        }
+        return;
+      }
+      closeForm();
+      await refetch();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'erro');
+      setFormError(err instanceof Error ? err.message : 'erro');
     } finally {
       setSubmitting(false);
     }
   }
 
-  async function handleToggleActive(row: AffiliateRow) {
+  async function handleArchive(row: AffiliateRow) {
+    const archive = !row.archivedAt;
+    const label = archive ? 'arquivar' : 'desarquivar';
+    if (!confirm(`Deseja ${label} ${row.affiliateName}?`)) return;
+    const res = await fetch(`/api/affiliates/${row.id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ archived: archive }),
+    });
+    if (res.ok) await refetch();
+  }
+
+  async function handleTogglePause(row: AffiliateRow) {
+    if (row.archivedAt) return;
     const res = await fetch(`/api/affiliates/${row.id}`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ active: !row.active }),
     });
-    if (res.ok) {
-      const data = (await res.json()) as { affiliate: AffiliateRow };
-      setRows((prev) => prev.map((r) => (r.id === row.id ? data.affiliate : r)));
-    }
+    if (res.ok) await refetch();
   }
 
   async function handlePayout(row: AffiliateRow) {
     if (row.pendingCents <= 0) return;
     if (!confirm(`Marcar ${fmtBRL(row.pendingCents)} como pago para ${row.affiliateName}?`)) return;
     const res = await fetch(`/api/affiliates/${row.id}/payout`, { method: 'POST' });
-    if (res.ok) {
-      const data = (await res.json()) as { affiliate: AffiliateRow };
-      setRows((prev) => prev.map((r) => (r.id === row.id ? data.affiliate : r)));
-    }
+    if (res.ok) await refetch();
   }
 
+  function copyLink(code: string) {
+    const url = `${storefrontOrigin}/r/${code}`;
+    navigator.clipboard?.writeText(url).catch(() => {
+      // fallback silencioso
+    });
+  }
+
+  // Resumo cards top
+  const summary = useMemo(() => {
+    const totalActive = rows.filter((r) => statusOf(r) === 'active').length;
+    const totalPending = rows.reduce((acc, r) => acc + r.pendingCents, 0);
+    const totalConversions = rows.reduce((acc, r) => acc + r.conversions, 0);
+    const totalClicks = rows.reduce((acc, r) => acc + r.clicks, 0);
+    return { totalActive, totalPending, totalConversions, totalClicks };
+  }, [rows]);
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
   return (
-    <div>
-      <div style={{ marginBottom: 16 }}>
-        <button
-          type="button"
-          onClick={() => setShowForm((v) => !v)}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+      {/* Summary cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-4)' }}>
+        <SummaryCard label="Nesta página" value={String(rows.length)} hint={`de ${meta.total} ${meta.status === 'all' ? '' : `· filtro: ${STATUS_TABS.find((t) => t.value === meta.status)?.label ?? meta.status}`}`} />
+        <SummaryCard label="Comissão pendente" value={fmtBRL(summary.totalPending)} hint="soma da página" highlight={summary.totalPending > 0} />
+        <SummaryCard label="Conversões" value={String(summary.totalConversions)} hint={`${summary.totalClicks} cliques`} />
+        <SummaryCard label="Ativos" value={String(summary.totalActive)} hint="hoje" />
+      </div>
+
+      {/* Toolbar */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'var(--space-3)',
+          flexWrap: 'wrap',
+          padding: 'var(--space-3) var(--space-4)',
+          background: 'var(--bg-elevated)',
+          borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--border)',
+        }}
+      >
+        <div style={{ position: 'relative', flex: '1 1 280px', minWidth: 240 }}>
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Buscar nome, email ou código…"
+            aria-label="Buscar afiliado"
+            style={{
+              width: '100%',
+              padding: 'var(--space-2) var(--space-3)',
+              fontSize: 'var(--text-body-s)',
+              border: '1px solid var(--border-strong)',
+              borderRadius: 'var(--radius-md)',
+              background: 'var(--bg)',
+              color: 'var(--fg)',
+              outline: 'none',
+            }}
+          />
+        </div>
+
+        <div role="tablist" aria-label="Status" style={{ display: 'inline-flex', gap: 2, background: 'var(--neutral-50)', padding: 2, borderRadius: 'var(--radius-md)' }}>
+          {STATUS_TABS.map((t) => {
+            const active = status === t.value;
+            return (
+              <button
+                key={t.value}
+                role="tab"
+                aria-selected={active}
+                type="button"
+                onClick={() => applyStatus(t.value)}
+                style={{
+                  padding: 'var(--space-1) var(--space-3)',
+                  fontSize: 'var(--text-caption)',
+                  fontWeight: active ? 600 : 500,
+                  color: active ? 'var(--fg)' : 'var(--fg-secondary)',
+                  background: active ? 'var(--bg-elevated)' : 'transparent',
+                  border: 'none',
+                  borderRadius: 'var(--radius-sm)',
+                  cursor: 'pointer',
+                  boxShadow: active ? 'var(--shadow-xs)' : 'none',
+                }}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <select
+          value={tag}
+          onChange={(e) => applyTag(e.target.value)}
+          aria-label="Filtrar por tag"
           style={{
-            padding: '8px 16px',
-            background: showForm ? 'var(--surface)' : 'var(--text-primary)',
-            color: showForm ? 'var(--text-primary)' : 'var(--text-on-dark, #fff)',
-            border: '1px solid var(--text-primary)',
-            borderRadius: 6,
-            fontSize: 13,
-            fontWeight: 500,
+            padding: 'var(--space-2) var(--space-3)',
+            fontSize: 'var(--text-caption)',
+            border: '1px solid var(--border-strong)',
+            borderRadius: 'var(--radius-md)',
+            background: 'var(--bg)',
+            color: 'var(--fg)',
             cursor: 'pointer',
           }}
         >
-          {showForm ? 'Cancelar' : '+ Novo afiliado'}
+          <option value="">Todas as tags</option>
+          {TAG_OPTIONS.map((o) => {
+            const facet = meta.tagFacets.find((f) => f.tag === o.value);
+            return (
+              <option key={o.value} value={o.value}>
+                {o.label}{facet ? ` (${facet.n})` : ''}
+              </option>
+            );
+          })}
+        </select>
+
+        <select
+          value={sort}
+          onChange={(e) => applySort(e.target.value)}
+          aria-label="Ordenar"
+          style={{
+            padding: 'var(--space-2) var(--space-3)',
+            fontSize: 'var(--text-caption)',
+            border: '1px solid var(--border-strong)',
+            borderRadius: 'var(--radius-md)',
+            background: 'var(--bg)',
+            color: 'var(--fg)',
+            cursor: 'pointer',
+          }}
+        >
+          {SORT_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+
+        <div style={{ flex: 1 }} />
+
+        <button
+          type="button"
+          onClick={openCreate}
+          style={{
+            padding: 'var(--space-2) var(--space-4)',
+            fontSize: 'var(--text-body-s)',
+            fontWeight: 600,
+            color: 'var(--fg-on-accent)',
+            background: 'var(--neutral-900)',
+            border: 'none',
+            borderRadius: 'var(--radius-md)',
+            cursor: 'pointer',
+          }}
+        >
+          + Novo afiliado
         </button>
       </div>
 
+      {/* Form modal-style inline */}
       {showForm && (
-        <form
-          onSubmit={handleCreate}
+        <FormCard
+          form={form}
+          setForm={setForm}
+          editing={!!editingId}
+          submitting={submitting}
+          error={formError}
+          onSubmit={handleSubmit}
+          onCancel={closeForm}
+        />
+      )}
+
+      {/* Table */}
+      <div
+        style={{
+          background: 'var(--bg-elevated)',
+          borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--border)',
+          overflow: 'hidden',
+          opacity: loading ? 0.6 : 1,
+          transition: 'opacity 120ms',
+        }}
+      >
+        {rows.length === 0 ? (
+          <EmptyState onCreate={openCreate} hasFilter={!!(search || status !== 'active' || tag)} />
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-body-s)' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border-strong)', background: 'var(--bg-subtle)' }}>
+                  <Th>Afiliado</Th>
+                  <Th>Código</Th>
+                  <Th>Status</Th>
+                  <Th>Tag</Th>
+                  <Th align="right">%</Th>
+                  <Th align="right">Cliques</Th>
+                  <Th align="right">Conv.</Th>
+                  <Th>Validade</Th>
+                  <Th align="right">Pendente</Th>
+                  <Th align="right">Pago</Th>
+                  <Th>Última atividade</Th>
+                  <Th align="center">Ações</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => {
+                  const st = statusOf(r);
+                  const badge = STATUS_BADGE[st];
+                  const tagLabel = TAG_OPTIONS.find((o) => o.value === r.tag)?.label;
+                  return (
+                    <tr key={r.id} style={{ borderBottom: '1px solid var(--border)', opacity: st === 'archived' ? 0.6 : 1 }}>
+                      <Td>
+                        <div style={{ fontWeight: 500, color: 'var(--fg)' }}>{r.affiliateName}</div>
+                        {r.affiliateEmail && <div style={{ fontSize: 11, color: 'var(--fg-muted)' }}>{r.affiliateEmail}</div>}
+                      </Td>
+                      <Td mono>
+                        <button
+                          type="button"
+                          onClick={() => copyLink(r.code)}
+                          title={`${storefrontOrigin}/r/${r.code} (clique pra copiar)`}
+                          style={{
+                            background: 'var(--neutral-50)',
+                            border: '1px solid var(--border)',
+                            borderRadius: 'var(--radius-sm)',
+                            padding: '2px var(--space-2)',
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: 12,
+                            cursor: 'pointer',
+                            color: 'var(--fg)',
+                          }}
+                        >
+                          {r.code}
+                        </button>
+                      </Td>
+                      <Td>
+                        <span style={{ display: 'inline-block', padding: '2px var(--space-2)', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 500, background: badge.bg, color: badge.fg }}>
+                          {badge.label}
+                        </span>
+                      </Td>
+                      <Td>
+                        {tagLabel ? (
+                          <span style={{ fontSize: 11, color: 'var(--fg-secondary)' }}>{tagLabel}</span>
+                        ) : (
+                          <span style={{ color: 'var(--fg-muted)' }}>—</span>
+                        )}
+                      </Td>
+                      <Td align="right">{bpsToPercent(r.commissionBps).toFixed(1)}%</Td>
+                      <Td align="right" mono>{r.clicks}</Td>
+                      <Td align="right" mono>
+                        {r.conversions}
+                        {r.maxUses ? <span style={{ color: 'var(--fg-muted)' }}>/{r.maxUses}</span> : null}
+                      </Td>
+                      <Td>
+                        <div style={{ fontSize: 11, color: 'var(--fg-secondary)' }}>{r.cookieDays}d cookie</div>
+                        {r.expiresAt && (
+                          <div style={{ fontSize: 11, color: new Date(r.expiresAt) < new Date() ? 'var(--error)' : 'var(--fg-muted)' }}>
+                            até {new Date(r.expiresAt).toLocaleDateString('pt-BR')}
+                          </div>
+                        )}
+                      </Td>
+                      <Td align="right" mono>
+                        <span style={{ color: r.pendingCents > 0 ? 'var(--accent)' : 'var(--fg)', fontWeight: r.pendingCents > 0 ? 500 : 400 }}>
+                          {fmtBRL(r.pendingCents)}
+                        </span>
+                      </Td>
+                      <Td align="right" mono>{fmtBRL(r.payoutCents)}</Td>
+                      <Td>
+                        <div style={{ fontSize: 11, color: 'var(--fg-secondary)' }}>click {fmtRelative(r.lastClickAt)}</div>
+                        <div style={{ fontSize: 11, color: 'var(--fg-muted)' }}>conv {fmtRelative(r.lastConversionAt)}</div>
+                      </Td>
+                      <Td align="center">
+                        <RowActions
+                          row={r}
+                          onEdit={() => openEdit(r)}
+                          onTogglePause={() => handleTogglePause(r)}
+                          onArchive={() => handleArchive(r)}
+                          onPayout={() => handlePayout(r)}
+                          onCopy={() => copyLink(r.code)}
+                        />
+                      </Td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Pagination */}
+      {meta.pages > 1 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--space-2) var(--space-1)' }}>
+          <div style={{ fontSize: 'var(--text-caption)', color: 'var(--fg-secondary)' }}>
+            Página {meta.page} de {meta.pages} · {meta.total} resultado{meta.total === 1 ? '' : 's'}
+          </div>
+          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+            <PageBtn disabled={meta.page <= 1} onClick={() => goPage(meta.page - 1)}>Anterior</PageBtn>
+            <PageBtn disabled={meta.page >= meta.pages} onClick={() => goPage(meta.page + 1)}>Próxima</PageBtn>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SummaryCard({ label, value, hint, highlight }: { label: string; value: string; hint?: string; highlight?: boolean }) {
+  return (
+    <div style={{
+      padding: 'var(--space-4)',
+      background: 'var(--bg-elevated)',
+      border: '1px solid var(--border)',
+      borderRadius: 'var(--radius-lg)',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 'var(--space-1)',
+    }}>
+      <div style={{ fontSize: 'var(--text-caption)', color: 'var(--fg-secondary)', textTransform: 'uppercase', letterSpacing: 'var(--track-wide)', fontWeight: 500 }}>{label}</div>
+      <div style={{ fontSize: 'var(--text-h3)', fontWeight: 600, color: highlight ? 'var(--accent)' : 'var(--fg)', letterSpacing: 'var(--track-tight)' }}>{value}</div>
+      {hint && <div style={{ fontSize: 11, color: 'var(--fg-muted)' }}>{hint}</div>}
+    </div>
+  );
+}
+
+function Th({ children, align }: { children: React.ReactNode; align?: 'left' | 'right' | 'center' }) {
+  return (
+    <th style={{
+      textAlign: align ?? 'left',
+      padding: 'var(--space-3)',
+      fontWeight: 500,
+      fontSize: 'var(--text-caption)',
+      color: 'var(--fg-secondary)',
+      textTransform: 'uppercase',
+      letterSpacing: 'var(--track-wide)',
+    }}>
+      {children}
+    </th>
+  );
+}
+
+function Td({ children, align, mono }: { children: React.ReactNode; align?: 'left' | 'right' | 'center'; mono?: boolean }) {
+  return (
+    <td style={{
+      textAlign: align ?? 'left',
+      padding: 'var(--space-3)',
+      verticalAlign: 'middle',
+      fontFamily: mono ? 'var(--font-mono)' : 'inherit',
+      fontVariantNumeric: mono ? 'tabular-nums' : 'normal',
+    }}>
+      {children}
+    </td>
+  );
+}
+
+function PageBtn({ children, onClick, disabled }: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        padding: 'var(--space-1) var(--space-3)',
+        fontSize: 'var(--text-caption)',
+        border: '1px solid var(--border-strong)',
+        borderRadius: 'var(--radius-md)',
+        background: disabled ? 'var(--neutral-50)' : 'var(--bg-elevated)',
+        color: disabled ? 'var(--fg-muted)' : 'var(--fg)',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function RowActions({ row, onEdit, onTogglePause, onArchive, onPayout, onCopy }: {
+  row: AffiliateRow;
+  onEdit: () => void;
+  onTogglePause: () => void;
+  onArchive: () => void;
+  onPayout: () => void;
+  onCopy: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function close(e: MouseEvent) {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+
+  const archived = !!row.archivedAt;
+
+  return (
+    <div ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Ações"
+        style={{
+          padding: '4px 10px',
+          fontSize: 14,
+          border: '1px solid var(--border-strong)',
+          background: 'var(--bg-elevated)',
+          borderRadius: 'var(--radius-md)',
+          cursor: 'pointer',
+          color: 'var(--fg)',
+        }}
+      >
+        ⋯
+      </button>
+      {open && (
+        <div
+          role="menu"
           style={{
-            padding: 16,
-            background: 'var(--surface-sunken, #FAF6EE)',
-            borderRadius: 8,
-            marginBottom: 24,
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: 12,
+            position: 'absolute',
+            right: 0,
+            top: 'calc(100% + 4px)',
+            minWidth: 180,
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--border-strong)',
+            borderRadius: 'var(--radius-md)',
+            boxShadow: 'var(--shadow-lg)',
+            zIndex: 30,
+            padding: 'var(--space-1)',
+            display: 'flex',
+            flexDirection: 'column',
           }}
         >
-          <input
-            placeholder="Nome do afiliado"
-            value={form.affiliateName}
-            onChange={(e) => setForm({ ...form, affiliateName: e.target.value })}
-            required
-            minLength={2}
-            style={{ padding: 8, borderRadius: 4, border: '1px solid var(--divider)' }}
-          />
-          <input
-            type="email"
-            placeholder="Email (opcional)"
-            value={form.affiliateEmail}
-            onChange={(e) => setForm({ ...form, affiliateEmail: e.target.value })}
-            style={{ padding: 8, borderRadius: 4, border: '1px solid var(--divider)' }}
-          />
-          <input
-            placeholder="Código (ex: MARIA10)"
+          <MenuItem onClick={() => { setOpen(false); onCopy(); }}>Copiar link</MenuItem>
+          {!archived && <MenuItem onClick={() => { setOpen(false); onEdit(); }}>Editar</MenuItem>}
+          {!archived && (
+            <MenuItem onClick={() => { setOpen(false); onTogglePause(); }}>
+              {row.active ? 'Pausar' : 'Reativar'}
+            </MenuItem>
+          )}
+          {row.pendingCents > 0 && !archived && (
+            <MenuItem onClick={() => { setOpen(false); onPayout(); }}>Marcar como pago</MenuItem>
+          )}
+          <div style={{ height: 1, background: 'var(--border)', margin: 'var(--space-1) 0' }} />
+          <MenuItem onClick={() => { setOpen(false); onArchive(); }} danger={!archived}>
+            {archived ? 'Desarquivar' : 'Arquivar'}
+          </MenuItem>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MenuItem({ children, onClick, danger }: { children: React.ReactNode; onClick: () => void; danger?: boolean }) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={onClick}
+      style={{
+        textAlign: 'left',
+        padding: 'var(--space-2) var(--space-3)',
+        fontSize: 'var(--text-body-s)',
+        border: 'none',
+        background: 'transparent',
+        color: danger ? 'var(--error)' : 'var(--fg)',
+        cursor: 'pointer',
+        borderRadius: 'var(--radius-sm)',
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-subtle)')}
+      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+    >
+      {children}
+    </button>
+  );
+}
+
+function EmptyState({ onCreate, hasFilter }: { onCreate: () => void; hasFilter: boolean }) {
+  return (
+    <div style={{ padding: 'var(--space-12)', textAlign: 'center', color: 'var(--fg-secondary)' }}>
+      {hasFilter ? (
+        <>
+          <p style={{ fontSize: 'var(--text-body)', color: 'var(--fg)', marginBottom: 'var(--space-2)' }}>Nenhum afiliado bate com os filtros.</p>
+          <p style={{ fontSize: 'var(--text-body-s)' }}>Limpe a busca ou troque o filtro de status.</p>
+        </>
+      ) : (
+        <>
+          <p style={{ fontSize: 'var(--text-body)', color: 'var(--fg)', marginBottom: 'var(--space-2)' }}>Nenhum afiliado cadastrado ainda.</p>
+          <p style={{ fontSize: 'var(--text-body-s)', marginBottom: 'var(--space-4)' }}>Crie códigos com comissão personalizada para influenciadores, parceiros ou embaixadores.</p>
+          <button
+            type="button"
+            onClick={onCreate}
+            style={{
+              padding: 'var(--space-2) var(--space-4)',
+              background: 'var(--neutral-900)',
+              color: 'var(--fg-on-accent)',
+              border: 'none',
+              borderRadius: 'var(--radius-md)',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            + Cadastrar primeiro afiliado
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+function FormCard({
+  form, setForm, editing, submitting, error, onSubmit, onCancel,
+}: {
+  form: FormState;
+  setForm: React.Dispatch<React.SetStateAction<FormState>>;
+  editing: boolean;
+  submitting: boolean;
+  error: string | null;
+  onSubmit: (e: React.FormEvent) => void;
+  onCancel: () => void;
+}) {
+  function setField<K extends keyof FormState>(k: K, v: FormState[K]) {
+    setForm((f) => ({ ...f, [k]: v }));
+  }
+
+  return (
+    <form
+      onSubmit={onSubmit}
+      style={{
+        background: 'var(--bg-elevated)',
+        border: '1px solid var(--border-strong)',
+        borderRadius: 'var(--radius-lg)',
+        padding: 'var(--space-6)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 'var(--space-5)',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <h2 style={{ fontSize: 'var(--text-h3)', fontWeight: 600, letterSpacing: 'var(--track-tight)' }}>
+          {editing ? 'Editar afiliado' : 'Novo afiliado'}
+        </h2>
+        <button type="button" onClick={onCancel} style={{ background: 'none', border: 'none', color: 'var(--fg-muted)', cursor: 'pointer', fontSize: 'var(--text-body-s)' }}>Fechar</button>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+        <Field label="Nome do afiliado" required>
+          <Input value={form.affiliateName} onChange={(v) => setField('affiliateName', v)} placeholder="ex: Maria Silva" required minLength={2} maxLength={200} />
+        </Field>
+        <Field label="Email (opcional)" hint="Para enviar relatórios mensais">
+          <Input type="email" value={form.affiliateEmail} onChange={(v) => setField('affiliateEmail', v)} placeholder="maria@exemplo.com" />
+        </Field>
+
+        <Field label="Código de divulgação" required hint="Letras maiúsculas, números, hífen. Ex: MARIA10">
+          <Input
             value={form.code}
-            onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '') })}
+            onChange={(v) => setField('code', v.toUpperCase().replace(/[^A-Z0-9-]/g, ''))}
+            placeholder="MARIA10"
             required
             minLength={2}
             maxLength={32}
-            style={{ padding: 8, borderRadius: 4, border: '1px solid var(--divider)', fontFamily: 'monospace' }}
+            mono
           />
-          <input
-            type="number"
-            placeholder="Comissão (bps — 1000=10%)"
-            value={form.commissionBps}
-            onChange={(e) => setForm({ ...form, commissionBps: parseInt(e.target.value) || 0 })}
-            min={0}
-            max={10000}
-            style={{ padding: 8, borderRadius: 4, border: '1px solid var(--divider)' }}
-          />
-          {error && (
-            <p style={{ gridColumn: '1 / -1', fontSize: 13, color: 'var(--error, #B91C1C)' }}>{error}</p>
+        </Field>
+        <Field label="Tag" hint="Categoriza para relatórios">
+          <Select value={form.tag} onChange={(v) => setField('tag', v)}>
+            <option value="">Sem tag</option>
+            {TAG_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </Select>
+        </Field>
+      </div>
+
+      <Field label="Comissão por venda" required hint="Quanto o afiliado ganha em cada conversão atribuída">
+        <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', alignItems: 'center' }}>
+          {COMMISSION_PRESETS.map((p) => {
+            const active = !form.customPercent && parseFloat(form.commissionPercent) === p;
+            return (
+              <button
+                key={p}
+                type="button"
+                onClick={() => { setField('commissionPercent', String(p)); setField('customPercent', false); }}
+                style={{
+                  padding: 'var(--space-1) var(--space-3)',
+                  fontSize: 'var(--text-body-s)',
+                  fontWeight: active ? 600 : 500,
+                  color: active ? 'var(--fg-on-accent)' : 'var(--fg)',
+                  background: active ? 'var(--accent)' : 'var(--bg-subtle)',
+                  border: '1px solid ' + (active ? 'var(--accent)' : 'var(--border)'),
+                  borderRadius: 'var(--radius-md)',
+                  cursor: 'pointer',
+                }}
+              >{p}%</button>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => setField('customPercent', !form.customPercent)}
+            style={{
+              padding: 'var(--space-1) var(--space-3)',
+              fontSize: 'var(--text-body-s)',
+              fontWeight: form.customPercent ? 600 : 500,
+              color: form.customPercent ? 'var(--fg-on-accent)' : 'var(--fg)',
+              background: form.customPercent ? 'var(--accent)' : 'var(--bg-subtle)',
+              border: '1px solid ' + (form.customPercent ? 'var(--accent)' : 'var(--border)'),
+              borderRadius: 'var(--radius-md)',
+              cursor: 'pointer',
+            }}
+          >Outro %</button>
+          {form.customPercent && (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <input
+                type="number"
+                step="0.1"
+                min={0}
+                max={100}
+                value={form.commissionPercent}
+                onChange={(e) => setField('commissionPercent', e.target.value)}
+                style={{
+                  width: 72,
+                  padding: 'var(--space-1) var(--space-2)',
+                  fontSize: 'var(--text-body-s)',
+                  border: '1px solid var(--border-strong)',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--bg)',
+                  color: 'var(--fg)',
+                  textAlign: 'right',
+                }}
+              />
+              <span style={{ color: 'var(--fg-secondary)' }}>%</span>
+            </div>
           )}
-          <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 8 }}>
-            <button
-              type="submit"
-              disabled={submitting}
+        </div>
+      </Field>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+        <Field label="Janela de atribuição" hint="Cookie no navegador do cliente. Após este prazo, a venda não é mais atribuída ao afiliado.">
+          <Select value={String(form.cookieDays)} onChange={(v) => setField('cookieDays', parseInt(v, 10))}>
+            {COOKIE_PRESETS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+          </Select>
+        </Field>
+        <Field label="Expiração do código" hint="Opcional. Após esta data o link para de gerar comissão.">
+          <Input type="date" value={form.expiresAt} onChange={(v) => setField('expiresAt', v)} />
+        </Field>
+      </div>
+
+      <Field label="Limite de conversões" hint="Quantas vendas o código pode gerar antes de parar de creditar comissão. Útil pra campanhas pontuais.">
+        <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', flexWrap: 'wrap' }}>
+          <label style={{ display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center', fontSize: 'var(--text-body-s)' }}>
+            <input
+              type="radio"
+              checked={!form.maxUsesEnabled}
+              onChange={() => setField('maxUsesEnabled', false)}
+            />
+            Ilimitado
+          </label>
+          <label style={{ display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center', fontSize: 'var(--text-body-s)' }}>
+            <input
+              type="radio"
+              checked={form.maxUsesEnabled}
+              onChange={() => setField('maxUsesEnabled', true)}
+            />
+            Limite
+          </label>
+          {form.maxUsesEnabled && (
+            <input
+              type="number"
+              min={1}
+              value={form.maxUses}
+              onChange={(e) => setField('maxUses', e.target.value)}
+              placeholder="ex: 100"
               style={{
-                padding: '8px 16px',
-                background: 'var(--text-primary)',
-                color: 'var(--text-on-dark, #fff)',
-                border: 'none',
-                borderRadius: 6,
-                cursor: submitting ? 'wait' : 'pointer',
+                width: 120,
+                padding: 'var(--space-2) var(--space-3)',
+                fontSize: 'var(--text-body-s)',
+                border: '1px solid var(--border-strong)',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--bg)',
+                color: 'var(--fg)',
               }}
-            >
-              {submitting ? 'Salvando...' : 'Criar afiliado'}
-            </button>
-          </div>
-        </form>
+            />
+          )}
+        </div>
+      </Field>
+
+      <Field label="Notas internas (opcional)" hint="Anote contato, contrato, condições. Não é exibido pro afiliado.">
+        <textarea
+          value={form.notes}
+          onChange={(e) => setField('notes', e.target.value)}
+          rows={3}
+          maxLength={500}
+          placeholder="ex: Influenciadora Instagram @maria, ROI alto em joias rosé"
+          style={{
+            width: '100%',
+            padding: 'var(--space-2) var(--space-3)',
+            fontSize: 'var(--text-body-s)',
+            border: '1px solid var(--border-strong)',
+            borderRadius: 'var(--radius-md)',
+            background: 'var(--bg)',
+            color: 'var(--fg)',
+            resize: 'vertical',
+            fontFamily: 'inherit',
+          }}
+        />
+      </Field>
+
+      {error && (
+        <div style={{
+          padding: 'var(--space-3) var(--space-4)',
+          background: 'var(--error-soft)',
+          color: 'var(--error)',
+          borderRadius: 'var(--radius-md)',
+          fontSize: 'var(--text-body-s)',
+        }}>
+          {error}
+        </div>
       )}
 
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-        <thead>
-          <tr style={{ borderBottom: '1px solid var(--divider)' }}>
-            <th style={{ textAlign: 'left', padding: '12px 8px', fontWeight: 500 }}>Afiliado</th>
-            <th style={{ textAlign: 'left', padding: '12px 8px', fontWeight: 500 }}>Código</th>
-            <th style={{ textAlign: 'right', padding: '12px 8px', fontWeight: 500 }}>%</th>
-            <th style={{ textAlign: 'right', padding: '12px 8px', fontWeight: 500 }}>Cliques</th>
-            <th style={{ textAlign: 'right', padding: '12px 8px', fontWeight: 500 }}>Conv.</th>
-            <th style={{ textAlign: 'right', padding: '12px 8px', fontWeight: 500 }}>Pago</th>
-            <th style={{ textAlign: 'right', padding: '12px 8px', fontWeight: 500 }}>Pendente</th>
-            <th style={{ textAlign: 'center', padding: '12px 8px', fontWeight: 500 }}>Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length === 0 && (
-            <tr>
-              <td colSpan={8} style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)' }}>
-                Nenhum afiliado cadastrado ainda. Clique em &quot;+ Novo afiliado&quot; para começar.
-              </td>
-            </tr>
-          )}
-          {rows.map((r) => (
-            <tr key={r.id} style={{ borderBottom: '1px solid var(--divider)', opacity: r.active ? 1 : 0.5 }}>
-              <td style={{ padding: '10px 8px' }}>
-                <div style={{ fontWeight: 500 }}>{r.affiliateName}</div>
-                {r.affiliateEmail && (
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{r.affiliateEmail}</div>
-                )}
-              </td>
-              <td style={{ padding: '10px 8px', fontFamily: 'monospace' }}>{r.code}</td>
-              <td style={{ padding: '10px 8px', textAlign: 'right' }}>{(r.commissionBps / 100).toFixed(1)}%</td>
-              <td style={{ padding: '10px 8px', textAlign: 'right' }}>{r.clicks}</td>
-              <td style={{ padding: '10px 8px', textAlign: 'right' }}>{r.conversions}</td>
-              <td style={{ padding: '10px 8px', textAlign: 'right' }}>{fmtBRL(r.payoutCents)}</td>
-              <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: r.pendingCents > 0 ? 500 : 400, color: r.pendingCents > 0 ? 'var(--accent)' : 'inherit' }}>
-                {fmtBRL(r.pendingCents)}
-              </td>
-              <td style={{ padding: '10px 8px', textAlign: 'center' }}>
-                <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
-                  {r.pendingCents > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => handlePayout(r)}
-                      style={{ padding: '4px 8px', fontSize: 11, borderRadius: 4, border: '1px solid var(--accent)', background: 'transparent', cursor: 'pointer' }}
-                    >
-                      Pagar
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => handleToggleActive(r)}
-                    style={{ padding: '4px 8px', fontSize: 11, borderRadius: 4, border: '1px solid var(--divider)', background: 'transparent', cursor: 'pointer' }}
-                  >
-                    {r.active ? 'Desativar' : 'Ativar'}
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+      <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
+        <button
+          type="button"
+          onClick={onCancel}
+          style={{
+            padding: 'var(--space-2) var(--space-4)',
+            background: 'transparent',
+            border: '1px solid var(--border-strong)',
+            color: 'var(--fg)',
+            borderRadius: 'var(--radius-md)',
+            cursor: 'pointer',
+            fontSize: 'var(--text-body-s)',
+          }}
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          disabled={submitting}
+          style={{
+            padding: 'var(--space-2) var(--space-5)',
+            background: 'var(--neutral-900)',
+            color: 'var(--fg-on-accent)',
+            border: 'none',
+            borderRadius: 'var(--radius-md)',
+            cursor: submitting ? 'wait' : 'pointer',
+            fontSize: 'var(--text-body-s)',
+            fontWeight: 600,
+          }}
+        >
+          {submitting ? 'Salvando…' : (editing ? 'Salvar alterações' : 'Criar afiliado')}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function Field({ label, required, hint, children }: { label: string; required?: boolean; hint?: string; children: React.ReactNode }) {
+  return (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+      <span style={{ fontSize: 'var(--text-body-s)', fontWeight: 500, color: 'var(--fg)' }}>
+        {label}
+        {required && <span style={{ color: 'var(--error)', marginLeft: 4 }}>*</span>}
+      </span>
+      {children}
+      {hint && <span style={{ fontSize: 11, color: 'var(--fg-muted)' }}>{hint}</span>}
+    </label>
+  );
+}
+
+function Input({ value, onChange, type, placeholder, required, minLength, maxLength, mono }: {
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
+  placeholder?: string;
+  required?: boolean;
+  minLength?: number;
+  maxLength?: number;
+  mono?: boolean;
+}) {
+  return (
+    <input
+      type={type ?? 'text'}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      required={required}
+      minLength={minLength}
+      maxLength={maxLength}
+      style={{
+        padding: 'var(--space-2) var(--space-3)',
+        fontSize: 'var(--text-body-s)',
+        border: '1px solid var(--border-strong)',
+        borderRadius: 'var(--radius-md)',
+        background: 'var(--bg)',
+        color: 'var(--fg)',
+        fontFamily: mono ? 'var(--font-mono)' : 'inherit',
+        outline: 'none',
+      }}
+    />
+  );
+}
+
+function Select({ value, onChange, children }: { value: string; onChange: (v: string) => void; children: React.ReactNode }) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      style={{
+        padding: 'var(--space-2) var(--space-3)',
+        fontSize: 'var(--text-body-s)',
+        border: '1px solid var(--border-strong)',
+        borderRadius: 'var(--radius-md)',
+        background: 'var(--bg)',
+        color: 'var(--fg)',
+        cursor: 'pointer',
+      }}
+    >
+      {children}
+    </select>
   );
 }
