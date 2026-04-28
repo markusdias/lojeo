@@ -7,7 +7,6 @@ import {
   boolean,
   timestamp,
   index,
-  uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { tenants } from './tenants';
 import { products } from './products';
