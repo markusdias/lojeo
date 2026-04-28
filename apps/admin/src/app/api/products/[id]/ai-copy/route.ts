@@ -40,7 +40,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const config = (tenant?.config ?? {}) as Record<string, unknown>;
 
-  // Brand guide stored in settings as flat strings — convert to prompt builder format
+  // Brand guide stored in settings as flat strings — convert to prompt builder format.
+  // /aparencia escreve em config.appearance.{aiTone, aiPerson, preferWords, avoidWords, slogan, tagline};
+  // /settings escreve em config.brandGuide.{brandName, tonePersonality, vocabPreferred, vocabAvoid, examples}.
+  // Aqui mesclamos os dois — appearance complementa, sem sobrescrever brandGuide explícito.
   interface StoredBrandGuide {
     brandName?: string;
     tonePersonality?: string;
@@ -48,18 +51,32 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     vocabAvoid?: string;
     examples?: string;
   }
+  interface StoredAppearance {
+    aiTone?: 'formal' | 'casual-warm' | 'poetic' | 'direct';
+    aiPerson?: 'voce' | 'tu' | 'voces' | 'neutro';
+    preferWords?: string;
+    avoidWords?: string;
+    slogan?: string;
+    tagline?: string;
+  }
   const stored = (config.brandGuide as StoredBrandGuide | undefined);
-  const brandGuide: BrandGuide | undefined = stored
-    ? {
-        brandName: stored.brandName ?? 'Atelier',
-        tonePersonality: stored.tonePersonality,
-        vocabulary: {
-          preferred: stored.vocabPreferred?.split(',').map(s => s.trim()).filter(Boolean),
-          avoid: stored.vocabAvoid?.split(',').map(s => s.trim()).filter(Boolean),
-        },
-        examples: stored.examples?.split('\n').map(s => s.trim()).filter(Boolean),
-      }
-    : undefined;
+  const appearance = (config.appearance as StoredAppearance | undefined) ?? {};
+  const csv = (s?: string) => s?.split(',').map(x => x.trim()).filter(Boolean) ?? [];
+  const preferred = [...csv(stored?.vocabPreferred), ...csv(appearance.preferWords)];
+  const avoid = [...csv(stored?.vocabAvoid), ...csv(appearance.avoidWords)];
+  const brandGuide: BrandGuide = {
+    brandName: stored?.brandName?.trim() || 'Atelier',
+    tonePersonality: stored?.tonePersonality,
+    tone: appearance.aiTone,
+    person: appearance.aiPerson,
+    slogan: appearance.slogan,
+    tagline: appearance.tagline,
+    vocabulary: {
+      preferred: preferred.length > 0 ? preferred : undefined,
+      avoid: avoid.length > 0 ? avoid : undefined,
+    },
+    examples: stored?.examples?.split('\n').map(s => s.trim()).filter(Boolean),
+  };
 
   const system = buildProductCopySystemPrompt(brandGuide);
   const userMessage = buildProductCopyUserMessage({

@@ -1,6 +1,27 @@
+export type BrandTone = 'formal' | 'casual-warm' | 'poetic' | 'direct';
+export type BrandPerson = 'voce' | 'tu' | 'voces' | 'neutro';
+
+const TONE_HINT: Record<BrandTone, string> = {
+  formal: 'Formal — linguagem polida, sem gírias, frases bem construídas.',
+  'casual-warm': 'Casual caloroso — tom acolhedor, emoção controlada, próximo do leitor.',
+  poetic: 'Poético — uso de imagens sensoriais, ritmo, metáforas sutis.',
+  direct: 'Direto — frases curtas, sem rodeio, foco em fato e benefício.',
+};
+
+const PERSON_HINT: Record<BrandPerson, string> = {
+  voce: 'Use "você" como pronome de tratamento.',
+  tu: 'Use "tu" como pronome de tratamento (registro regional).',
+  voces: 'Use "vocês" (plural) como tratamento, dirigindo-se ao casal/grupo.',
+  neutro: 'Evite pronomes pessoais; use construções impessoais.',
+};
+
 export interface BrandGuide {
   brandName: string;
   tonePersonality?: string;
+  tone?: BrandTone;
+  person?: BrandPerson;
+  slogan?: string;
+  tagline?: string;
   vocabulary?: { preferred?: string[]; avoid?: string[] };
   examples?: string[];
 }
@@ -40,6 +61,10 @@ export function buildProductCopySystemPrompt(guide: BrandGuide = DEFAULT_BRAND_G
   const pref = guide.vocabulary?.preferred?.join(', ') ?? '';
   const avoid = guide.vocabulary?.avoid?.join(', ') ?? '';
   const examples = (guide.examples ?? []).map((e, i) => `  ${i + 1}. "${e}"`).join('\n');
+  const toneLine = guide.tone ? `Registro: ${TONE_HINT[guide.tone]}` : '';
+  const personLine = guide.person ? `Pronome: ${PERSON_HINT[guide.person]}` : '';
+  const sloganLine = guide.slogan?.trim() ? `Slogan da marca: "${guide.slogan.trim()}"` : '';
+  const taglineLine = guide.tagline?.trim() ? `Descritor: "${guide.tagline.trim()}"` : '';
 
   return `<role>
 Você é copywriter de joias premium para ${guide.brandName}, e-commerce brasileiro de joalheria. Sua missão: criar descrições que equilibram storytelling emocional com especificações técnicas verificáveis.
@@ -47,6 +72,10 @@ Você é copywriter de joias premium para ${guide.brandName}, e-commerce brasile
 
 <brand_guidelines>
 Tom e personalidade: ${guide.tonePersonality ?? 'Luxo sem pretensão, voz ativa, sem emoji ou exclamação.'}
+${toneLine}
+${personLine}
+${sloganLine}
+${taglineLine}
 Vocabulário preferido: ${pref || 'artesanal, certificado, atemporal, lapidado'}
 Vocabulário a evitar: ${avoid || 'exclusivo, viral, trending, imperdível'}
 </brand_guidelines>

@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { db, products, productVariants, inventoryStock, chatbotSessions } from '@lojeo/db';
 import { eq, and, ilike, sql } from 'drizzle-orm';
 import { logger } from '@lojeo/logger';
+import { getTenantRuntimeConfig } from '../../../lib/tenant-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -107,14 +108,57 @@ async function getFaqAnswer(topic: string): Promise<string> {
 
 // ── System prompt ─────────────────────────────────────────────────────────────
 
-function buildSystemPrompt(context: { productName?: string; productId?: string }) {
+interface ChatBrandConfig {
+  brandName?: string;
+  tonePersonality?: string;
+  aiTone?: 'formal' | 'casual-warm' | 'poetic' | 'direct';
+  aiPerson?: 'voce' | 'tu' | 'voces' | 'neutro';
+  preferWords?: string;
+  avoidWords?: string;
+  slogan?: string;
+  tagline?: string;
+}
+
+const TONE_LABEL: Record<NonNullable<ChatBrandConfig['aiTone']>, string> = {
+  formal: 'Formal — linguagem polida, sem gírias.',
+  'casual-warm': 'Casual caloroso — acolhedor, próximo do cliente.',
+  poetic: 'Poético — imagens sensoriais, ritmo.',
+  direct: 'Direto — frases curtas, foco no fato.',
+};
+const PERSON_LABEL: Record<NonNullable<ChatBrandConfig['aiPerson']>, string> = {
+  voce: 'Use "você" como pronome.',
+  tu: 'Use "tu" como pronome (registro regional).',
+  voces: 'Use "vocês" (plural).',
+  neutro: 'Evite pronomes pessoais.',
+};
+
+function buildSystemPrompt(
+  context: { productName?: string; productId?: string },
+  brand: ChatBrandConfig = {},
+) {
   const contextStr = context.productName
     ? `\n\nContexto atual: o cliente está vendo o produto "${context.productName}" (ID: ${context.productId ?? 'n/a'}).`
     : '';
 
-  return `Você é uma assistente de joalheria premium para "Joias — Premium BR", uma loja de joias contemporâneas em ouro 18k e prata 925.
+  const brandName = brand.brandName?.trim() || 'Joias — Premium BR';
+  const tone = brand.tonePersonality?.trim()
+    || 'Elegante, acolhedor, expert em joias. Nunca frio ou robótico.';
+  const toneLine = brand.aiTone ? `Registro: ${TONE_LABEL[brand.aiTone]}` : '';
+  const personLine = brand.aiPerson ? `Pronome: ${PERSON_LABEL[brand.aiPerson]}` : '';
+  const sloganLine = brand.slogan?.trim() ? `Slogan: "${brand.slogan.trim()}"` : '';
+  const taglineLine = brand.tagline?.trim() ? `Descritor da marca: "${brand.tagline.trim()}"` : '';
+  const preferLine = brand.preferWords?.trim() ? `Vocabulário preferido: ${brand.preferWords.trim()}` : '';
+  const avoidLine = brand.avoidWords?.trim() ? `Vocabulário a evitar: ${brand.avoidWords.trim()}` : '';
 
-Tom de voz: elegante, acolhedor, expert em joias. Nunca seja frio ou robótico.
+  return `Você é uma assistente de joalheria premium para "${brandName}", uma loja de joias contemporâneas em ouro 18k e prata 925.
+
+Tom de voz: ${tone}
+${toneLine}
+${personLine}
+${sloganLine}
+${taglineLine}
+${preferLine}
+${avoidLine}
 Língua: sempre português brasileiro.
 Foco: ajudar o cliente a encontrar a joia perfeita e resolver dúvidas sobre produtos, frete, troca, garantia.
 
@@ -263,7 +307,17 @@ export async function POST(req: NextRequest) {
   }
 
   const context = body.context ?? {};
-  const systemPrompt = buildSystemPrompt(context);
+  const { appearance, brandGuide } = await getTenantRuntimeConfig();
+  const systemPrompt = buildSystemPrompt(context, {
+    brandName: brandGuide.brandName,
+    tonePersonality: brandGuide.tonePersonality,
+    aiTone: appearance.aiTone as 'formal' | 'casual-warm' | 'poetic' | 'direct' | undefined,
+    aiPerson: appearance.aiPerson as 'voce' | 'tu' | 'voces' | 'neutro' | undefined,
+    preferWords: appearance.preferWords,
+    avoidWords: appearance.avoidWords,
+    slogan: appearance.slogan,
+    tagline: appearance.tagline,
+  });
 
   try {
     const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
