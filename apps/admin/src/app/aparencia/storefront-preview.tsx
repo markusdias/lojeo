@@ -19,6 +19,14 @@ const TONE_BG: Record<string, string> = {
   cream: '#F5EFE3',
 };
 
+// --surface-sunken por data-bg-tone — valores exatos do tokens.css
+const TONE_SURFACE_SUNKEN: Record<string, string> = {
+  warm: '#F4F1E9',
+  pure: '#F5F5F5',
+  cool: '#EEF0F3',
+  cream: '#EBE3D2',
+};
+
 const ACCENT_HEX: Record<string, string> = {
   champagne: '#B8956A',
   silver: '#9AA0A6',
@@ -27,10 +35,21 @@ const ACCENT_HEX: Record<string, string> = {
   'noir-rose': '#5C3A3F',
 };
 
+// --accent-soft valores exatos do tokens.css (não hex+alpha aproximado)
+const ACCENT_SOFT: Record<string, string> = {
+  champagne: '#F2EAD9',
+  silver: '#ECEEF1',
+  'rose-gold': '#F4E7DD',
+  copper: '#F0DDCD',
+  'noir-rose': '#ECDBDD',
+};
+
+// size: 1 para todos os combos — tokens.css não reduz escala global por combo
+// (combo C usa font-feature-settings, não font-size menor)
 const TYPE_FAMILIES: Record<string, { display: string; body: string; weight: number; size: number }> = {
   a: { display: '"Cormorant Garamond","Cormorant",Georgia,serif', body: 'Inter,system-ui,sans-serif', weight: 500, size: 1 },
-  b: { display: '"Playfair Display",Georgia,serif', body: '"Source Sans 3",system-ui,sans-serif', weight: 500, size: 1.02 },
-  c: { display: 'Inter,system-ui,sans-serif', body: '"JetBrains Mono",ui-monospace,monospace', weight: 600, size: 0.95 },
+  b: { display: '"Playfair Display",Georgia,serif', body: '"Source Sans 3",system-ui,sans-serif', weight: 500, size: 1 },
+  c: { display: 'Inter,system-ui,sans-serif', body: '"JetBrains Mono",ui-monospace,monospace', weight: 600, size: 1 },
 };
 
 const RADIUS: Record<string, string> = { '0': '0', '8': '8px', '16': '16px' };
@@ -43,8 +62,12 @@ const SCALE_FACTOR: Record<string, number> = { smaller: 0.85, default: 1, larger
  * mudanças nos controles (sem rebuild do storefront real).
  */
 export function StorefrontPreview({ config }: { config: PreviewConfig }) {
-  const bg = TONE_BG[config.bgTone ?? 'warm'] ?? '#FAFAF6';
-  const accent = ACCENT_HEX[config.accent ?? 'champagne'] ?? '#B8956A';
+  const bgToneKey = config.bgTone ?? 'warm';
+  const bg = TONE_BG[bgToneKey] ?? '#FAFAF6';
+  const surfaceSunken = TONE_SURFACE_SUNKEN[bgToneKey] ?? '#F4F1E9';
+  const accentKey = config.accent ?? 'champagne';
+  const accent = ACCENT_HEX[accentKey] ?? '#B8956A';
+  const accentSoft = ACCENT_SOFT[accentKey] ?? '#F2EAD9';
   const baseT = TYPE_FAMILIES[config.typo ?? 'a'] ?? TYPE_FAMILIES.a!;
   const scaleFactor = SCALE_FACTOR[config.typeScale ?? 'default'] ?? 1;
   const t = { ...baseT, size: baseT.size * scaleFactor };
@@ -60,7 +83,7 @@ export function StorefrontPreview({ config }: { config: PreviewConfig }) {
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingBottom: 'clamp(12px, 1.5vw, 18px)',
-        borderBottom: `1px solid ${bg === '#FFFFFF' ? '#EAEAEA' : 'rgba(0,0,0,0.08)'}`,
+        borderBottom: '1px solid #E8E2D5',
         marginBottom: 'clamp(20px, 3vw, 36px)',
       }}>
         <div style={{
@@ -84,7 +107,7 @@ export function StorefrontPreview({ config }: { config: PreviewConfig }) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'clamp(16px, 2.5vw, 28px)', alignItems: 'center', marginBottom: 'clamp(28px, 4vw, 48px)' }}>
           <div style={{
             aspectRatio: '4/5',
-            background: `linear-gradient(135deg, ${accent}, ${accent}aa)`,
+            background: `linear-gradient(135deg, ${accent}, ${accentSoft})`,
             borderRadius: radius,
             position: 'relative',
             overflow: 'hidden',
@@ -133,7 +156,7 @@ export function StorefrontPreview({ config }: { config: PreviewConfig }) {
 
       {hero === 'carousel' && (
         <div style={{ marginBottom: 32 }}>
-          <div style={{ aspectRatio: '21/9', background: `linear-gradient(135deg, ${accent}, ${accent}aa)`, borderRadius: radius }} />
+          <div style={{ aspectRatio: '21/9', background: `linear-gradient(135deg, ${accent}, ${accentSoft})`, borderRadius: radius }} />
           <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 12 }}>
             {[1, 2, 3].map(i => (
               <span key={i} style={{ width: 24, height: 2, background: i === 1 ? accent : '#ccc' }} />
@@ -145,7 +168,7 @@ export function StorefrontPreview({ config }: { config: PreviewConfig }) {
       {hero === 'grid' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 32 }}>
           {[1, 2, 3].map(i => (
-            <div key={i} style={{ aspectRatio: '3/4', background: `linear-gradient(135deg, ${accent}aa, ${accent}55)`, borderRadius: radius }} />
+            <div key={i} style={{ aspectRatio: '3/4', background: `linear-gradient(135deg, ${accentSoft}, ${accent})`, borderRadius: radius }} />
           ))}
         </div>
       )}
@@ -172,7 +195,7 @@ export function StorefrontPreview({ config }: { config: PreviewConfig }) {
           <div key={p.name}>
             <div style={{
               aspectRatio: '1',
-              background: bg === '#FFFFFF' ? '#F2EDE2' : 'rgba(0,0,0,0.04)',
+              background: surfaceSunken,
               borderRadius: radius,
               marginBottom: 8,
               position: 'relative',
@@ -202,7 +225,7 @@ export function StorefrontPreview({ config }: { config: PreviewConfig }) {
           gap: 'clamp(12px, 2vw, 24px)',
           flexWrap: 'wrap',
           paddingTop: 'clamp(16px, 2vw, 24px)',
-          borderTop: `1px solid ${bg === '#FFFFFF' ? '#EAEAEA' : 'rgba(0,0,0,0.08)'}`,
+          borderTop: '1px solid #E8E2D5',
           fontSize: 11,
           color: '#666',
         }}>

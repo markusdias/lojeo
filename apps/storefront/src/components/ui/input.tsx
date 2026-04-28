@@ -42,7 +42,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   ref,
 ) {
   const variantStyle = variantStyles[variant];
-  const borderColor = invalid ? 'var(--accent)' : undefined;
+  const borderColor = invalid ? 'var(--error)' : undefined;
   const merged: CSSProperties = {
     ...baseStyle,
     ...variantStyle,

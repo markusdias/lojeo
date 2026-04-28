@@ -49,8 +49,8 @@ export function HeartButton({ productId, slug, name, priceCents, imageUrl, size 
         width={size}
         height={size}
         viewBox="0 0 24 24"
-        fill={active ? 'var(--accent)' : 'none'}
-        stroke={active ? 'var(--accent)' : 'var(--text-muted)'}
+        fill={active ? 'var(--wishlist-color, #C8605A)' : 'none'}
+        stroke={active ? 'var(--wishlist-color, #C8605A)' : 'var(--text-muted)'}
         strokeWidth={2}
         strokeLinecap="round"
         strokeLinejoin="round"

@@ -29,7 +29,7 @@ function Pip({ children }: { children: React.ReactNode }) {
   return (
     <span style={{
       position: 'absolute', top: -2, right: -4,
-      background: 'var(--accent)', color: '#fff',
+      background: 'var(--pip-bg, var(--text-primary, #1A1612))', color: '#fff',
       fontSize: 10, fontWeight: 600, height: 16, minWidth: 16,
       borderRadius: 999, padding: '0 4px',
       display: 'grid', placeItems: 'center',

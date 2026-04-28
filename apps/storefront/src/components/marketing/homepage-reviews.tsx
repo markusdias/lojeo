@@ -40,7 +40,7 @@ export function HomepageReviews() {
               gap: 16,
             }}
           >
-            <div aria-label={`${r.rating} de 5 estrelas`} style={{ display: 'inline-flex', gap: 2, color: 'var(--accent)' }}>
+            <div aria-label={`${r.rating} de 5 estrelas`} style={{ display: 'inline-flex', gap: 2, color: 'var(--star-color, #C8A037)' }}>
               {Array.from({ length: 5 }).map((_, j) => (
                 <svg key={j} width="16" height="16" viewBox="0 0 24 24" fill={j < r.rating ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                   <path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z" />

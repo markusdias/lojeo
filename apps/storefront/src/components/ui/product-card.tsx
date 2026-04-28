@@ -53,7 +53,7 @@ export function ProductCard({ id, name, slug, priceCents, comparePriceCents, ima
         {discount && (
           <span style={{
             position: 'absolute', top: 12, left: 12,
-            background: 'var(--accent)', color: '#fff',
+            background: 'var(--promo-bg, var(--warning, #B8853A))', color: '#fff',
             fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 2,
           }}>
             -{discount}%

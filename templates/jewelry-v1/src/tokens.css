@@ -81,6 +81,12 @@
   --warning:          var(--color-warning);
   --warning-bg:       var(--color-warning-bg);
 
+  /* Semantic UI colors — NÃO seguem o accent do lojista */
+  --wishlist-color:   #C8605A;  /* vermelho rosé fixo — coração de favorito */
+  --star-color:       #C8A037;  /* âmbar dourado fixo — estrelas de avaliação */
+  --promo-bg:         var(--color-warning);  /* badge de desconto */
+  --pip-bg:           var(--color-ink-900);  /* badge contador cart/wishlist */
+
   --footer-bg:        #1A1612;
   --footer-text:      #FAFAF6;
   --footer-muted:     #8B8275;
