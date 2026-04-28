@@ -22,7 +22,9 @@ COPY packages/email/package.json ./packages/email/
 COPY packages/engine/package.json ./packages/engine/
 COPY packages/ui/package.json ./packages/ui/
 COPY packages/logger/package.json ./packages/logger/
+COPY packages/notifications/package.json ./packages/notifications/
 COPY templates/jewelry-v1/package.json ./templates/jewelry-v1/
+COPY templates/coffee-v1/package.json ./templates/coffee-v1/
 RUN pnpm install --frozen-lockfile --prefer-offline
 COPY . .
 RUN pnpm --filter @lojeo/storefront build
