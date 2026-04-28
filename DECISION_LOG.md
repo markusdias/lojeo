@@ -6265,3 +6265,62 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - Não migrei prod automaticamente após criar schemas — deveria ter incluído `curl POST /api/migrate` em cada batch que adicionou tabela.
 - V2: cron CI aplicar migrations prod automaticamente após deploy.
 
+
+---
+
+## 2026-04-28 — Batch 64: Afiliados V2 funcional (scout-first + plan + impl)
+
+**Commits:** (a registrar nesta sessao).
+
+**Scout-first concluído:**
+- WebSearch ReferralCandy / Tapfiliate / Rewardful / Refersion / Partnero / FirstPromoter.
+- Best practices identified: short links (30% CTR > query strings), self-serve signup, painel cliente, cookie 30d default, server-side tracking.
+
+**Plan documentado em `docs/affiliates-plan.md`:**
+- V1 atual gap analysis vs spec ecommerce-requisitos sec 14.3+18+22.3.
+- V2 scope: signup self-serve + dashboard cliente + short link redirect + materiais.
+- V3 explicit out of scope: Tremendous payouts, multi-tier, coupon-per-affiliate, fraud detection.
+
+**Implementação:**
+
+`/r/[code]` page público (storefront/app/r/[code]/route.ts):
+- GET → increment click atomic + cookie 30d + redirect (`?to=/path` opcional, internal-only anti-open-redirect).
+- Sanitize code A-Z0-9- only.
+- 30% CTR ganho vs query string longo.
+
+`/api/conta/afiliado` storefront:
+- GET retorna affiliate_link do user logado + recent 20 conversões (jsonb match metadata.affiliateRef).
+- POST signup self-serve. Zod validation (name min 2, code regex A-Z0-9-). Auto-aprovação V1 (active=true). 409 code duplicado.
+- 401 sem session, 404 sem cadastro.
+
+`/conta/afiliado` page client:
+- Empty state + CTA "Quero ser embaixador" + how-it-works section.
+- Form signup inline (nome + code com preview link).
+- Dashboard pós-cadastro:
+  - Hero: link pessoal copiable + cookie 30d notice.
+  - 4 stat cards (Cliques / Conversões / A receber highlight / Já pago).
+  - Tabela 20 últimas conversões com commission compute + paid/pending badge.
+  - Materiais: 3 copy boxes (mensagem curta / story / WhatsApp) com botão copiar.
+  - Footer link voltar /conta.
+
+`/conta/layout.tsx` ganha link "Embaixador".
+
+**6 tests vitest signup schema** (name min/max, code regex strict A-Z0-9-).
+
+**Trade-offs:**
+- Auto-aprovação V1 — V2 fila admin review.
+- Materiais hardcoded copy (não persisted) — V2 tenant.config.affiliates.materials editável.
+- Sem coupon-per-affiliate — V2.
+- Sem signup OAuth tipo "Google login pra virar afiliado" — usa session existente do storefront.
+- Rate limit signup NÃO adicionado — endpoint requer session, abuso baixo.
+- Anti-fraud: afiliado clicando próprio link aumenta clicks mas conversion only se outro user finalizar order — auto-fraud difícil exploit.
+
+**Validações:**
+- pnpm -r typecheck zero erro.
+- 520 passing total (+6 signup schema). storefront 179/179. Zero regressao.
+- pnpm -r lint admin/storefront limpo.
+
+**Próximo ciclo:**
+- Playwright UX test em prod: signup flow → dashboard → /r/[code] redirect → cookie persistido.
+- V2 fila admin review de signups.
+- Materiais editáveis em tenant config.

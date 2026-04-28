@@ -12,6 +12,7 @@ const NAV = [
   { href: '/conta/enderecos', label: 'Endereços' },
   { href: '/conta/galeria', label: 'Minhas fotos' },
   { href: '/wishlist', label: 'Lista de desejos' },
+  { href: '/conta/afiliado', label: 'Embaixador' },
   { href: '/conta/notificacoes', label: 'Notificações' },
   { href: '/conta/privacidade', label: 'Privacidade' },
 ];
