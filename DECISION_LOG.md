@@ -5934,3 +5934,41 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - Storefront `/nps` page client (read query params, captura score + comment, POST).
 - P5.V — dogfood DB-real CI (GitHub Actions service postgres).
 - Migrar restante emit hooks pra multichannel.
+
+---
+
+## 2026-04-27 (continuacao) — Batch 56: /nps page storefront + /api/nps GET admin
+
+**Commits:** (a registrar nesta sessao).
+
+**`/nps` page (storefront client):**
+- Captura query params: `orderId`, `trigger`, `score` (pre-fill).
+- 11 score buttons 0-10 colorizados (vermelho 0-6 / amarelo 7-8 / verde 9-10 quando selected).
+- Textarea comment maxLength 2000 + email opcional.
+- Submit → POST /api/nps com `{ score, comment, customerEmail, surveyTrigger, relatedOrderId }`.
+- Estados: form / submitting / submitted (thank-you) / error.
+- Suspense wrapper pra useSearchParams.
+- Score sempre obrigatório, comment + email opcional.
+
+**`GET /api/nps` (admin):**
+- Lê responses dos últimos N dias (default 90, range 1-365).
+- Agrega via `computeNps` engine helper → retorna `{ nps, promoters, passives, detractors, total }`.
+- Lista últimas N respostas (default 20, max 100) com comment + customerEmail + surveyTrigger.
+- Auth via authorizeCronRequest (session admin).
+
+**Trade-offs arquiteturais:**
+- Page é client-side puro — sem pre-fetch SSR. Trade-off pra suportar pre-fill score via URL sem re-render.
+- Email opcional — captura silenciosa pra futuro retorno proativo do lojista.
+- Dashboard widget UI consumindo /api/nps NÃO criado neste batch — V2 widget em /admin/dashboard ou /clientes mostrando NPS gauge + recent comments scroll.
+- Score buttons coloridos só quando selected — UI minimalista jewelry-v1 mood.
+- surveyTrigger preserved do query — `delivery_d7` quando vem do email cron, `manual` default.
+
+**Validações:**
+- pnpm -r typecheck zero erro.
+- 514 passing total. Zero regressao.
+- pnpm -r lint admin/storefront limpo.
+
+**Próximo ciclo:**
+- Dashboard widget /admin consumindo /api/nps.
+- Migrar restante 5/9 emit hooks pra multichannel (order.created/paid, review.pending, return.requested, restock.demand, fiscal.failed, ticket.assigned).
+- Endpoint admin GET /api/customers/cohort + dashboard widget retention.
