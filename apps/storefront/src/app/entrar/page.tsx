@@ -678,9 +678,21 @@ function RecoverForm({ onSwitch }: { onSwitch: (mode: AuthMode) => void }) {
 
 function EntrarContent() {
   const params = useSearchParams();
+  const router = useRouter();
   const callbackUrl = params.get('callbackUrl') ?? params.get('next') ?? '/conta';
-  const initialMode: AuthMode = params.get('mode') === 'signup' ? 'signup' : 'login';
-  const [mode, setMode] = useState<AuthMode>(initialMode);
+  const paramMode = params.get('mode');
+  const initialMode: AuthMode =
+    paramMode === 'signup' ? 'signup' : paramMode === 'recover' ? 'recover' : 'login';
+  const [mode, setModeState] = useState<AuthMode>(initialMode);
+
+  const setMode = (next: AuthMode) => {
+    setModeState(next);
+    const sp = new URLSearchParams(params.toString());
+    if (next === 'login') sp.delete('mode');
+    else sp.set('mode', next);
+    const qs = sp.toString();
+    router.replace(`/entrar${qs ? `?${qs}` : ''}`, { scroll: false });
+  };
 
   return (
     <div
