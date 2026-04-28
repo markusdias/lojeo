@@ -7,6 +7,7 @@ import { RevenueWeekChart } from '../../components/ui/revenue-week-chart';
 import { formatRelativeTime, fmtBrl } from '../../lib/format';
 import { forecastStockBatch, scoreCustomers, type ProductSalesData, type RfmInput } from '@lojeo/engine';
 import { NpsWidget } from './nps-widget';
+import { CohortWidget } from './cohort-widget';
 
 export const dynamic = 'force-dynamic';
 
@@ -462,9 +463,10 @@ export default async function DashboardPage() {
         </aside>
       </div>
 
-      {/* Linha 2.5: NPS widget */}
-      <div style={{ marginBottom: 'var(--space-6)' }}>
+      {/* Linha 2.5: NPS + Cohort widgets */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 'var(--space-6)', marginBottom: 'var(--space-6)' }}>
         <NpsWidget />
+        <CohortWidget />
       </div>
 
       {/* Linha 3: Últimos pedidos (2/3) + Insights de hoje (1/3) */}

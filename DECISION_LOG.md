@@ -6005,3 +6005,43 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - Cohort retention dashboard widget consumindo `cohortRetention` engine.
 - Endpoint admin GET /api/customers/cohort.
 - Refactor pra package shared `@lojeo/notifications` (multichannel storefront+admin).
+
+---
+
+## 2026-04-27 (continuacao) — Batch 58: Cohort retention dashboard widget
+
+**Commits:** (a registrar nesta sessao).
+
+**`/dashboard/cohort-widget.tsx` server component:**
+- Query orders ultimos 6 meses (não cancelados, com customerEmail).
+- `cohortRetention` engine helper agrupa por mês primeiro pedido + retentionByOffset matriz.
+- Tabela 7 colunas: Cohort + Tamanho + M0..M6 (offset relativo).
+- Cores cell baseado em retention %:
+  - M0 sempre 100% (cohort definition) — cor neutra `bg-subtle`.
+  - >= 50% verde (`#1a8056`).
+  - >= 25% amarelo (`#d4a04c`).
+  - 0-24% vermelho (`#b94a4a`).
+  - 0% (sem retorno) — `bg-subtle`.
+- Fonte mono em mês cohort + tabular-nums em pcts.
+- Empty state quando sem orders.
+- Footer copy explicativo.
+
+**Layout grid 2 colunas:**
+- NPS widget + Cohort widget side-by-side em `minmax(0, 1fr) minmax(0, 1fr)`.
+- Antes: NPS widget largura 100%. Agora compartilha row com cohort.
+
+**Trade-offs arquiteturais:**
+- 6 meses fixed window — V2 tornar configurável via query param ou sidebar.
+- Cohort sort: helper retorna em ordem ascending (mais antigo primeiro). UI mantém — lojista lê top-to-bottom como timeline.
+- maxOffset calculado entre todos cohorts pra alinhar colunas — cohort recente (1 mês) só preenche M0, demais N/A.
+- Sem trend line ou avg retention — V2 expand pra incluir gráfico de retenção média.
+
+**Validações:**
+- pnpm -r typecheck zero erro.
+- 514 passing total. Zero regressao.
+- pnpm -r lint admin/storefront limpo.
+
+**Próximo ciclo:**
+- Refactor multichannel pra package shared `@lojeo/notifications` (storefront+admin).
+- bestSendHour widget admin.
+- P5.V — dogfood DB-real CI activation check.
