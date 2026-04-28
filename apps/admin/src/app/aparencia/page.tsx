@@ -9,6 +9,7 @@ interface AppearanceConfig {
   accent?: string;
   bgTone?: string;
   imgRadius?: '0' | '8' | '16';
+  typeScale?: 'default' | 'larger' | 'smaller';
   photoStyle?: 'isolated' | 'lifestyle' | 'mix';
   hero?: 'image' | 'video' | 'carousel' | 'grid';
   trustSignals?: string[];
@@ -105,23 +106,29 @@ const TEMPLATES: TemplateMeta[] = [
 
 const TYPO_OPTIONS = [
   { value: 'a', label: 'Clássica refinada', detail: 'Cormorant + Inter', font: "'Cormorant Garamond', Georgia, serif" },
-  { value: 'b', label: 'Moderna alto-contraste', detail: 'Tenor Sans + Inter', font: "'Tenor Sans', Georgia, serif" },
-  { value: 'c', label: 'Minimalista monoespaço', detail: 'JetBrains Mono', font: "'JetBrains Mono', ui-monospace, monospace" },
+  { value: 'b', label: 'Editorial alto-contraste', detail: 'Playfair Display + Source Sans 3', font: "'Playfair Display', Georgia, serif" },
+  { value: 'c', label: 'Object-design monoespaço', detail: 'Inter + JetBrains Mono', font: "'Inter', system-ui, sans-serif" },
 ];
 
 const ACCENT_PRESETS = [
-  { v: 'gold-matte', l: 'Dourado fosco', s: '#C8A24B' },
-  { v: 'roasted-coffee', l: 'Café tostado', s: '#7A4F2A' },
-  { v: 'deep-green', l: 'Verde profundo', s: '#1A4D3E' },
-  { v: 'wine', l: 'Vinho', s: '#9F1239' },
-  { v: 'editorial-black', l: 'Preto editorial', s: '#0A0A0A' },
+  { v: 'champagne', l: 'Champagne', s: '#B8956A' },
+  { v: 'silver', l: 'Prata', s: '#9AA0A6' },
+  { v: 'rose-gold', l: 'Ouro Rosê', s: '#C8A28C' },
+  { v: 'copper', l: 'Cobre', s: '#A96B3F' },
+  { v: 'noir-rose', l: 'Noir Rosê', s: '#5C3A3F' },
 ];
 
 const BG_TONES = [
-  { id: 'cream-warm', hex: '#F6EFE3', label: 'Off-white quente' },
-  { id: 'pure-white', hex: '#FFFFFF', label: 'Branco puro' },
-  { id: 'cream-cool', hex: '#F4F4EE', label: 'Off-white frio' },
-  { id: 'off-white', hex: '#FAF7F0', label: 'Creme' },
+  { id: 'warm', hex: '#FAFAF6', label: 'Warm (padrão)' },
+  { id: 'pure', hex: '#FFFFFF', label: 'Branco puro' },
+  { id: 'cool', hex: '#F7F8FA', label: 'Cool' },
+  { id: 'cream', hex: '#F5EFE3', label: 'Cream' },
+];
+
+const TYPE_SCALE_OPTIONS: { value: 'default' | 'larger' | 'smaller'; label: string }[] = [
+  { value: 'smaller', label: 'Compacta' },
+  { value: 'default', label: 'Padrão' },
+  { value: 'larger', label: 'Espaçosa' },
 ];
 
 const PHOTO_STYLES = [
@@ -189,10 +196,11 @@ export default function AparenciaPage() {
   const activeTemplate = TEMPLATES.find(t => t.id === settings.templateId) ?? TEMPLATES[0]!;
   const appearance = settings.config.appearance ?? {};
   const typo = appearance.typo ?? 'a';
-  const accent = appearance.accent ?? 'gold-matte';
-  const bgTone = appearance.bgTone ?? 'cream-warm';
+  const accent = appearance.accent ?? 'champagne';
+  const bgTone = appearance.bgTone ?? 'warm';
   const photoStyle = appearance.photoStyle ?? 'isolated';
   const imgRadius = appearance.imgRadius ?? '8';
+  const typeScale = appearance.typeScale ?? 'default';
   const hero = appearance.hero ?? 'image';
   const trustSignals = appearance.trustSignals ?? ['shipping', 'warranty', 'returns', 'payment'];
   const aiTone = appearance.aiTone ?? 'casual-warm';
@@ -259,9 +267,7 @@ export default function AparenciaPage() {
               <button type="button" onClick={() => setShowSwitcher(true)} className="lj-btn-primary">
                 Trocar template
               </button>
-              <button type="button" className="lj-btn-secondary">Ver changelog</button>
             </div>
-            <p className="caption">Atualização disponível: <strong>v1.4.3</strong> · <a href="#" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 'var(--w-medium)' }}>changelog</a></p>
           </div>
         </div>
       </section>
@@ -359,6 +365,24 @@ export default function AparenciaPage() {
                       style={{ flex: 1, padding: 12, border: active ? '1.5px solid var(--accent)' : '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: active ? 'var(--accent-soft)' : 'transparent', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
                       <span aria-hidden style={{ width: 40, height: 28, background: '#C8A24B', borderRadius: r + 'px' }} />
                       <span className="mono" style={{ fontSize: 11 }}>{r}px</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </ConfigSection>
+
+            {/* Escala tipográfica */}
+            <ConfigSection title="Escala tipográfica" open={openSection === 'typeScale'} onToggle={() => setOpenSection(openSection === 'typeScale' ? null : 'typeScale')}>
+              <p className="caption" style={{ marginBottom: 'var(--space-3)' }}>Define o tamanho geral de títulos e corpo de texto no storefront.</p>
+              <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                {TYPE_SCALE_OPTIONS.map(o => {
+                  const active = typeScale === o.value;
+                  const previewSize = o.value === 'smaller' ? 14 : o.value === 'larger' ? 22 : 18;
+                  return (
+                    <button key={o.value} type="button" onClick={() => setAppearance({ typeScale: o.value })}
+                      style={{ flex: 1, padding: 12, border: active ? '1.5px solid var(--accent)' : '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: active ? 'var(--accent-soft)' : 'transparent', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                      <span aria-hidden style={{ fontSize: previewSize, lineHeight: 1, fontWeight: 500, color: active ? 'var(--accent)' : 'var(--fg)' }}>Aa</span>
+                      <span className="caption" style={{ fontWeight: 'var(--w-medium)', color: active ? 'var(--accent)' : 'var(--fg-secondary)' }}>{o.label}</span>
                     </button>
                   );
                 })}
@@ -516,7 +540,7 @@ export default function AparenciaPage() {
                     overflow: 'auto',
                   }}
                 >
-                  <StorefrontPreview config={{ typo, accent, bgTone, photoStyle, imgRadius, hero, trustSignals }} />
+                  <StorefrontPreview config={{ typo, accent, bgTone, photoStyle, imgRadius, typeScale, hero, trustSignals }} />
                 </div>
               </div>
               <div className="mono" style={{ padding: '10px 14px', background: 'var(--bg-subtle)', borderTop: '1px solid var(--border)', fontSize: 11, color: 'var(--fg-muted)' }}>
