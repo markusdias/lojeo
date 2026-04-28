@@ -84,7 +84,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <WishlistProvider>
         <CartProvider>
           <TrackerProvider tenantId={tenantId} endpoint="/api/track" userId={userId}>
-            <Header storeName={tpl.name} />
+            <Header storeName={tpl.name} isAuthenticated={!!session} />
             <main id="main-content">{children}</main>
             <Footer storeName={tpl.name} />
             <CookieBanner />

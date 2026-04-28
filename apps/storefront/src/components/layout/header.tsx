@@ -39,7 +39,7 @@ function Pip({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function Header({ storeName }: { storeName: string }) {
+export function Header({ storeName, isAuthenticated = false }: { storeName: string; isAuthenticated?: boolean }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -167,11 +167,18 @@ export function Header({ storeName }: { storeName: string }) {
                 }}
               >
                 {[
-                  { label: 'Minha conta', href: '/conta' },
-                  { label: 'Pedidos', href: '/conta/pedidos' },
-                  { label: 'Wishlist', href: '/wishlist' },
-                  null,
-                  { label: 'Entrar', href: '/entrar' },
+                  ...(isAuthenticated
+                    ? [
+                        { label: 'Minha conta', href: '/conta' },
+                        { label: 'Pedidos', href: '/conta/pedidos' },
+                        { label: 'Wishlist', href: '/wishlist' },
+                        null,
+                        { label: 'Sair', href: '/api/auth/signout' },
+                      ]
+                    : [
+                        { label: 'Entrar', href: '/entrar' },
+                        { label: 'Criar conta', href: '/entrar?mode=register' },
+                      ]),
                   null,
                   { label: 'Sobre a marca', href: '/sobre' },
                   { label: 'Trocas e devoluções', href: '/trocas' },
