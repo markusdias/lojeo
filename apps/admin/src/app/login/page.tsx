@@ -118,28 +118,30 @@ export default function LoginPage() {
 
         {isDev && (
           <>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                margin: '24px 0',
-                fontSize: 11,
-                color: 'var(--fg-secondary)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-              }}
-            >
-              <span
-                aria-hidden
-                style={{ flex: 1, height: 1, background: 'var(--border)' }}
-              />
-              <span>ou com e-mail</span>
-              <span
-                aria-hidden
-                style={{ flex: 1, height: 1, background: 'var(--border)' }}
-              />
-            </div>
+            {hasGoogle && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  margin: '24px 0',
+                  fontSize: 11,
+                  color: 'var(--fg-secondary)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                }}
+              >
+                <span
+                  aria-hidden
+                  style={{ flex: 1, height: 1, background: 'var(--border)' }}
+                />
+                <span>ou com e-mail</span>
+                <span
+                  aria-hidden
+                  style={{ flex: 1, height: 1, background: 'var(--border)' }}
+                />
+              </div>
+            )}
 
             <form
               action={async (fd: FormData) => {
