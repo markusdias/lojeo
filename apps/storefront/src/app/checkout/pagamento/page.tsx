@@ -203,6 +203,12 @@ export default function PagamentoPage() {
     setPaymentMethod(method);
     setGift(isGift, giftMessage);
 
+    if (method === 'boleto' && !state.customerCpf) {
+      setError('CPF obrigatório para Boleto. Volte ao passo anterior e informe seu CPF.');
+      setLoading(false);
+      return;
+    }
+
     try {
       const utmRaw = sessionStorage.getItem('lojeo_utm');
       const utm = utmRaw ? JSON.parse(utmRaw) as { source?: string; medium?: string; campaign?: string } : null;
