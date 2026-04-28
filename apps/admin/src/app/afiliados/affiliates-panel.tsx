@@ -754,7 +754,9 @@ function RowActions({ row, onEdit, onTogglePause, onArchive, onPayout, onCopy }:
       if (!btn) return;
       const rect = btn.getBoundingClientRect();
       // Posiciona menu alinhado à direita do botão, abaixo dele.
-      setPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+      // Usa documentElement.clientWidth (exclui scrollbar) — bate com getBoundingClientRect.
+      const refWidth = document.documentElement.clientWidth;
+      setPos({ top: rect.bottom + 4, right: refWidth - rect.right });
     }
     recalc();
     window.addEventListener('resize', recalc);
