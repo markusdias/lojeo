@@ -38,7 +38,7 @@ export const PROVIDERS: Record<string, ProviderDef> = {
       { key: 'webhookSecret', label: 'Webhook Secret', type: 'password', required: false,
         helper: 'Opcional mas recomendado. Gere em Webhooks → Segredo de assinatura.' },
     ],
-    helper: 'Principal gateway BR. Aceita Pix, cartão e boleto. Taxas: ~3,99% cartão, grátis Pix.\n1. Crie conta em mercadopago.com.br/hub/registration/landing\n2. Acesse Developers → Criar aplicação (tipo: Checkout API)\n3. Copie "Access Token de produção" (APP_USR-...)',
+    helper: 'Principal gateway BR. Taxas aproximadas (consulte tabela atualizada em mercadopago.com.br/costs):\n• Pix: ~0,99% por transação\n• Boleto: ~3,49% + R$3,49 por boleto\n• Débito (Mastercard/Visa): ~1,99%\n• Cartão crédito à vista: ~4,99%\n• Cartão 2–6×: ~5,49–6,49% | 7–12×: ~7,49–8,99%\nCartões aceitos: Visa, Mastercard, Elo, American Express, Hipercard\n\n1. Crie conta em mercadopago.com.br/hub/registration/landing\n2. Acesse Developers → Criar aplicação (tipo: Checkout API)\n3. Copie "Access Token de produção" (APP_USR-...)',
     docsUrl: 'https://www.mercadopago.com.br/developers/pt/docs/checkout-api/landing',
   },
   stripe: {
@@ -52,7 +52,7 @@ export const PROVIDERS: Record<string, ProviderDef> = {
       { key: 'webhookSecret', label: 'Webhook Secret', type: 'password', required: false,
         helper: 'Recomendado. dashboard.stripe.com → Developers → Webhooks → Endpoint → Signing secret (whsec_...).' },
     ],
-    helper: 'Gateway internacional. USD/EUR/BRL. Cartão, Link, Apple Pay.\n1. Crie conta em stripe.com\n2. Ative sua conta (Complete account setup)\n3. Acesse Developers → API keys → Revele e copie a Secret key (sk_live_...)',
+    helper: 'Gateway internacional. USD/EUR/BRL. Taxas aproximadas (consulte stripe.com/br/pricing):\n• Cartão nacional à vista: ~3,4% + R$0,30\n• Pix: ~1,0% por transação\n• Boleto: ~1,5% + R$0,30\n• Cartão internacional: +1,5% adicional\nCartões aceitos: Visa, Mastercard, American Express, Elo, Diners\nTambém: Apple Pay, Google Pay, Link (1-clique)\n\n1. Crie conta em stripe.com\n2. Ative sua conta (Complete account setup)\n3. Acesse Developers → API keys → Revele e copie a Secret key (sk_live_...)',
     docsUrl: 'https://stripe.com/docs/keys',
   },
   paypal: {
@@ -66,7 +66,7 @@ export const PROVIDERS: Record<string, ProviderDef> = {
       { key: 'clientSecret', label: 'Client Secret', type: 'password', required: true,
         helper: 'Na mesma tela, clique "Show" abaixo do Client ID para revelar o Client Secret.' },
     ],
-    helper: 'Pagamentos internacionais. Amplamente reconhecido por compradores fora do Brasil.\n1. Crie uma conta Business em paypal.com/br/webapps/mpp/merchant\n2. Acesse developer.paypal.com com a mesma conta\n3. My Apps & Credentials → Create App → Live mode → Client ID + Secret',
+    helper: 'Pagamentos internacionais. Taxas aproximadas (consulte paypal.com/br/webapps/mpp/merchant/fees):\n• Transações nacionais: ~3,49% + taxa fixa (R$0,47)\n• Transações internacionais: ~4,99% + taxa fixa\n• Sem Pix, sem boleto\nCartões aceitos via PayPal: Visa, Mastercard, American Express, Elo\nComprador pode pagar com saldo PayPal, cartão salvo ou cartão avulso\nRecomendado como método adicional para clientes internacionais\n\n1. Crie conta Business em paypal.com/br/webapps/mpp/merchant\n2. Acesse developer.paypal.com com a mesma conta\n3. My Apps & Credentials → Create App → Live mode → Client ID + Secret',
     docsUrl: 'https://developer.paypal.com/api/rest/',
   },
   pagarme: {
@@ -78,7 +78,7 @@ export const PROVIDERS: Record<string, ProviderDef> = {
       { key: 'apiKey', label: 'API Key', type: 'password', required: true,
         helper: 'app.pagar.me → Configurações → API keys → Chave de produção (sk_...).' },
     ],
-    helper: 'Gateway BR alternativo. Pix, cartão e boleto.\n1. Crie conta em pagar.me\n2. Acesse app.pagar.me/account/api-keys\n3. Copie a "Chave secreta" de produção (começa com sk_)',
+    helper: 'Gateway BR alternativo. Taxas aproximadas (consulte pagar.me/precos):\n• Pix: ~0,99% por transação\n• Boleto: ~R$3,00 por boleto gerado\n• Cartão débito: ~1,99%\n• Cartão crédito à vista: ~2,99%\n• Cartão 2–6×: ~3,49–4,49% | 7–12×: ~5,49–6,99%\nCartões aceitos: Visa, Mastercard, Elo, American Express, Hipercard\n\n1. Crie conta em pagar.me\n2. Acesse app.pagar.me/account/api-keys\n3. Copie a "Chave secreta" de produção (começa com sk_)',
     docsUrl: 'https://docs.pagar.me/docs/api-key',
   },
 
