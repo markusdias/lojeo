@@ -5972,3 +5972,36 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - Dashboard widget /admin consumindo /api/nps.
 - Migrar restante 5/9 emit hooks pra multichannel (order.created/paid, review.pending, return.requested, restock.demand, fiscal.failed, ticket.assigned).
 - Endpoint admin GET /api/customers/cohort + dashboard widget retention.
+
+---
+
+## 2026-04-27 (continuacao) — Batch 57: NPS dashboard widget admin
+
+**Commits:** (a registrar nesta sessao).
+
+**`/dashboard/nps-widget.tsx` server component:**
+- Query 200 npsResponses últimos 90d.
+- `computeNps` engine helper retorna agregação.
+- Layout 2 colunas: gauge NPS grande (cor dinâmica >=50 verde / >=0 amarelo / <0 vermelho) + breakdown bars (Promoters/Passives/Detractors com %).
+- Bottom section: 3 últimos comments com score colorizado + email do autor (truncated).
+- Empty state: "Sem respostas ainda. Survey é enviado automaticamente 7 dias após entrega via cron daily."
+
+**Plug em `/dashboard/page.tsx`:**
+- Import `NpsWidget` e renderiza após linha 2 (Receita 7d + Saúde integrações).
+- Antes de "Linha 3: Últimos pedidos + Insights".
+
+**Trade-offs arquiteturais:**
+- Server component — query DB direto sem API roundtrip. Menos latência, mais responsivo.
+- 200 limit raw rows — tenant grande pode precisar agg materializada. V2 cron pre-compute aggregação diária em snapshot table.
+- Comments preview hardcoded 3 — V2 paginação ou link "ver todos" para `/clientes/nps` page.
+- Gauge cor dinâmica baseada em thresholds NPS standard (>=50 excellent / 0-49 OK / <0 poor).
+
+**Validações:**
+- pnpm -r typecheck zero erro.
+- 514 passing total. Zero regressao.
+- pnpm -r lint admin/storefront limpo.
+
+**Próximo ciclo:**
+- Cohort retention dashboard widget consumindo `cohortRetention` engine.
+- Endpoint admin GET /api/customers/cohort.
+- Refactor pra package shared `@lojeo/notifications` (multichannel storefront+admin).

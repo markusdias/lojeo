@@ -6,6 +6,7 @@ import { MetricCard } from '../../components/ui/metric-card';
 import { RevenueWeekChart } from '../../components/ui/revenue-week-chart';
 import { formatRelativeTime, fmtBrl } from '../../lib/format';
 import { forecastStockBatch, scoreCustomers, type ProductSalesData, type RfmInput } from '@lojeo/engine';
+import { NpsWidget } from './nps-widget';
 
 export const dynamic = 'force-dynamic';
 
@@ -459,6 +460,11 @@ export default async function DashboardPage() {
             </Link>
           </div>
         </aside>
+      </div>
+
+      {/* Linha 2.5: NPS widget */}
+      <div style={{ marginBottom: 'var(--space-6)' }}>
+        <NpsWidget />
       </div>
 
       {/* Linha 3: Últimos pedidos (2/3) + Insights de hoje (1/3) */}
