@@ -90,10 +90,10 @@ export const PROVIDERS: Record<string, ProviderDef> = {
     envVars: ['MELHOR_ENVIO_TOKEN'],
     fields: [
       { key: 'apiToken', label: 'API Token', type: 'password', required: true,
-        helper: 'melhorenvio.com.br/painel/gerenciar/tokens → Criar novo token. Marque os escopos: Envios, Checkout, Fretes.' },
+        helper: 'Acesse melhorenvio.com.br/painel/gerenciar/tokens → "Criar token" → marque os escopos → copie o token (aparece só uma vez).' },
     ],
-    helper: 'Agrega Correios, Jadlog, Loggi e mais. Cotação automática em tempo real.\n1. Crie conta em melhorenvio.com.br\n2. Acesse Painel → Gerenciar → Tokens de acesso\n3. Crie um token com escopos: Envios, Checkout, Fretes, Etiqueta\n4. Cole o token acima (produção, não sandbox)',
-    docsUrl: 'https://docs.melhorenvio.com.br/reference/authentication',
+    helper: 'Agrega Correios, Jadlog, Loggi, J&T e mais. Cotação em tempo real no checkout.\n\n1. Acesse diretamente: melhorenvio.com.br/painel/gerenciar/tokens\n   (ou: Painel → menu lateral → Ferramentas → Tokens de acesso)\n2. Clique em "Criar token"\n3. Dê um nome (ex: "Lojeo Produção") e marque TODOS os escopos:\n   ✓ Fretes (cotação de preços)\n   ✓ Envios — Consultar, Inserir, Editar\n   ✓ Carrinho\n   ✓ Checkout\n   ✓ Imprimir etiquetas\n4. Clique em "Salvar" e copie o token gerado\n   (o token aparece apenas uma vez — salve antes de fechar)\n5. ATENÇÃO: certifique-se de estar em "Produção" (não "Sandbox")',
+    docsUrl: 'https://melhorenvio.com.br/painel/gerenciar/tokens',
   },
 
   // ── Fiscal ───────────────────────────────────────────────────────────────
