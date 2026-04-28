@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 interface AffiliateRow {
   id: string;
@@ -745,25 +746,58 @@ function RowActions({ row, onEdit, onTogglePause, onArchive, onPayout, onCopy }:
   onCopy: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement | null>(null);
+  const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
+  const btnRef = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    function recalc() {
+      const btn = btnRef.current;
+      if (!btn) return;
+      const rect = btn.getBoundingClientRect();
+      // Posiciona menu alinhado à direita do botão, abaixo dele.
+      setPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+    }
+    recalc();
+    window.addEventListener('resize', recalc);
+    window.addEventListener('scroll', recalc, true);
+    return () => {
+      window.removeEventListener('resize', recalc);
+      window.removeEventListener('scroll', recalc, true);
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
     function close(e: MouseEvent) {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (btnRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false);
     }
     document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('keydown', onKey);
+    };
   }, [open]);
 
   const archived = !!row.archivedAt;
 
   return (
-    <div ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
+    <>
       <button
+        ref={btnRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label="Ações"
+        aria-expanded={open}
+        aria-haspopup="menu"
         style={{
           padding: '4px 10px',
           fontSize: 14,
@@ -776,19 +810,20 @@ function RowActions({ row, onEdit, onTogglePause, onArchive, onPayout, onCopy }:
       >
         ⋯
       </button>
-      {open && (
+      {open && pos && typeof document !== 'undefined' && createPortal(
         <div
+          ref={menuRef}
           role="menu"
           style={{
-            position: 'absolute',
-            right: 0,
-            top: 'calc(100% + 4px)',
+            position: 'fixed',
+            top: pos.top,
+            right: pos.right,
             minWidth: 180,
             background: 'var(--bg-elevated)',
             border: '1px solid var(--border-strong)',
             borderRadius: 'var(--radius-md)',
             boxShadow: 'var(--shadow-lg)',
-            zIndex: 30,
+            zIndex: 1000,
             padding: 'var(--space-1)',
             display: 'flex',
             flexDirection: 'column',
@@ -808,9 +843,10 @@ function RowActions({ row, onEdit, onTogglePause, onArchive, onPayout, onCopy }:
           <MenuItem onClick={() => { setOpen(false); onArchive(); }} danger={!archived}>
             {archived ? 'Desarquivar' : 'Arquivar'}
           </MenuItem>
-        </div>
+        </div>,
+        document.body,
       )}
-    </div>
+    </>
   );
 }
 
