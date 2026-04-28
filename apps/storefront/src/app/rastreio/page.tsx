@@ -1,7 +1,12 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'Rastrear pedido — Atelier',
+};
 
 interface PageProps {
   searchParams: Promise<{ code?: string }>;
