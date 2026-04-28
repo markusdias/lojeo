@@ -117,6 +117,19 @@ Mapa oficial de serviços está documentado em `DECISION_LOG.md` seção "2026-0
 - `lojeo-postgres` (DB principal Lojeo) ≠ `trigger-postgres` (DB interno do Trigger.dev) — não confundir
 - Migrations em produção via `apps/admin/src/app/api/migrate/route.ts` (idempotente, `CREATE TABLE IF NOT EXISTS`)
 
+## Verificação local ANTES de push (OBRIGATÓRIO)
+
+Nunca fazer `git push` sem antes verificar que a mudança funciona em localhost:
+
+1. **Rodar `pnpm dev`** e abrir no browser (`localhost:3000` admin, `localhost:3001` storefront)
+2. **Testar o fluxo afetado** pela mudança — não apenas "buildou sem erro"
+3. **Se a mudança for visual**, tirar screenshot local e comparar com o esperado
+4. **Só então** fazer commit + push
+
+Exceções permitidas (push sem teste local):
+- Mudanças puramente em arquivos de configuração/infra que não têm efeito visual (ex: `.github/workflows/`, `Dockerfile`, `turbo.json`)
+- Correções de typo em comentários ou documentação
+
 ## Verificação de promessas (anti-alucinação)
 
 A cada ciclo de desenvolvimento, antes de marcar checkbox `[x]` como concluído no roadmap, validar a feature em produção:
