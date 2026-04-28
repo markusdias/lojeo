@@ -111,7 +111,9 @@ const result: NextAuthResult = NextAuth({
     },
     async session({ session, token }) {
       if (session.user) {
-        if (typeof token.uid === 'string') session.user.id = token.uid;
+        const uid = (typeof token.uid === 'string' ? token.uid : undefined)
+          ?? (typeof token.sub === 'string' ? token.sub : undefined);
+        if (uid) session.user.id = uid;
         session.user.requires2FA = !!token.requires2FA;
       }
       return session;
