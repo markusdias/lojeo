@@ -549,8 +549,8 @@ export function AffiliatesPanel({ initial, initialMeta, storefrontOrigin }: Prop
         {rows.length === 0 ? (
           <EmptyState onCreate={openCreate} hasFilter={!!(search || status !== 'active' || tag)} />
         ) : (
-          <div>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-body-s)', tableLayout: 'auto' }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', minWidth: 760, borderCollapse: 'collapse', fontSize: 'var(--text-body-s)', tableLayout: 'auto' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border-strong)', background: 'var(--bg-subtle)' }}>
                   <Th>Afiliado</Th>
