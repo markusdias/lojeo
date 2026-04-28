@@ -6045,3 +6045,38 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - Refactor multichannel pra package shared `@lojeo/notifications` (storefront+admin).
 - bestSendHour widget admin.
 - P5.V — dogfood DB-real CI activation check.
+
+---
+
+## 2026-04-27 (continuacao) — Batch 59: BestSendHour dashboard widget
+
+**Commits:** (a registrar nesta sessao).
+
+**`/dashboard/best-hour-widget.tsx` server component:**
+- Query `behaviorEvents` últimos 30d (limit 5000 sample) — proxy de horário ativo dos clientes (page_view/cart_add/etc.) enquanto não há email open pixel.
+- `bestSendHour` engine helper retorna `{ bestHour, totalOpens, histogram[24], confidence }`.
+- Layout 2 partes:
+  - Hero: hora recomendada grande verde + confidence badge (alta/média/baixa).
+  - Histograma 24 buckets bar-chart (height proporcional a max bucket count).
+- Cor recomendada destacada em verde (`var(--success)`).
+- Buckets 0-23 com tooltip native `title=`.
+- Footer copy explica proxy + V2 plug email pixel.
+
+**Plug em dashboard:**
+- Linha 2.6 separada (full width), abaixo do row NPS+Cohort.
+
+**Trade-offs arquiteturais:**
+- Limit 5000 events sample — tenant grande precisa pre-aggregação V2 ou TimescaleDB hypertable.
+- UTC fixed — V2 timezone tenant local.
+- Behavior events como proxy: page_view spike pode ser cron interno, não intent real. Heuristic OK V1; V2 trocar por `email.opened` events SDK pixel.
+- Histograma sem labels per-hour (apenas 00h/06h/12h/18h/23h sublabels) — UI minimalista.
+
+**Validações:**
+- pnpm -r typecheck zero erro.
+- 514 passing total. Zero regressao.
+- pnpm -r lint admin/storefront limpo.
+
+**Próximo ciclo:**
+- Refactor multichannel pra `@lojeo/notifications` package shared (storefront+admin).
+- Endpoint admin GET /api/customers/cohort + /api/insights/best-hour standalone.
+- Migrar 5/9 emit hooks restantes pra multichannel após refactor package.

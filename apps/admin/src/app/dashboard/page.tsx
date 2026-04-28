@@ -8,6 +8,7 @@ import { formatRelativeTime, fmtBrl } from '../../lib/format';
 import { forecastStockBatch, scoreCustomers, type ProductSalesData, type RfmInput } from '@lojeo/engine';
 import { NpsWidget } from './nps-widget';
 import { CohortWidget } from './cohort-widget';
+import { BestHourWidget } from './best-hour-widget';
 
 export const dynamic = 'force-dynamic';
 
@@ -467,6 +468,11 @@ export default async function DashboardPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 'var(--space-6)', marginBottom: 'var(--space-6)' }}>
         <NpsWidget />
         <CohortWidget />
+      </div>
+
+      {/* Linha 2.6: Hora ideal envio */}
+      <div style={{ marginBottom: 'var(--space-6)' }}>
+        <BestHourWidget />
       </div>
 
       {/* Linha 3: Últimos pedidos (2/3) + Insights de hoje (1/3) */}
