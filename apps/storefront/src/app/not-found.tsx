@@ -1,9 +1,6 @@
 import Link from 'next/link';
 
-/**
- * 404 — pagina nao encontrada com mood jewelry-v1.
- * Tipografia display Cormorant, hierarquia centrada, CTA primario para coleção.
- */
+// 404 — página não encontrada com mood jewelry-v1.
 export default function NotFound() {
   return (
     <div
@@ -37,7 +34,7 @@ export default function NotFound() {
           marginBottom: 20,
         }}
       >
-        Pagina nao encontrada
+        Página não encontrada
       </h1>
       <p
         style={{
@@ -48,7 +45,7 @@ export default function NotFound() {
           margin: '0 auto 36px',
         }}
       >
-        O endereço que voce procura mudou ou nao existe mais. Volte para a
+        O endereço que você procura mudou ou não existe mais. Volte para a
         coleção ou explore as peças mais queridas pelas clientes.
       </p>
 
@@ -89,7 +86,7 @@ export default function NotFound() {
             textDecoration: 'none',
           }}
         >
-          Pagina inicial
+          Página inicial
         </Link>
       </div>
 
@@ -102,7 +99,7 @@ export default function NotFound() {
           color: 'var(--text-muted)',
         }}
       >
-        Procurando algo especifico?{' '}
+        Procurando algo específico?{' '}
         <Link
           href="/busca"
           style={{ color: 'var(--accent)', textDecoration: 'underline' }}
