@@ -31,6 +31,7 @@ export function HeartButton({ productId, slug, name, priceCents, imageUrl, size 
 
   return (
     <button
+      type="button"
       onClick={handleClick}
       aria-label={active ? 'Remover da lista de desejos' : 'Adicionar à lista de desejos'}
       style={{
