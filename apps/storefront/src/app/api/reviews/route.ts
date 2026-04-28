@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { db, productReviews, emitSellerNotification } from '@lojeo/db';
+import { db, productReviews } from '@lojeo/db';
+import { emitMultichannelNotification } from '@lojeo/notifications';
 import { eq, and, desc } from 'drizzle-orm';
 import { checkRateLimit, getClientIp } from '../../../lib/rate-limit';
 
@@ -84,7 +85,7 @@ export async function POST(req: Request) {
 
     const reviewId = inserted[0]?.id;
     if (reviewId) {
-      void emitSellerNotification({
+      void emitMultichannelNotification({
         tenantId: tid,
         type: 'review.pending',
         severity: 'info',

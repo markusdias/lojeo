@@ -59,6 +59,9 @@ importers:
       '@lojeo/logger':
         specifier: workspace:*
         version: link:../../packages/logger
+      '@lojeo/notifications':
+        specifier: workspace:*
+        version: link:../../packages/notifications
       '@lojeo/storage':
         specifier: workspace:*
         version: link:../../packages/storage
@@ -150,6 +153,9 @@ importers:
       '@lojeo/logger':
         specifier: workspace:*
         version: link:../../packages/logger
+      '@lojeo/notifications':
+        specifier: workspace:*
+        version: link:../../packages/notifications
       '@lojeo/storage':
         specifier: workspace:*
         version: link:../../packages/storage
@@ -359,6 +365,34 @@ importers:
       pino:
         specifier: ^9.5.0
         version: 9.14.0
+    devDependencies:
+      '@lojeo/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.19.17
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.19.17)(jsdom@25.0.1)(lightningcss@1.32.0)
+
+  packages/notifications:
+    dependencies:
+      '@lojeo/db':
+        specifier: workspace:*
+        version: link:../db
+      '@lojeo/email':
+        specifier: workspace:*
+        version: link:../email
+      '@lojeo/logger':
+        specifier: workspace:*
+        version: link:../logger
+      drizzle-orm:
+        specifier: ^0.38.3
+        version: 0.38.4(@types/react@19.2.14)(postgres@3.4.9)(react@19.2.5)
     devDependencies:
       '@lojeo/config':
         specifier: workspace:*

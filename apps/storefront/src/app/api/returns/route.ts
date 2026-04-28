@@ -8,8 +8,8 @@ import {
   products,
   RETURN_TYPES,
   RETURN_REASONS,
-  emitSellerNotification,
 } from '@lojeo/db';
+import { emitMultichannelNotification } from '@lojeo/notifications';
 import { auth } from '../../../auth';
 
 export const dynamic = 'force-dynamic';
@@ -179,7 +179,7 @@ export async function POST(req: Request) {
   console.info('[returns] new request', { id: created?.id, orderId, type, reason, email: insertEmail });
 
   if (created) {
-    void emitSellerNotification({
+    void emitMultichannelNotification({
       tenantId: tid,
       type: 'return.requested',
       severity: 'warning',

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { db, orders, orderItems, orderEvents, coupons, calcCouponDiscountCents, emitSellerNotification, tenants } from '@lojeo/db';
+import { db, orders, orderItems, orderEvents, coupons, calcCouponDiscountCents, tenants } from '@lojeo/db';
+import { emitMultichannelNotification } from '@lojeo/notifications';
 import { createMercadoPagoPreference, createMercadoPagoPixPayment, createMercadoPagoBoletoPayment } from '../../../lib/payments/mercado-pago';
 import { createStripePaymentIntent } from '../../../lib/payments/stripe';
 import { selectGateway, isGatewayDecision, stripeCurrency } from '../../../lib/payments/gateway';
@@ -479,7 +480,7 @@ export async function POST(req: Request) {
       }
     }
 
-    void emitSellerNotification({
+    void emitMultichannelNotification({
       tenantId: tid,
       type: 'order.created',
       severity: fraudResult.score >= 70 ? 'critical' : 'info',

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { eq, and } from 'drizzle-orm';
 import crypto from 'node:crypto';
 import { logger } from '@lojeo/logger';
-import { db, orders, orderEvents, emitSellerNotification } from '@lojeo/db';
+import { db, orders, orderEvents } from '@lojeo/db';
+import { emitMultichannelNotification } from '@lojeo/notifications';
 import { fetchMercadoPagoPayment, mpStatusToOrderStatus } from '../../../../lib/payments/mercado-pago';
 
 export const dynamic = 'force-dynamic';
@@ -86,7 +87,7 @@ export async function POST(req: NextRequest) {
   });
 
   if (newStatus === 'paid') {
-    void emitSellerNotification({
+    void emitMultichannelNotification({
       tenantId: tid,
       type: 'order.paid',
       severity: 'info',

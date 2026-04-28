@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { eq, and } from 'drizzle-orm';
 import { logger } from '@lojeo/logger';
-import { db, orders, orderEvents, emitSellerNotification } from '@lojeo/db';
+import { db, orders, orderEvents } from '@lojeo/db';
+import { emitMultichannelNotification } from '@lojeo/notifications';
 import {
   verifyStripeSignature,
   fetchStripePaymentIntent,
@@ -95,7 +96,7 @@ export async function POST(req: NextRequest) {
   });
 
   if (newStatus === 'paid') {
-    void emitSellerNotification({
+    void emitMultichannelNotification({
       tenantId: tid,
       type: 'order.paid',
       severity: 'info',

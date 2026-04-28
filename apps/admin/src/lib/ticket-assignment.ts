@@ -4,9 +4,9 @@ import {
   ticketAssignmentRules,
   supportTickets,
   userRoles,
-  emitSellerNotification,
   type TicketAssignmentRule,
 } from '@lojeo/db';
+import { emitMultichannelNotification } from '@lojeo/notifications';
 import { TENANT_ID } from './roles';
 
 /**
@@ -154,7 +154,7 @@ export async function applyAutoAssignment(
         eq(supportTickets.id, ticketId),
       ));
 
-    void emitSellerNotification({
+    void emitMultichannelNotification({
       tenantId: TENANT_ID,
       userId,
       type: 'ticket.assigned',

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { eq, and } from 'drizzle-orm';
-import { db, orders, orderItems, orderEvents, emitSellerNotification } from '@lojeo/db';
+import { db, orders, orderItems, orderEvents } from '@lojeo/db';
+import { emitMultichannelNotification } from '@lojeo/notifications';
 import { createBlingNfe } from '../../../../../lib/payments/bling';
 import { TENANT_ID } from '../../../../../lib/roles';
 
@@ -91,7 +92,7 @@ export async function POST(_req: Request, ctx: Ctx) {
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
 
-    void emitSellerNotification({
+    void emitMultichannelNotification({
       tenantId: tid,
       type: 'fiscal.failed',
       severity: 'critical',

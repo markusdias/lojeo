@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { eq, and, isNull, sql } from 'drizzle-orm';
-import { db, restockNotifications, products, emitSellerNotification } from '@lojeo/db';
+import { db, restockNotifications, products } from '@lojeo/db';
+import { emitMultichannelNotification } from '@lojeo/notifications';
 import { checkRateLimit, getClientIp } from '../../../lib/rate-limit';
 
 const RESTOCK_DEMAND_THRESHOLD = 5;
@@ -69,7 +70,7 @@ export async function POST(req: Request) {
         .where(and(eq(products.tenantId, tid), eq(products.id, parsed.data.productId)))
         .limit(1);
       const productName = product?.name ?? 'Produto';
-      void emitSellerNotification({
+      void emitMultichannelNotification({
         tenantId: tid,
         type: 'restock.demand',
         severity: 'warning',

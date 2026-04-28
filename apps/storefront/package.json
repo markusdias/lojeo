@@ -21,6 +21,7 @@
     "@lojeo/email": "workspace:*",
     "@lojeo/engine": "workspace:*",
     "@lojeo/logger": "workspace:*",
+    "@lojeo/notifications": "workspace:*",
     "@lojeo/storage": "workspace:*",
     "@lojeo/template-coffee-v1": "workspace:*",
     "@lojeo/template-jewelry-v1": "workspace:*",

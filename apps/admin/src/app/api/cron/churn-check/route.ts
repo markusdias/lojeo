@@ -4,7 +4,7 @@ import { scoreChurnBatch, type ChurnInput } from '@lojeo/engine';
 import { db, orders, sellerNotifications } from '@lojeo/db';
 import { TENANT_ID } from '../../../../lib/roles';
 import { authorizeCronRequest } from '../../../../lib/cron-auth';
-import { emitMultichannelNotification } from '../../../../lib/notifications/multichannel';
+import { emitMultichannelNotification } from '@lojeo/notifications';
 
 export const dynamic = 'force-dynamic';
 

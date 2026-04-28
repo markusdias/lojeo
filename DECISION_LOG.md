@@ -6080,3 +6080,65 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - Refactor multichannel pra `@lojeo/notifications` package shared (storefront+admin).
 - Endpoint admin GET /api/customers/cohort + /api/insights/best-hour standalone.
 - Migrar 5/9 emit hooks restantes pra multichannel após refactor package.
+
+---
+
+## 2026-04-27 (continuacao) — Batch 60: Refactor multichannel pra @lojeo/notifications package shared
+
+**Commits:** (a registrar nesta sessao).
+
+**Novo package `@lojeo/notifications`:**
+- `packages/notifications/package.json` — deps `@lojeo/db`, `@lojeo/email`, `@lojeo/logger`, `drizzle-orm`.
+- `packages/notifications/tsconfig.json` extends config base.
+- `packages/notifications/src/`:
+  - `slack.ts` (movido de admin/lib).
+  - `discord.ts` (movido).
+  - `multichannel.ts` (movido).
+  - `slack.test.ts` (5 tests).
+  - `discord.test.ts` (4 tests).
+  - `index.ts` re-exporta.
+
+**Migração admin:**
+- `apps/admin/package.json` ganha `"@lojeo/notifications": "workspace:*"`.
+- `apps/admin/src/lib/notifications/` removido (5 arquivos deletados).
+- Imports em cron/churn-check + cron/low-stock-check trocados pra `@lojeo/notifications`.
+- `apps/admin/src/lib/ticket-assignment.ts` migrou emitSellerNotification → emitMultichannelNotification.
+- `apps/admin/src/app/api/orders/[id]/invoice/route.ts` (fiscal.failed) migrou também.
+
+**Migração storefront (5 hooks emit):**
+- `apps/storefront/package.json` ganha `"@lojeo/notifications": "workspace:*"`.
+- Migrados pra emitMultichannelNotification:
+  - `/api/orders/route.ts` — order.created (com fraud severity dinâmica preserved).
+  - `/api/restock-notify/route.ts` — restock.demand.
+  - `/api/returns/route.ts` — return.requested.
+  - `/api/reviews/route.ts` — review.pending.
+  - `/api/webhooks/mercado-pago/route.ts` — order.paid.
+  - `/api/webhooks/stripe/route.ts` — order.paid.
+
+**9/9 emit hooks agora usam multichannel:**
+- order.created (storefront)
+- order.paid (MP webhook + Stripe webhook)
+- review.pending
+- return.requested
+- inventory.low_stock (cron admin)
+- restock.demand
+- fiscal.failed (admin invoice)
+- churn.alert (cron admin)
+- ticket.assigned (admin lib)
+
+**Trade-offs arquiteturais:**
+- Pacote shared evita duplicação. Tests centralizados em `@lojeo/notifications/src/*.test.ts`.
+- `emitMultichannelNotification` retorna `{ inappId, tried }` consistente em todos callers.
+- Default channels por severity preservado: critical → email+slack+discord, warning → slack+discord, info → in-app.
+- Sem config tenant: degrade silencioso em todos canais (mocked).
+- Tests admin: 123 → 114 (9 movidos pra notifications package). Net 0.
+
+**Validações:**
+- pnpm -r typecheck zero erro.
+- 514 passing total (1+2+9+16+20+7+9+148+7+5+3+114+173). Zero regressao.
+- pnpm -r lint admin/storefront limpo.
+
+**Próximo ciclo:**
+- Endpoint admin GET /api/customers/cohort + standalone cohort page.
+- Refactor restantes endpoints sem permission scope (P2.I).
+- Push PWA real (web-push lib + VAPID keys).
