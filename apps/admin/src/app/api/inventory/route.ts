@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
 import { db, inventoryStock, productVariants } from '@lojeo/db';
 import { adjustStock, getOrCreatePrimaryLocation } from '@lojeo/engine';
+import { guardPermission } from '../../../lib/permission-guard';
 
 const AdjustSchema = z.object({
   variantId: z.string().uuid(),
@@ -25,6 +26,8 @@ function tenantId(req: Request): string {
 }
 
 export async function GET(req: Request) {
+  const denied = await guardPermission('products', 'read');
+  if (denied) return denied;
   const tid = tenantId(req);
   const url = new URL(req.url);
   const variantParam = url.searchParams.get('variantId');
@@ -51,6 +54,9 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const denied = await guardPermission('products', 'write');
+  if (denied) return denied;
+
   const body = await req.json();
   const parsed = AdjustSchema.safeParse(body);
   if (!parsed.success) {

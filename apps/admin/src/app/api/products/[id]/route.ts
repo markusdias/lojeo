@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
 import { db, products, productRedirects } from '@lojeo/db';
 import { slugify } from '@lojeo/engine';
+import { guardPermission } from '../../../../lib/permission-guard';
 
 const UpdateProductSchema = z.object({
   name: z.string().min(2).optional(),
@@ -32,6 +33,8 @@ function tenantId(req: Request): string {
 }
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await guardPermission('products', 'read');
+  if (denied) return denied;
   const { id } = await params;
   const tid = tenantId(req);
   const found = await db.query.products.findFirst({
@@ -42,6 +45,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await guardPermission('products', 'write');
+  if (denied) return denied;
   const { id } = await params;
   const body = await req.json();
   const parsed = UpdateProductSchema.safeParse(body);
@@ -109,6 +114,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 export const PATCH = PUT;
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await guardPermission('products', 'write');
+  if (denied) return denied;
   const { id } = await params;
   const tid = tenantId(req);
   const deleted = await db

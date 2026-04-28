@@ -4,12 +4,15 @@ import { eq, desc } from 'drizzle-orm';
 import { z } from 'zod';
 import { TENANT_ID } from '../../../lib/roles';
 import { authorizeCronRequest } from '../../../lib/cron-auth';
+import { guardPermission } from '../../../lib/permission-guard';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   const auth = await authorizeCronRequest(req);
   if (!auth.ok) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  const denied = await guardPermission('settings', 'read');
+  if (denied) return denied;
 
   const rows = await db
     .select()
@@ -32,6 +35,8 @@ const createSchema = z.object({
 export async function POST(req: NextRequest) {
   const auth = await authorizeCronRequest(req);
   if (!auth.ok) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  const denied = await guardPermission('settings', 'write');
+  if (denied) return denied;
 
   let body: unknown;
   try {

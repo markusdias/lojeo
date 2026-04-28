@@ -4,6 +4,7 @@ import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { TENANT_ID } from '../../../../lib/roles';
 import { authorizeCronRequest } from '../../../../lib/cron-auth';
+import { guardPermission } from '../../../../lib/permission-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,8 @@ const patchSchema = z.object({
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await authorizeCronRequest(req);
   if (!auth.ok) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  const denied = await guardPermission('settings', 'write');
+  if (denied) return denied;
 
   const { id } = await params;
   let body: unknown;
@@ -56,6 +59,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await authorizeCronRequest(req);
   if (!auth.ok) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  const denied = await guardPermission('billing', 'write');
+  if (denied) return denied;
 
   const { id } = await params;
   const url = new URL(req.url);

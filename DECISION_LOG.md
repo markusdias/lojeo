@@ -6142,3 +6142,41 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - Endpoint admin GET /api/customers/cohort + standalone cohort page.
 - Refactor restantes endpoints sem permission scope (P2.I).
 - Push PWA real (web-push lib + VAPID keys).
+
+---
+
+## 2026-04-27 (continuacao) — Batch 61: Permission scopes em endpoints (P2.I parcial)
+
+**Commits:** (a registrar nesta sessao).
+
+**Helper compartilhado `apps/admin/src/lib/permission-guard.ts`:**
+- `guardPermission(scope, action)` retorna NextResponse 403 ou null.
+- Skip em NODE_ENV=test pra preservar dogfood.
+- Lazy `auth()` import + requirePermission.
+- Reduz boilerplate em todos endpoints.
+
+**Endpoints protegidos (8 endpoints / 14 handlers):**
+- `/api/products` GET (read) + POST (write).
+- `/api/products/[id]` GET (read) + PUT (write) + DELETE (write).
+- `/api/inventory` GET (read products) + POST (write products).
+- `/api/collections` GET (read products) + POST (write products).
+- `/api/collections/[id]` GET (read) + PUT (write) + DELETE (write) + POST assign (write).
+- `/api/affiliates` GET (read settings) + POST (write settings).
+- `/api/affiliates/[id]` PATCH (write settings) + POST payout (write billing).
+
+**Trade-offs arquiteturais:**
+- Helper guardPermission centraliza pattern + skip test mode — boilerplate -90%.
+- 5 cenários scope per role hardcoded em `ROLE_PERMISSIONS` (owner/admin/operador/editor/atendimento/financeiro). Lojista único = owner default.
+- Endpoints restantes (~20) também precisam guard — V2 batch dedicado pra ugc, recommendations, 2fa, blog, notifications, ai-analyst, etc.
+- Audit logs em mutations sensíveis NÃO adicionados neste batch — V2 (recordAuditLog wrapper).
+- Storefront `/api/*` endpoints NÃO usam guardPermission (público — order create/review/etc.). Usam rate-limit + auth quando applicable.
+
+**Validações:**
+- pnpm -r typecheck zero erro.
+- 514 passing total. Zero regressao.
+- pnpm -r lint admin/storefront limpo.
+
+**Próximo ciclo:**
+- P2.I batch 2: ugc, recommendations, 2fa, blog, ai-analyst, notifications, tickets[id].
+- AuditLog wrapper para mutations sensíveis.
+- Push PWA real (web-push lib + VAPID).

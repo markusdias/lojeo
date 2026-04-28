@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
 import { db, collections, productCollections, products } from '@lojeo/db';
+import { guardPermission } from '../../../../lib/permission-guard';
 
 const UpdateSchema = z.object({
   name: z.string().min(2).optional(),
@@ -24,6 +25,8 @@ function tenantId(req: Request): string {
 }
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await guardPermission('products', 'read');
+  if (denied) return denied;
   const { id } = await params;
   const tid = tenantId(req);
   const c = await db.query.collections.findFirst({
@@ -42,6 +45,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await guardPermission('products', 'write');
+  if (denied) return denied;
   const { id } = await params;
   const body = await req.json();
   const parsed = UpdateSchema.safeParse(body);
@@ -59,6 +64,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await guardPermission('products', 'write');
+  if (denied) return denied;
   const { id } = await params;
   const tid = tenantId(req);
   const deleted = await db
@@ -70,6 +77,8 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await guardPermission('products', 'write');
+  if (denied) return denied;
   const { id } = await params;
   const body = await req.json();
   const parsed = AssignSchema.safeParse(body);

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 import { db, collections } from '@lojeo/db';
 import { slugify } from '@lojeo/engine';
+import { guardPermission } from '../../../lib/permission-guard';
 
 const CreateCollectionSchema = z.object({
   name: z.string().min(2),
@@ -20,12 +21,16 @@ function tenantId(req: Request): string {
 }
 
 export async function GET(req: Request) {
+  const denied = await guardPermission('products', 'read');
+  if (denied) return denied;
   const tid = tenantId(req);
   const list = await db.select().from(collections).where(eq(collections.tenantId, tid));
   return NextResponse.json({ collections: list });
 }
 
 export async function POST(req: Request) {
+  const denied = await guardPermission('products', 'write');
+  if (denied) return denied;
   const body = await req.json();
   const parsed = CreateCollectionSchema.safeParse(body);
   if (!parsed.success) {
