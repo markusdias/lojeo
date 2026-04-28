@@ -22,8 +22,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ code: st
   // Sanity: dest path internal only (anti open redirect).
   const safeDest = dest.startsWith('/') && !dest.startsWith('//') ? dest : '/';
 
+  // Resolve public origin behind reverse proxy. Prefer x-forwarded-host
+  // (NextResponse.redirect com URL absoluta usa req.url que aponta pra
+  // 0.0.0.0:3000 em standalone build) — usa relative path quando possível.
+  // Path-relative redirect é safe e respeita host original.
+  const redirectUrl = safeDest;
+
   if (!code) {
-    return NextResponse.redirect(new URL(safeDest, url.origin));
+    return NextResponse.redirect(new URL(redirectUrl, url.origin), 307);
   }
 
   // Increment atomic (best-effort) — sem aguardar resultado pra UX rápido.
@@ -37,7 +43,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ code: st
 
   void affiliateLinks; // mantém import — usado em type chain.
 
-  const res = NextResponse.redirect(new URL(safeDest, url.origin));
+  // Construir Response manualmente pra Location relativo (browser respeita host).
+  const res = new NextResponse(null, {
+    status: 307,
+    headers: { location: redirectUrl },
+  });
   const cookie = buildAffiliateSetCookieHeader(code);
   if (cookie) res.headers.set('set-cookie', cookie);
   return res;
