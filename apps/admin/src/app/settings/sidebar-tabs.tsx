@@ -12,7 +12,6 @@ export type SettingsTab =
   | 'whatsapp'
   | 'pixels'
   | 'ia'
-  | 'aparencia'
   | 'comercial'
   | 'robots'
   | 'equipe';
@@ -43,7 +42,7 @@ const ICONS = {
 
 const TABS: TabItem[] = [
   { id: 'identidade', label: 'Identidade da loja', iconPath: ICONS.store, group: 'Loja' },
-  { id: 'aparencia', label: 'Aparência', iconPath: ICONS.palette, group: 'Loja' },
+  { id: 'aparencia' as SettingsTab, label: 'Aparência ↗', iconPath: ICONS.palette, group: 'Loja', href: '/aparencia' },
   { id: 'pagamentos', label: 'Gateways', iconPath: ICONS.card, group: 'Vendas' },
   { id: 'frete', label: 'Frete', iconPath: ICONS.truck, group: 'Vendas' },
   { id: 'fiscal', label: 'Fiscal e ERP', iconPath: ICONS.receipt, group: 'Vendas' },

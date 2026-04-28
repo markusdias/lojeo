@@ -12,6 +12,7 @@ interface AppearanceConfig {
   typeScale?: 'default' | 'larger' | 'smaller';
   photoStyle?: 'isolated' | 'lifestyle' | 'mix';
   hero?: 'image' | 'video' | 'carousel' | 'grid';
+  homepageSections?: { id: string; off?: boolean }[];
   trustSignals?: string[];
   aiTone?: string;
   aiPerson?: string;
@@ -144,15 +145,20 @@ const HERO_OPTIONS = [
   { id: 'grid', label: 'Grid 3 cols' },
 ];
 
-const HOMEPAGE_SECTIONS = [
-  { id: 'hero', label: 'Hero / Capa', off: false },
-  { id: 'collections', label: 'Coleções em destaque', off: false },
-  { id: 'new', label: 'Produtos novos', off: false },
-  { id: 'about', label: 'Sobre / nossa história', off: false },
-  { id: 'reviews', label: 'Depoimentos', off: false },
-  { id: 'ugc', label: 'UGC · clientes reais', off: false },
-  { id: 'blog', label: 'Blog / editorial', off: true },
+const HOMEPAGE_SECTIONS_REGISTRY: { id: string; label: string; defaultOff: boolean }[] = [
+  { id: 'hero', label: 'Hero / Capa', defaultOff: false },
+  { id: 'collections', label: 'Coleções em destaque', defaultOff: false },
+  { id: 'new', label: 'Produtos novos', defaultOff: false },
+  { id: 'about', label: 'Sobre / nossa história', defaultOff: false },
+  { id: 'reviews', label: 'Depoimentos', defaultOff: true },
+  { id: 'ugc', label: 'UGC · clientes reais', defaultOff: false },
+  { id: 'trust', label: 'Trust signals', defaultOff: false },
+  { id: 'blog', label: 'Blog / editorial', defaultOff: true },
 ];
+
+function defaultHomepageSections(): { id: string; off: boolean }[] {
+  return HOMEPAGE_SECTIONS_REGISTRY.map(s => ({ id: s.id, off: s.defaultOff }));
+}
 
 const TRUST_SIGNALS = [
   { id: 'shipping', label: 'Frete grátis acima de R$ 500' },
@@ -203,6 +209,20 @@ export default function AparenciaPage() {
   const typeScale = appearance.typeScale ?? 'default';
   const hero = appearance.hero ?? 'image';
   const trustSignals = appearance.trustSignals ?? ['shipping', 'warranty', 'returns', 'payment'];
+  const homepageSections = (() => {
+    const saved = appearance.homepageSections;
+    if (!saved || saved.length === 0) return defaultHomepageSections();
+    const known = new Set(HOMEPAGE_SECTIONS_REGISTRY.map(s => s.id));
+    const ordered = saved
+      .filter(s => known.has(s.id))
+      .map(s => ({ id: s.id, off: !!s.off }));
+    const orderedIds = new Set(ordered.map(s => s.id));
+    for (const def of HOMEPAGE_SECTIONS_REGISTRY) {
+      if (!orderedIds.has(def.id)) ordered.push({ id: def.id, off: def.defaultOff });
+    }
+    return ordered;
+  })();
+  const sectionLabel = (id: string) => HOMEPAGE_SECTIONS_REGISTRY.find(s => s.id === id)?.label ?? id;
   const aiTone = appearance.aiTone ?? 'casual-warm';
   const aiPerson = appearance.aiPerson ?? 'voce';
   const preferWords = appearance.preferWords ?? 'autoral, atemporal, feito à mão';
@@ -221,6 +241,23 @@ export default function AparenciaPage() {
   function toggleTrust(id: string) {
     const next = trustSignals.includes(id) ? trustSignals.filter(x => x !== id) : [...trustSignals, id];
     setAppearance({ trustSignals: next });
+  }
+
+  function toggleHomepageSection(id: string) {
+    const next = homepageSections.map(s => s.id === id ? { ...s, off: !s.off } : s);
+    setAppearance({ homepageSections: next });
+  }
+
+  function moveHomepageSection(id: string, delta: -1 | 1) {
+    const idx = homepageSections.findIndex(s => s.id === id);
+    if (idx < 0) return;
+    const target = idx + delta;
+    if (target < 0 || target >= homepageSections.length) return;
+    const next = [...homepageSections];
+    const tmp = next[idx]!;
+    next[idx] = next[target]!;
+    next[target] = tmp;
+    setAppearance({ homepageSections: next });
   }
 
   async function handleSave(e: FormEvent<HTMLFormElement>) {
@@ -413,16 +450,22 @@ export default function AparenciaPage() {
 
             {/* Seções da homepage */}
             <ConfigSection title="Seções da homepage" open={openSection === 'sections'} onToggle={() => setOpenSection(openSection === 'sections' ? null : 'sections')}>
-              <p className="caption" style={{ marginBottom: 'var(--space-3)' }}>Arraste pra reordenar. Toggle pra ocultar/exibir.</p>
+              <p className="caption" style={{ marginBottom: 'var(--space-3)' }}>Use as setas pra reordenar. Toggle pra ocultar/exibir no storefront.</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {HOMEPAGE_SECTIONS.map((s, i) => (
+                {homepageSections.map((s, i) => (
                   <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, opacity: s.off ? 0.5 : 1 }}>
-                    <span className="mono" style={{ fontSize: 10, color: 'var(--fg-muted)', cursor: 'grab', letterSpacing: -2 }}>⋮⋮</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      <button type="button" onClick={() => moveHomepageSection(s.id, -1)} disabled={i === 0} aria-label="Mover pra cima"
+                        style={{ background: 'transparent', border: 'none', cursor: i === 0 ? 'default' : 'pointer', color: i === 0 ? 'var(--neutral-300)' : 'var(--fg-muted)', padding: 0, lineHeight: 0.8, fontSize: 11 }}>▲</button>
+                      <button type="button" onClick={() => moveHomepageSection(s.id, 1)} disabled={i === homepageSections.length - 1} aria-label="Mover pra baixo"
+                        style={{ background: 'transparent', border: 'none', cursor: i === homepageSections.length - 1 ? 'default' : 'pointer', color: i === homepageSections.length - 1 ? 'var(--neutral-300)' : 'var(--fg-muted)', padding: 0, lineHeight: 0.8, fontSize: 11 }}>▼</button>
+                    </div>
                     <span className="mono" style={{ fontSize: 10, color: 'var(--fg-muted)', width: 14 }}>{i + 1}</span>
-                    <span style={{ fontSize: 13, color: 'var(--fg)', flex: 1 }}>{s.label}</span>
-                    <span aria-hidden style={{ width: 28, height: 16, borderRadius: 999, background: s.off ? 'var(--neutral-200)' : 'var(--accent)', position: 'relative', flexShrink: 0 }}>
-                      <span style={{ position: 'absolute', top: 2, left: 2, width: 12, height: 12, borderRadius: '50%', background: '#fff', transform: s.off ? 'translateX(0)' : 'translateX(12px)', transition: 'transform 0.15s' }} />
-                    </span>
+                    <span style={{ fontSize: 13, color: 'var(--fg)', flex: 1 }}>{sectionLabel(s.id)}</span>
+                    <button type="button" onClick={() => toggleHomepageSection(s.id)} aria-pressed={!s.off} aria-label={`${s.off ? 'Mostrar' : 'Ocultar'} ${sectionLabel(s.id)}`}
+                      style={{ width: 28, height: 16, borderRadius: 999, background: s.off ? 'var(--neutral-200)' : 'var(--accent)', position: 'relative', flexShrink: 0, border: 'none', cursor: 'pointer', padding: 0 }}>
+                      <span aria-hidden style={{ position: 'absolute', top: 2, left: 2, width: 12, height: 12, borderRadius: '50%', background: '#fff', transform: s.off ? 'translateX(0)' : 'translateX(12px)', transition: 'transform 0.15s' }} />
+                    </button>
                   </div>
                 ))}
               </div>

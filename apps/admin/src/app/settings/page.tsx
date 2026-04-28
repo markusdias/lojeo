@@ -58,56 +58,6 @@ interface Settings {
   config: TenantConfig;
 }
 
-const TYPO_OPTIONS = [
-  { value: 'a', label: 'Clássico-Luxo (Cormorant + Inter)' },
-  { value: 'b', label: 'Editorial-Moderno (Playfair + Source Sans)' },
-  { value: 'c', label: 'Object-Design (Inter + JetBrains Mono)' },
-];
-
-const ACCENT_OPTIONS: { value: string; label: string; swatch: string }[] = [
-  { value: 'champagne', label: 'Champagne', swatch: '#B8956A' },
-  { value: 'silver', label: 'Prata', swatch: '#9AA0A6' },
-  { value: 'rose-gold', label: 'Ouro Rosê', swatch: '#C8A28C' },
-  { value: 'copper', label: 'Cobre', swatch: '#A96B3F' },
-  { value: 'noir-rose', label: 'Noir Rosê', swatch: '#5C3A3F' },
-];
-
-const BG_OPTIONS: { value: string; label: string; swatch: string }[] = [
-  { value: 'warm', label: 'Warm (padrão)', swatch: '#FAFAF6' },
-  { value: 'pure', label: 'Pure (branco)', swatch: '#FFFFFF' },
-  { value: 'cool', label: 'Cool', swatch: '#F7F8FA' },
-  { value: 'cream', label: 'Cream', swatch: '#F5EFE3' },
-];
-
-const IMG_RADIUS_OPTIONS: { value: '0' | '8' | '16'; label: string }[] = [
-  { value: '0', label: 'Reto (0px)' },
-  { value: '8', label: 'Suave (8px)' },
-  { value: '16', label: 'Arredondado (16px)' },
-];
-
-const TYPE_SCALE_OPTIONS: { value: 'default' | 'larger' | 'smaller'; label: string }[] = [
-  { value: 'smaller', label: 'Compacta' },
-  { value: 'default', label: 'Padrão' },
-  { value: 'larger', label: 'Espaçosa' },
-];
-
-type FontPair = { display: string; body: string };
-type ScalePx = { h: string; body: string };
-
-const TYPO_FONT_DEFAULT: FontPair = { display: "'Cormorant Garamond', Georgia, serif", body: "'Inter', system-ui, sans-serif" };
-const TYPO_FONTS: Record<string, FontPair> = {
-  a: TYPO_FONT_DEFAULT,
-  b: { display: "'Playfair Display', Georgia, serif", body: "'Source Sans 3', system-ui, sans-serif" },
-  c: { display: "'Inter', system-ui, sans-serif", body: "'JetBrains Mono', ui-monospace, monospace" },
-};
-
-const TYPE_SCALE_DEFAULT: ScalePx = { h: '24px', body: '15px' };
-const TYPE_SCALE_PX: Record<'default' | 'larger' | 'smaller', ScalePx> = {
-  smaller: { h: '20px', body: '13px' },
-  default: TYPE_SCALE_DEFAULT,
-  larger: { h: '28px', body: '17px' },
-};
-
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [saving, setSaving] = useState(false);
@@ -142,13 +92,6 @@ export default function SettingsPage() {
     setSettings(prev => prev ? { ...prev, config: { ...prev.config, ...patch } } : prev);
   }
 
-  function setAppearance(patch: Partial<NonNullable<TenantConfig['appearance']>>) {
-    setSettings(prev => prev ? {
-      ...prev,
-      config: { ...prev.config, appearance: { ...prev.config.appearance, ...patch } }
-    } : prev);
-  }
-
   function setBrandGuide(patch: Partial<BrandGuide>) {
     setSettings(prev => prev ? {
       ...prev,
@@ -159,16 +102,6 @@ export default function SettingsPage() {
   if (!settings) {
     return <main className="p-8"><p className="text-neutral-500">Carregando…</p></main>;
   }
-
-  const accent = settings.config.appearance?.accent ?? 'champagne';
-  const bgTone = settings.config.appearance?.bgTone ?? 'warm';
-  const typo = settings.config.appearance?.typo ?? 'a';
-  const imgRadius = settings.config.appearance?.imgRadius ?? '8';
-  const typeScale = settings.config.appearance?.typeScale ?? 'default';
-  const accentSwatch = ACCENT_OPTIONS.find(o => o.value === accent)?.swatch ?? '#B8956A';
-  const bgSwatch = BG_OPTIONS.find(o => o.value === bgTone)?.swatch ?? '#FAFAF6';
-  const fonts: FontPair = TYPO_FONTS[typo] ?? TYPO_FONT_DEFAULT;
-  const scale: ScalePx = TYPE_SCALE_PX[typeScale] ?? TYPE_SCALE_DEFAULT;
 
   // Tab → conteúdo sub-view (filter sections by active tab)
   const showSection = (tab: typeof activeTab) => activeTab === tab ? {} : { display: 'none' };
@@ -184,7 +117,6 @@ export default function SettingsPage() {
         </p>
         <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginBottom: 'var(--space-1)' }}>
           {activeTab === 'identidade' ? 'Identidade da loja'
-            : activeTab === 'aparencia' ? 'Aparência'
             : activeTab === 'pagamentos' ? 'Gateways de pagamento'
             : activeTab === 'frete' ? 'Frete e logística'
             : activeTab === 'fiscal' ? 'Fiscal e ERP'
@@ -251,219 +183,6 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* Aparência */}
-        <section id="aparencia" className="lj-card" style={{ padding: 'var(--space-6)', ...showSection('aparencia') }}>
-          <div style={{ marginBottom: 'var(--space-5)' }}>
-            <h2 style={{ fontSize: 'var(--text-h4)', fontWeight: 'var(--w-semibold)', marginBottom: 'var(--space-1)' }}>Aparência do storefront</h2>
-            <p className="body-s">
-              Combine tipografia, cor de destaque, fundo, escala e raio de imagem. As mudanças se aplicam ao storefront após salvar.
-            </p>
-          </div>
-
-          {/* Tipografia (radio cards) */}
-          <div style={{ marginBottom: 'var(--space-5)' }}>
-            <label className="eyebrow" style={{ display: 'inline-flex', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
-              Combinação tipográfica
-              <InfoTooltip text="Combinação tipográfica do storefront. Mudança aplica imediatamente sem rebuild." />
-            </label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-3)' }}>
-              {TYPO_OPTIONS.map(o => {
-                const fp = TYPO_FONTS[o.value] ?? TYPO_FONT_DEFAULT;
-                const active = typo === o.value;
-                return (
-                  <button
-                    key={o.value}
-                    type="button"
-                    onClick={() => setAppearance({ typo: o.value })}
-                    style={{
-                      textAlign: 'left',
-                      padding: 'var(--space-3) var(--space-4)',
-                      borderRadius: 'var(--radius-md)',
-                      border: active ? `1.5px solid var(--accent)` : '1px solid var(--border)',
-                      background: active ? 'var(--accent-soft)' : 'var(--bg-elevated)',
-                      cursor: 'pointer',
-                      transition: 'background var(--dur-fast) var(--ease-out)',
-                    }}
-                  >
-                    <p style={{ fontFamily: fp.display, fontSize: 22, lineHeight: 1.1, marginBottom: 4 }}>Aa</p>
-                    <p style={{ fontSize: 'var(--text-caption)', color: active ? 'var(--accent)' : 'var(--fg-secondary)', fontWeight: 'var(--w-medium)' }}>{o.label}</p>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Accent color (swatches) */}
-          <div style={{ marginBottom: 'var(--space-5)' }}>
-            <label className="eyebrow" style={{ display: 'block', marginBottom: 'var(--space-2)' }}>Cor de destaque</label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
-              {ACCENT_OPTIONS.map(o => {
-                const active = accent === o.value;
-                return (
-                  <button
-                    key={o.value}
-                    type="button"
-                    onClick={() => setAppearance({ accent: o.value })}
-                    title={o.label}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 'var(--space-2)',
-                      padding: '6px 10px 6px 6px',
-                      borderRadius: 'var(--radius-full)',
-                      border: active ? `1.5px solid var(--accent)` : '1px solid var(--border)',
-                      background: 'var(--bg-elevated)',
-                      cursor: 'pointer',
-                      fontSize: 'var(--text-caption)',
-                      fontWeight: 'var(--w-medium)',
-                      color: active ? 'var(--accent)' : 'var(--fg-secondary)',
-                    }}
-                  >
-                    <span aria-hidden style={{ width: 16, height: 16, borderRadius: '50%', background: o.swatch, display: 'inline-block', boxShadow: '0 0 0 1px var(--border)' }} />
-                    {o.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* BG tone (swatches) */}
-          <div style={{ marginBottom: 'var(--space-5)' }}>
-            <label className="eyebrow" style={{ display: 'block', marginBottom: 'var(--space-2)' }}>Tom de fundo</label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
-              {BG_OPTIONS.map(o => {
-                const active = bgTone === o.value;
-                return (
-                  <button
-                    key={o.value}
-                    type="button"
-                    onClick={() => setAppearance({ bgTone: o.value })}
-                    title={o.label}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 'var(--space-2)',
-                      padding: '6px 10px 6px 6px',
-                      borderRadius: 'var(--radius-full)',
-                      border: active ? `1.5px solid var(--accent)` : '1px solid var(--border)',
-                      background: 'var(--bg-elevated)',
-                      cursor: 'pointer',
-                      fontSize: 'var(--text-caption)',
-                      fontWeight: 'var(--w-medium)',
-                      color: active ? 'var(--accent)' : 'var(--fg-secondary)',
-                    }}
-                  >
-                    <span aria-hidden style={{ width: 16, height: 16, borderRadius: 4, background: o.swatch, display: 'inline-block', boxShadow: '0 0 0 1px var(--border)' }} />
-                    {o.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Img radius (segmented) */}
-          <div style={{ marginBottom: 'var(--space-5)' }}>
-            <label className="eyebrow" style={{ display: 'inline-flex', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
-              Raio de imagens
-              <InfoTooltip text="Quanto arredondar cantos de imagens de produto. 0 = quadrado, 16 = bem arredondado." />
-            </label>
-            <div style={{ display: 'inline-flex', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border)' }}>
-              {IMG_RADIUS_OPTIONS.map(o => {
-                const active = imgRadius === o.value;
-                return (
-                  <button
-                    key={o.value}
-                    type="button"
-                    onClick={() => setAppearance({ imgRadius: o.value })}
-                    style={{
-                      padding: 'var(--space-2) var(--space-4)',
-                      background: active ? 'var(--accent)' : 'var(--bg-elevated)',
-                      color: active ? 'var(--fg-on-accent)' : 'var(--fg)',
-                      fontSize: 'var(--text-caption)',
-                      fontWeight: 'var(--w-medium)',
-                      border: 'none',
-                      borderLeft: o.value !== '0' ? '1px solid var(--border)' : 'none',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {o.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Type scale (segmented) */}
-          <div style={{ marginBottom: 'var(--space-5)' }}>
-            <label className="eyebrow" style={{ display: 'block', marginBottom: 'var(--space-2)' }}>Escala tipográfica</label>
-            <div style={{ display: 'inline-flex', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border)' }}>
-              {TYPE_SCALE_OPTIONS.map((o, i) => {
-                const active = typeScale === o.value;
-                return (
-                  <button
-                    key={o.value}
-                    type="button"
-                    onClick={() => setAppearance({ typeScale: o.value })}
-                    style={{
-                      padding: 'var(--space-2) var(--space-4)',
-                      background: active ? 'var(--accent)' : 'var(--bg-elevated)',
-                      color: active ? 'var(--fg-on-accent)' : 'var(--fg)',
-                      fontSize: 'var(--text-caption)',
-                      fontWeight: 'var(--w-medium)',
-                      border: 'none',
-                      borderLeft: i > 0 ? '1px solid var(--border)' : 'none',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {o.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Visualizador inline */}
-          <div
-            className="mt-2 rounded border border-neutral-200 p-5"
-            style={{ background: bgSwatch, color: '#1A1612' }}
-          >
-            <p className="text-xs uppercase tracking-widest text-neutral-500 mb-2">Pré-visualização</p>
-            <div className="flex items-center gap-4">
-              <div
-                aria-hidden
-                style={{
-                  width: 64,
-                  height: 64,
-                  background: accentSwatch,
-                  borderRadius: `${imgRadius}px`,
-                  boxShadow: '0 4px 16px rgba(26,22,18,0.06)',
-                }}
-              />
-              <div className="flex-1">
-                <h3 style={{ fontFamily: fonts.display, fontSize: scale.h, lineHeight: 1.2, margin: 0, fontWeight: 500 }}>
-                  Aliança em ouro 18k
-                </h3>
-                <p style={{ fontFamily: fonts.body, fontSize: scale.body, lineHeight: 1.5, margin: '6px 0 0', color: '#3A332C' }}>
-                  Peça artesanal, certificado de origem.
-                </p>
-              </div>
-              <span
-                className="inline-flex items-center px-3 py-1.5 text-xs font-medium"
-                style={{
-                  background: accentSwatch,
-                  color: '#FFFFFF',
-                  borderRadius: '999px',
-                  fontFamily: fonts.body,
-                }}
-              >
-                Comprar
-              </span>
-            </div>
-            <p className="mt-3 text-[11px] text-neutral-500 font-mono">
-              data-typo=&quot;{typo}&quot; · data-accent=&quot;{accent}&quot; · data-bg-tone=&quot;{bgTone}&quot; · data-img-radius=&quot;{imgRadius}&quot; · data-type-scale=&quot;{typeScale}&quot;
-            </p>
-          </div>
-        </section>
 
         {/* Políticas comerciais */}
         <section id="comercial" className="bg-white rounded-lg shadow p-6 space-y-4" style={showSection('comercial')}>

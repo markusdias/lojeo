@@ -10,7 +10,6 @@ interface AnchorItem {
 
 const ITEMS: AnchorItem[] = [
   { id: 'identidade', label: 'Identidade' },
-  { id: 'aparencia', label: 'Aparência' },
   { id: 'comercial', label: 'Políticas comerciais' },
   { id: 'brand-guide', label: 'Brand Guide IA' },
   { id: 'pixels', label: 'Pixels & Analytics' },

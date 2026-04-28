@@ -6,36 +6,36 @@ interface PreviewConfig {
   bgTone?: string;
   photoStyle?: string;
   imgRadius?: '0' | '8' | '16' | string;
+  typeScale?: 'default' | 'larger' | 'smaller' | string;
   hero?: 'image' | 'video' | 'carousel' | 'grid' | string;
   trustSignals?: string[];
 }
 
+// Match jewelry-v1 tokens.css SOT
 const TONE_BG: Record<string, string> = {
-  warm: '#F6EFE3',
+  warm: '#FAFAF6',
   pure: '#FFFFFF',
-  cool: '#F4F4EE',
-  cream: '#FAF7F0',
-  'cream-warm': '#F6EFE3',
-  'pure-white': '#FFFFFF',
-  'cream-cool': '#F4F4EE',
-  'off-white': '#FAF7F0',
+  cool: '#F7F8FA',
+  cream: '#F5EFE3',
 };
 
 const ACCENT_HEX: Record<string, string> = {
-  champagne: '#C8A24B',
-  silver: '#B0B5BA',
-  'rose-gold': '#C9886B',
-  copper: '#A85F2D',
-  'noir-rose': '#5C3344',
+  champagne: '#B8956A',
+  silver: '#9AA0A6',
+  'rose-gold': '#C8A28C',
+  copper: '#A96B3F',
+  'noir-rose': '#5C3A3F',
 };
 
 const TYPE_FAMILIES: Record<string, { display: string; body: string; weight: number; size: number }> = {
-  a: { display: '"Cormorant Garamond","Cormorant",Georgia,serif', body: 'Inter,system-ui,sans-serif', weight: 400, size: 1 },
-  b: { display: '"Tenor Sans","Inter",system-ui,sans-serif', body: 'Inter,system-ui,sans-serif', weight: 400, size: 1.05 },
-  c: { display: '"JetBrains Mono",monospace', body: '"JetBrains Mono",monospace', weight: 400, size: 0.9 },
+  a: { display: '"Cormorant Garamond","Cormorant",Georgia,serif', body: 'Inter,system-ui,sans-serif', weight: 500, size: 1 },
+  b: { display: '"Playfair Display",Georgia,serif', body: '"Source Sans 3",system-ui,sans-serif', weight: 500, size: 1.02 },
+  c: { display: 'Inter,system-ui,sans-serif', body: '"JetBrains Mono",ui-monospace,monospace', weight: 600, size: 0.95 },
 };
 
 const RADIUS: Record<string, string> = { '0': '0', '8': '8px', '16': '16px' };
+
+const SCALE_FACTOR: Record<string, number> = { smaller: 0.85, default: 1, larger: 1.15 };
 
 /**
  * StorefrontPreview — mockup estático coerente com config (typo/accent/bgTone/imgRadius/hero/photoStyle/trust).
@@ -43,9 +43,11 @@ const RADIUS: Record<string, string> = { '0': '0', '8': '8px', '16': '16px' };
  * mudanças nos controles (sem rebuild do storefront real).
  */
 export function StorefrontPreview({ config }: { config: PreviewConfig }) {
-  const bg = TONE_BG[config.bgTone ?? 'warm'] ?? '#F6EFE3';
-  const accent = ACCENT_HEX[config.accent ?? 'champagne'] ?? '#C8A24B';
-  const t = TYPE_FAMILIES[config.typo ?? 'a'] ?? TYPE_FAMILIES.a!;
+  const bg = TONE_BG[config.bgTone ?? 'warm'] ?? '#FAFAF6';
+  const accent = ACCENT_HEX[config.accent ?? 'champagne'] ?? '#B8956A';
+  const baseT = TYPE_FAMILIES[config.typo ?? 'a'] ?? TYPE_FAMILIES.a!;
+  const scaleFactor = SCALE_FACTOR[config.typeScale ?? 'default'] ?? 1;
+  const t = { ...baseT, size: baseT.size * scaleFactor };
   const radius = RADIUS[config.imgRadius ?? '8'] ?? '8px';
   const hero = config.hero ?? 'image';
   const trust = config.trustSignals ?? ['shipping', 'warranty', 'returns', 'payment'];
