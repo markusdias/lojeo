@@ -15,6 +15,16 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const userName = session?.user?.name ?? undefined;
   const userEmail = session?.user?.email ?? undefined;
 
+  if (!session) {
+    return (
+      <html lang="pt-BR">
+        <body style={{ minHeight: '100vh', margin: 0, background: 'var(--paper)' }}>
+          <ToastProvider>{children}</ToastProvider>
+        </body>
+      </html>
+    );
+  }
+
   return (
     <html lang="pt-BR">
       <body style={{ display: 'flex', minHeight: '100vh', margin: 0 }}>
