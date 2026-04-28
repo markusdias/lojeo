@@ -13,15 +13,19 @@ import { RecommendedForYouSection } from '../components/products/recommended-for
 import { ContinueWhereLeftOffSection } from '../components/products/continue-where-left-off';
 import { AnonAffinitySection } from '../components/products/anon-affinity-section';
 import { UgcGallery } from '../components/ugc/ugc-gallery';
+import { HeroVariant } from '../components/marketing/hero-variant';
+import { HomepageReviews } from '../components/marketing/homepage-reviews';
+import { HomepageBlog } from '../components/marketing/homepage-blog';
+import {
+  getTenantRuntimeConfig,
+  resolveHomepageSections,
+  DEFAULT_TRUST_SIGNALS,
+} from '../lib/tenant-config';
 
 export const dynamic = 'force-dynamic';
 
 const tenantId = () => process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
 
-// Paridade: docs/design-system-jewelry-v1/project/ui_kits/storefront/Home.jsx#Collections
-// Cada categoria tem um tom de placeholder distinto na paleta champagne/areia
-// para diferenciação visual enquanto não há foto real (ref usa product-placeholder.svg
-// uniforme; aqui variamos o gradient para dar profundidade ao grid 4 colunas).
 const SECTIONS = [
   { slug: 'aneis',     label: 'Anéis',     blurb: 'Solitários, eternidades e bandas.', tone: 'linear-gradient(140deg, #EDE3CE 0%, #D4C5A8 100%)' },
   { slug: 'brincos',   label: 'Brincos',   blurb: 'Argolas, ear cuffs, gotas.',         tone: 'linear-gradient(140deg, #F2EAD8 0%, #D8C9AC 100%)' },
@@ -29,18 +33,17 @@ const SECTIONS = [
   { slug: 'pulseiras', label: 'Pulseiras', blurb: 'Riviera, elos e pingentes.',         tone: 'linear-gradient(140deg, #EFE6D2 0%, #D0C0A0 100%)' },
 ];
 
-// SVG icons match docs/design-system-jewelry-v1/project/preview/trust-signals.html
-const TRUST_ITEMS: { icon: React.ReactNode; label: string; desc: string }[] = [
-  {
+const TRUST_REGISTRY: Record<string, { icon: React.ReactNode; label: string; desc: string }> = {
+  warranty: {
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
       </svg>
     ),
-    label: 'Garantia 1 ano',
+    label: 'Garantia 12 meses',
     desc: 'contra defeitos de fabricação',
   },
-  {
+  shipping: {
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
         <path d="M3 7h13l5 5v5h-3" />
@@ -52,19 +55,7 @@ const TRUST_ITEMS: { icon: React.ReactNode; label: string; desc: string }[] = [
     label: 'Frete grátis',
     desc: 'acima de R$ 500',
   },
-  {
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <polyline points="20 12 20 22 4 22 4 12" />
-        <rect x="2" y="7" width="20" height="5" />
-        <line x1="12" y1="22" x2="12" y2="7" />
-        <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
-      </svg>
-    ),
-    label: 'Embalagem presente',
-    desc: 'inclusa em todo pedido',
-  },
-  {
+  returns: {
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -75,10 +66,41 @@ const TRUST_ITEMS: { icon: React.ReactNode; label: string; desc: string }[] = [
     label: 'Trocas em 30 dias',
     desc: 'sem perguntas',
   },
-];
+  payment: {
+    icon: (
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <rect x="2" y="6" width="20" height="13" rx="2" />
+        <path d="M2 11h20" />
+      </svg>
+    ),
+    label: 'Pix, cartão até 12×',
+    desc: 'sem juros nas primeiras parcelas',
+  },
+  secure: {
+    icon: (
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <rect x="4" y="11" width="16" height="10" rx="2" />
+        <path d="M8 11V7a4 4 0 1 1 8 0v4" />
+      </svg>
+    ),
+    label: 'Site seguro',
+    desc: 'SSL e checkout criptografado',
+  },
+  rating: {
+    icon: (
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z" />
+      </svg>
+    ),
+    label: 'Avaliação 4.8★',
+    desc: 'mais de 1.200 clientes',
+  },
+};
+
 export default async function HomePage() {
   const tid = tenantId();
   const tpl = await getActiveTemplate();
+  const { appearance } = await getTenantRuntimeConfig();
 
   const [newArrivals] = await Promise.all([
     db.select().from(products)
@@ -87,57 +109,45 @@ export default async function HomePage() {
       .limit(4),
   ]);
 
+  const slogan = appearance.slogan?.trim() || 'Peças que ficam.';
+  const tagline = appearance.tagline?.trim()
+    || 'Joalheria contemporânea, finalizada à mão no nosso ateliê. Ouro 18k e prata 925 com garantia de um ano.';
+  const heroVariant = appearance.hero ?? 'image';
+  const trustIds = (appearance.trustSignals && appearance.trustSignals.length > 0)
+    ? appearance.trustSignals
+    : DEFAULT_TRUST_SIGNALS;
+  const trustItems = trustIds.map(id => TRUST_REGISTRY[id]).filter(Boolean) as Array<typeof TRUST_REGISTRY[string]>;
+  const sections = resolveHomepageSections(appearance).filter(s => !s.off);
+
   const HERO_DEFAULTS = {
-    headline: 'Peças que ficam.',
-    subheadline: 'Joalheria contemporânea, finalizada à mão no nosso ateliê. Ouro 18k e prata 925 com garantia de um ano.',
+    headline: slogan,
+    subheadline: tagline,
     cta: { label: 'Ver coleção', href: '/produtos' },
   };
 
-  return (
-    <HomePersonalizationProvider>
-      {/* ── HERO ── */}
-      {/* Paridade: docs/design-system-jewelry-v1/project/ui_kits/storefront/Home.jsx#Hero
-         aspectRatio 16/9 puro (sem minHeight forçado), gradient diagonal champagne,
-         overlay horizontal 92→0% para legibilidade do texto à esquerda.
-         A/B test `homepage_personalization` (Sprint 12):
-           - control: StaticHero (sem RFM, sem A/B de copy)
-           - personalized: PersonalizedHero + RecommendedForYouSection */}
-      <section style={{ maxWidth: 'var(--container-max)', margin: '24px auto 0', padding: '0 var(--container-pad)' }}>
-        <div style={{
-          position: 'relative', borderRadius: 8, overflow: 'hidden',
-          aspectRatio: '16/9',
-          background: 'linear-gradient(135deg, #E8DDC9 0%, #D4C5A8 100%)',
-        }}>
-          {/* Overlay gradient */}
-          <div style={{
-            position: 'absolute', inset: 0,
-            background: 'linear-gradient(90deg, rgba(232,221,201,0.92) 0%, rgba(232,221,201,0.4) 50%, rgba(232,221,201,0) 70%)',
-          }} />
-          {/* Content */}
-          <div style={{
-            position: 'absolute', left: 'clamp(24px, 5vw, 80px)',
-            top: '50%', transform: 'translateY(-50%)',
-          }}>
-            <HomeVariantGate variant="control">
-              <StaticHero
-                headline={HERO_DEFAULTS.headline}
-                subheadline={HERO_DEFAULTS.subheadline}
-                cta={HERO_DEFAULTS.cta}
-              />
-            </HomeVariantGate>
-            <HomeVariantGate variant="personalized">
-              <PersonalizedHero
-                defaultHeadline={HERO_DEFAULTS.headline}
-                defaultSubheadline={HERO_DEFAULTS.subheadline}
-                defaultCta={HERO_DEFAULTS.cta}
-              />
-            </HomeVariantGate>
-          </div>
-        </div>
+  const blocks: Record<string, React.ReactNode> = {
+    hero: (
+      <section key="hero" style={{ maxWidth: 'var(--container-max)', margin: '24px auto 0', padding: '0 var(--container-pad)' }}>
+        <HeroVariant variant={heroVariant}>
+          <HomeVariantGate variant="control">
+            <StaticHero
+              headline={HERO_DEFAULTS.headline}
+              subheadline={HERO_DEFAULTS.subheadline}
+              cta={HERO_DEFAULTS.cta}
+            />
+          </HomeVariantGate>
+          <HomeVariantGate variant="personalized">
+            <PersonalizedHero
+              defaultHeadline={HERO_DEFAULTS.headline}
+              defaultSubheadline={HERO_DEFAULTS.subheadline}
+              defaultCta={HERO_DEFAULTS.cta}
+            />
+          </HomeVariantGate>
+        </HeroVariant>
       </section>
-
-      {/* ── CATEGORIAS ── */}
-      <section style={{ maxWidth: 'var(--container-max)', margin: '120px auto 0', padding: '0 var(--container-pad)' }}>
+    ),
+    collections: (
+      <section key="collections" style={{ maxWidth: 'var(--container-max)', margin: '120px auto 0', padding: '0 var(--container-pad)' }}>
         <div style={{ marginBottom: 48 }}>
           <p className="eyebrow" style={{ marginBottom: 8 }}>Coleções</p>
           <h2 style={{ margin: 0 }}>Por categoria</h2>
@@ -152,7 +162,6 @@ export default async function HomePage() {
                 overflow: 'hidden', marginBottom: 18,
                 position: 'relative',
               }}>
-                {/* Sutileza: spotlight diagonal ressalta a peça (placeholder) */}
                 <div style={{
                   position: 'absolute', inset: 0,
                   background: 'radial-gradient(ellipse at 30% 35%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 55%)',
@@ -164,55 +173,42 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
-
-      {/* ── CONTINUE DE ONDE PAROU (cliente logado, último product_view) ── */}
-      <ContinueWhereLeftOffSection currency={tpl.currency} />
-
-      {/* ── PARA VOCÊ (cliente logado recorrente, server) ──
-         Renderizada apenas na variante `personalized` do A/B
-         `homepage_personalization`. Server-side renderiza sempre (custo de
-         query é baixo) e o gate apenas controla visibilidade — assim o SSR
-         continua estável e crawlers veem a homepage default (control). */}
-      <HomeVariantGate variant="personalized">
+    ),
+    continueWhereLeftOff: <ContinueWhereLeftOffSection key="continue" currency={tpl.currency} />,
+    recommendedForYou: (
+      <HomeVariantGate key="recommended" variant="personalized">
         <RecommendedForYouSection currency={tpl.currency} />
       </HomeVariantGate>
-
-      {/* ── CONTINUE EXPLORANDO (anônimo recorrente, client por anonymousId) ── */}
-      <AnonAffinitySection currency={tpl.currency} />
-
-      {/* ── NOVIDADES ── */}
-      {newArrivals.length > 0 && (
-        <section style={{ maxWidth: 'var(--container-max)', margin: '120px auto 0', padding: '0 var(--container-pad)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 48 }}>
-            <div>
-              <p className="eyebrow" style={{ marginBottom: 8 }}>Acabou de chegar</p>
-              <h2 style={{ margin: 0 }}>Recém-criadas</h2>
-            </div>
-            <Link href="/produtos?ordenar=novidades" style={{ fontSize: 14, borderBottom: '1px solid var(--text-primary)', paddingBottom: 2, color: 'var(--text-primary)' }}>
-              ver todas
-            </Link>
+    ),
+    anonAffinity: <AnonAffinitySection key="anon" currency={tpl.currency} />,
+    new: newArrivals.length > 0 ? (
+      <section key="new" style={{ maxWidth: 'var(--container-max)', margin: '120px auto 0', padding: '0 var(--container-pad)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 48 }}>
+          <div>
+            <p className="eyebrow" style={{ marginBottom: 8 }}>Acabou de chegar</p>
+            <h2 style={{ margin: 0 }}>Recém-criadas</h2>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24 }}>
-            {newArrivals.map(p => (
-              <ProductCard
-                key={p.id}
-                id={p.id}
-                name={p.name}
-                slug={p.slug}
-                priceCents={p.priceCents}
-                comparePriceCents={p.comparePriceCents}
-                currency={tpl.currency}
-              />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ── SOBRE BREVE ── */}
-      {/* Paridade: ref AboutBrief — aspectRatio 4/5 com imagem do ateliê (placeholder
-         gradient enquanto não há foto real). Spotlight sutil no canto superior reforça
-         "luz natural na bancada" do mood jewelry. */}
-      <section style={{ maxWidth: 'var(--container-max)', margin: '120px auto 0', padding: '0 var(--container-pad)' }}>
+          <Link href="/produtos?ordenar=novidades" style={{ fontSize: 14, borderBottom: '1px solid var(--text-primary)', paddingBottom: 2, color: 'var(--text-primary)' }}>
+            ver todas
+          </Link>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24 }}>
+          {newArrivals.map(p => (
+            <ProductCard
+              key={p.id}
+              id={p.id}
+              name={p.name}
+              slug={p.slug}
+              priceCents={p.priceCents}
+              comparePriceCents={p.comparePriceCents}
+              currency={tpl.currency}
+            />
+          ))}
+        </div>
+      </section>
+    ) : null,
+    about: (
+      <section key="about" style={{ maxWidth: 'var(--container-max)', margin: '120px auto 0', padding: '0 var(--container-pad)' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center' }}>
           <div style={{
             aspectRatio: '4/5',
@@ -243,21 +239,26 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
-
-      {/* ── DA NOSSA COMUNIDADE (UGC) ── */}
-      <section style={{ maxWidth: 'var(--container-max)', margin: '120px auto 0', padding: '0 var(--container-pad)' }}>
+    ),
+    reviews: <HomepageReviews key="reviews" />,
+    ugc: (
+      <section key="ugc" style={{ maxWidth: 'var(--container-max)', margin: '120px auto 0', padding: '0 var(--container-pad)' }}>
         <UgcGallery eyebrow="@atelier" title="Da nossa comunidade" columns={6} />
       </section>
-
-      {/* ── TRUST SIGNALS ── */}
-      {/* Paridade: ref TrustRow usa padding 60px 0 + gap interno 10 + label 14px */}
-      <section style={{ maxWidth: 'var(--container-max)', margin: '120px auto 0', padding: '0 var(--container-pad)' }}>
-        <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 32,
-          borderTop: '1px solid var(--divider)', borderBottom: '1px solid var(--divider)',
-          padding: '60px 0',
-        }}>
-          {TRUST_ITEMS.map(t => (
+    ),
+    trust: trustItems.length > 0 ? (
+      <section key="trust" style={{ maxWidth: 'var(--container-max)', margin: '120px auto 0', padding: '0 var(--container-pad)' }}>
+        <div
+          data-trust-count={trustItems.length}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${Math.min(trustItems.length, 4)}, 1fr)`,
+            gap: 32,
+            borderTop: '1px solid var(--divider)', borderBottom: '1px solid var(--divider)',
+            padding: '60px 0',
+          }}
+        >
+          {trustItems.map(t => (
             <div key={t.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10 }}>
               <span style={{ width: 32, height: 32, color: 'var(--accent)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                 {t.icon}
@@ -268,6 +269,13 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
+    ) : null,
+    blog: <HomepageBlog key="blog" />,
+  };
+
+  return (
+    <HomePersonalizationProvider>
+      {sections.map(s => blocks[s.id] ?? null)}
     </HomePersonalizationProvider>
   );
 }

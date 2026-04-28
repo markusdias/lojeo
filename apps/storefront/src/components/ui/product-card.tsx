@@ -25,7 +25,7 @@ export function ProductCard({ id, name, slug, priceCents, comparePriceCents, ima
   return (
     <Link href={`/produtos/${slug}`} style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
       {/* Imagem */}
-      <div style={{
+      <div data-product-image style={{
         aspectRatio: '3/4',
         background: 'var(--surface-sunken)',
         borderRadius: 'var(--r-image)',
@@ -41,9 +41,8 @@ export function ProductCard({ id, name, slug, priceCents, comparePriceCents, ima
             style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 400ms var(--ease-out)' }}
           />
         ) : (
-          <div style={{
+          <div data-product-placeholder style={{
             width: '100%', height: '100%',
-            background: 'linear-gradient(135deg, #EDE8DE 0%, #D8D0C0 100%)',
             display: 'grid', placeItems: 'center',
           }}>
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="1">

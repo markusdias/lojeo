@@ -10,8 +10,6 @@ import { Footer } from '../components/layout/footer';
 import { Pixels } from '../components/marketing/pixels';
 import { ServiceWorkerRegister } from '../components/pwa/sw-register';
 import { SiteJsonLd } from '../components/seo/site-jsonld';
-import { db, tenants } from '@lojeo/db';
-import { eq } from 'drizzle-orm';
 import { auth } from '../auth';
 import { getHreflangAlternates } from '../lib/hreflang';
 
@@ -47,49 +45,20 @@ export const viewport = {
   initialScale: 1,
 };
 
-interface PixelConfig {
-  gtmId?: string;
-  gaTrackingId?: string;
-  metaPixelId?: string;
-  tiktokPixelId?: string;
-  clarityProjectId?: string;
-  googleAdsConversionId?: string;
-}
-
-interface AppearanceConfig {
-  typo?: string;
-  accent?: string;
-  bgTone?: string;
-  imgRadius?: '0' | '8' | '16';
-  typeScale?: 'default' | 'larger' | 'smaller';
-}
-
-interface TenantRuntimeConfig {
-  pixels: PixelConfig;
-  appearance: AppearanceConfig;
-}
-
-async function getTenantRuntimeConfig(tenantId: string): Promise<TenantRuntimeConfig> {
-  try {
-    const [tenant] = await db.select({ config: tenants.config }).from(tenants).where(eq(tenants.id, tenantId)).limit(1);
-    const cfg = (tenant?.config ?? {}) as { pixels?: PixelConfig; appearance?: AppearanceConfig };
-    return { pixels: cfg.pixels ?? {}, appearance: cfg.appearance ?? {} };
-  } catch {
-    return { pixels: {}, appearance: {} };
-  }
-}
+import { getTenantRuntimeConfig } from '../lib/tenant-config';
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const tpl = await getActiveTemplate();
   const tenantId = process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
   const session = await auth();
   const userId = session?.user?.id ?? null;
-  const { pixels: pixelConfig, appearance } = await getTenantRuntimeConfig(tenantId);
+  const { pixels: pixelConfig, appearance } = await getTenantRuntimeConfig();
   const typo = appearance.typo ?? 'a';
   const accent = appearance.accent ?? 'champagne';
   const bgTone = appearance.bgTone ?? 'warm';
   const imgRadius = appearance.imgRadius ?? '8';
   const typeScale = appearance.typeScale ?? 'default';
+  const photoStyle = appearance.photoStyle ?? 'isolated';
   return (
     <html
       lang={tpl.locale}
@@ -99,6 +68,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       data-bg-tone={bgTone}
       data-img-radius={imgRadius}
       data-type-scale={typeScale}
+      data-photo-style={photoStyle}
     >
       <body>
         <a href="#main-content" className="skip-link">
