@@ -50,6 +50,22 @@
   --border-strong:  var(--neutral-200);
   --focus-ring:     var(--accent-ring);
 
+  /* ---------- Cross-camada aliases (jewelry-v1 / storefront tokens) ---------- */
+  /* Compat: components copy-paste de storefront usam estes nomes. */
+  --text-primary:   var(--fg);
+  --text-secondary: var(--fg-secondary);
+  --text-muted:     var(--fg-muted);
+  --text-on-dark:   var(--fg-on-accent);
+  --divider:        var(--border);
+  --surface:        var(--bg-elevated);
+  --surface-sunken: var(--bg-subtle);
+  --success-soft:   #DCFCE7;
+  --success:        #166534;
+  --error:          #B91C1C;
+  --error-soft:     #FEE2E2;
+  --warning:        #92400E;
+  --warning-soft:   #FEF3C7;
+
   /* ---------- AI gradient (sutil, accent-tonal) ---------- */
   --ai-gradient: linear-gradient(135deg, #00553D 0%, #007A57 50%, #34C796 100%);
   --ai-gradient-soft: linear-gradient(135deg, rgba(0,85,61,0.06) 0%, rgba(52,199,150,0.10) 100%);
