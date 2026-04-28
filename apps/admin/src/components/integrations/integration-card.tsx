@@ -25,6 +25,7 @@ interface Integration {
   source: 'config' | 'env' | 'unknown';
   message: string;
   helper?: string;
+  docsUrl?: string;
   storedCredentials: Record<string, string>;
 }
 
@@ -41,13 +42,6 @@ const STATUS_STYLE: Record<Integration['status'], { bg: string; text: string; la
 
 // Provider field definitions — espelha lib/integrations-config.ts
 const PROVIDER_FIELDS: Record<string, ProviderDef> = {
-  bling: { id: 'bling', name: 'Bling', category: 'Fiscal', fields: [
-    { key: 'clientId', label: 'Client ID', type: 'text', required: true, placeholder: 'BLG-...' },
-    { key: 'clientSecret', label: 'Client Secret', type: 'password', required: true },
-  ]},
-  olist: { id: 'olist', name: 'Olist Tiny', category: 'Fiscal', fields: [
-    { key: 'apiToken', label: 'API Token', type: 'password', required: true },
-  ]},
   mercadopago: { id: 'mercadopago', name: 'Mercado Pago', category: 'Pagamentos', fields: [
     { key: 'accessToken', label: 'Access Token', type: 'password', required: true, placeholder: 'APP_USR-...' },
     { key: 'webhookSecret', label: 'Webhook Secret', type: 'password' },
@@ -56,10 +50,21 @@ const PROVIDER_FIELDS: Record<string, ProviderDef> = {
     { key: 'secretKey', label: 'Secret Key', type: 'password', required: true, placeholder: 'sk_live_...' },
     { key: 'webhookSecret', label: 'Webhook Secret', type: 'password' },
   ]},
+  paypal: { id: 'paypal', name: 'PayPal', category: 'Pagamentos', fields: [
+    { key: 'clientId', label: 'Client ID', type: 'text', required: true, placeholder: 'AYt...' },
+    { key: 'clientSecret', label: 'Client Secret', type: 'password', required: true },
+  ]},
   pagarme: { id: 'pagarme', name: 'Pagar.me', category: 'Pagamentos', fields: [
     { key: 'apiKey', label: 'API Key', type: 'password', required: true },
   ]},
   melhorenvio: { id: 'melhorenvio', name: 'Melhor Envio', category: 'Frete', fields: [
+    { key: 'apiToken', label: 'API Token', type: 'password', required: true },
+  ]},
+  bling: { id: 'bling', name: 'Bling ERP', category: 'Fiscal', fields: [
+    { key: 'clientId', label: 'Client ID', type: 'text', required: true, placeholder: 'BLG-...' },
+    { key: 'clientSecret', label: 'Client Secret', type: 'password', required: true },
+  ]},
+  olist: { id: 'olist', name: 'Olist Tiny', category: 'Fiscal', fields: [
     { key: 'apiToken', label: 'API Token', type: 'password', required: true },
   ]},
   resend: { id: 'resend', name: 'Resend', category: 'Email', fields: [
@@ -75,6 +80,17 @@ const PROVIDER_FIELDS: Record<string, ProviderDef> = {
   ]},
   anthropic: { id: 'anthropic', name: 'Anthropic Claude', category: 'IA', fields: [
     { key: 'apiKey', label: 'API Key', type: 'password', required: true, placeholder: 'sk-ant-...' },
+  ]},
+  minimax: { id: 'minimax', name: 'MiniMax 2.7', category: 'IA', fields: [
+    { key: 'groupId', label: 'Group ID', type: 'text', required: true, placeholder: '1234567890' },
+    { key: 'apiKey', label: 'API Key', type: 'password', required: true, placeholder: 'eyJ...' },
+  ]},
+  removebg: { id: 'removebg', name: 'Remove.bg', category: 'IA', fields: [
+    { key: 'apiKey', label: 'API Key', type: 'password', required: true },
+  ]},
+  triggerdev: { id: 'triggerdev', name: 'Trigger.dev', category: 'Jobs', fields: [
+    { key: 'apiUrl', label: 'API URL', type: 'text', required: true, placeholder: 'https://api.trigger.dev' },
+    { key: 'apiKey', label: 'API Key', type: 'password', required: true, placeholder: 'tr_pat_...' },
   ]},
 };
 
@@ -238,7 +254,17 @@ export function IntegrationCard({ providerId }: Props) {
           </div>
           <p style={{ fontSize: 13, color: 'var(--fg-secondary)', margin: 0 }}>{integration.message}</p>
           {integration.helper && !editing && (
-            <p style={{ fontSize: 12, marginTop: 4, color: 'var(--fg-muted)', margin: '4px 0 0' }}>{integration.helper}</p>
+            <p style={{ fontSize: 12, marginTop: 4, color: 'var(--fg-muted)', margin: '4px 0 0', whiteSpace: 'pre-line' }}>{integration.helper}</p>
+          )}
+          {integration.docsUrl && !editing && integration.status !== 'connected' && (
+            <a
+              href={integration.docsUrl}
+              target="_blank"
+              rel="noreferrer"
+              style={{ fontSize: 12, color: 'var(--accent, #6B7280)', textDecoration: 'underline', marginTop: 6, display: 'inline-block' }}
+            >
+              Ver documentação ↗
+            </a>
           )}
           {msg && (
             <p style={{ fontSize: 12, marginTop: 8, color: msg.ok ? 'var(--success)' : 'var(--error)' }}>{msg.text}</p>
@@ -358,6 +384,7 @@ export function GatewaysCardsLive() {
       <IntegrationCard providerId="mercadopago" />
       <IntegrationCard providerId="pagarme" />
       <IntegrationCard providerId="stripe" />
+      <IntegrationCard providerId="paypal" />
     </div>
   );
 }
@@ -400,6 +427,16 @@ export function IaCardsLive() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
       <IntegrationCard providerId="anthropic" />
+      <IntegrationCard providerId="minimax" />
+      <IntegrationCard providerId="removebg" />
+    </div>
+  );
+}
+
+export function JobsCardsLive() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+      <IntegrationCard providerId="triggerdev" />
     </div>
   );
 }

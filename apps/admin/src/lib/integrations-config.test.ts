@@ -91,7 +91,7 @@ describe('integrations-config', () => {
 
   describe('getProvider', () => {
     it('retorna definição existente', () => {
-      expect(getProvider('bling')?.name).toBe('Bling');
+      expect(getProvider('bling')?.name).toBe('Bling ERP');
     });
     it('retorna null para id desconhecido', () => {
       expect(getProvider('xpto')).toBeNull();

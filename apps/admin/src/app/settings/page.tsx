@@ -10,6 +10,7 @@ import {
   EmailCardsLive,
   WhatsappCardsLive,
   IaCardsLive,
+  JobsCardsLive,
 } from '../../components/integrations/integration-card';
 
 interface BrandGuide {
@@ -44,6 +45,7 @@ interface TenantConfig {
     googleAdsConversionId?: string; // AW-XXXX
   };
   brandGuide?: BrandGuide;
+  aiProvider?: 'anthropic' | 'minimax';
   // Sprint 8 v2 — limite de requests do IA Analyst por usuário
   aiAnalystRateLimit?: {
     perMinute?: number; // default 10
@@ -106,8 +108,8 @@ export default function SettingsPage() {
   // Tab → conteúdo sub-view (filter sections by active tab)
   const showSection = (tab: typeof activeTab) => activeTab === tab ? {} : { display: 'none' };
 
-  // Cards-only tabs (Vendas/Comunicação) renderizam fora do form
-  const isCardsTab = activeTab === 'pagamentos' || activeTab === 'frete' || activeTab === 'fiscal' || activeTab === 'email' || activeTab === ('whatsapp' as typeof activeTab);
+  // Cards-only tabs (Vendas/Comunicação/Jobs) renderizam fora do form
+  const isCardsTab = activeTab === 'pagamentos' || activeTab === 'frete' || activeTab === 'fiscal' || activeTab === 'email' || activeTab === ('whatsapp' as typeof activeTab) || activeTab === ('jobs' as typeof activeTab);
 
   return (
     <main style={{ padding: 'var(--space-6) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }}>
@@ -123,6 +125,7 @@ export default function SettingsPage() {
             : activeTab === 'email' ? 'E-mail transacional'
             : activeTab === 'pixels' ? 'Pixels & Analytics'
             : activeTab === 'ia' ? 'IA · cota e brand guide'
+            : activeTab === ('jobs' as typeof activeTab) ? 'Jobs assíncronos'
             : activeTab === 'comercial' ? 'Políticas comerciais'
             : activeTab === 'robots' ? 'Robots.txt'
             : 'Configurações da loja'
@@ -151,6 +154,7 @@ export default function SettingsPage() {
           {activeTab === 'fiscal' && <FiscalCardsLive />}
           {activeTab === 'email' && <EmailCardsLive />}
           {activeTab === ('whatsapp' as typeof activeTab) && <WhatsappCardsLive />}
+          {activeTab === ('jobs' as typeof activeTab) && <JobsCardsLive />}
 
           {!isCardsTab && (
       <form onSubmit={handleSave} className="space-y-8">
@@ -255,9 +259,22 @@ export default function SettingsPage() {
           <div>
             <h2 className="font-semibold text-lg">Provedores IA</h2>
             <p className="text-xs text-neutral-500 mt-1 mb-4">
-              Conecte sua chave Anthropic para habilitar geração de descrições, busca semântica e IA Analyst.
+              Conecte Anthropic Claude e/ou MiniMax 2.7. Escolha abaixo qual provedor ativo usará para geração de descrições, IA Analyst e busca semântica.
             </p>
             <IaCardsLive />
+            <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+              <label className="text-sm font-medium text-neutral-700">Provedor ativo:</label>
+              <select
+                value={settings.config.aiProvider ?? 'anthropic'}
+                onChange={e => setConfig({ aiProvider: e.target.value as 'anthropic' | 'minimax' })}
+                className="border rounded px-3 py-2 text-sm"
+                style={{ minWidth: 180 }}
+              >
+                <option value="anthropic">Anthropic Claude</option>
+                <option value="minimax">MiniMax 2.7</option>
+              </select>
+              <span className="text-xs text-neutral-400">Usado para todas as funções de IA da plataforma</span>
+            </div>
           </div>
 
           <div style={{ marginTop: 'var(--space-6)' }}>

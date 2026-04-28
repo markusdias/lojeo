@@ -12,6 +12,7 @@ interface TenantConfig {
   installmentsMax?: number;
   warrantyMonthsDefault?: number;
   robotsTxt?: string;
+  aiProvider?: 'anthropic' | 'minimax';
   appearance?: {
     typo?: string;
     accent?: string;

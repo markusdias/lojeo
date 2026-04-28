@@ -64,41 +64,73 @@ const STATUS_STYLE: Record<Integration['status'], { bg: string; text: string; la
 
 // Definição mínima dos providers (espelha lib/integrations-config.ts)
 const PROVIDER_FIELDS: Record<string, ProviderDef> = {
-  bling: { id: 'bling', name: 'Bling', category: 'Fiscal', fields: [
-    { key: 'clientId', label: 'Client ID', type: 'text', required: true, placeholder: 'BLG-...' },
-    { key: 'clientSecret', label: 'Client Secret', type: 'password', required: true },
-  ]},
-  olist: { id: 'olist', name: 'Olist Tiny', category: 'Fiscal', fields: [
-    { key: 'apiToken', label: 'API Token', type: 'password', required: true },
-  ]},
   mercadopago: { id: 'mercadopago', name: 'Mercado Pago', category: 'Pagamentos', fields: [
-    { key: 'accessToken', label: 'Access Token', type: 'password', required: true, placeholder: 'APP_USR-...' },
+    { key: 'accessToken', label: 'Access Token', type: 'password', required: true, placeholder: 'APP_USR-...',
+      helper: 'mercadopago.com.br/developers/panel → credenciais de produção' },
     { key: 'webhookSecret', label: 'Webhook Secret', type: 'password' },
-  ]},
+  ], docsUrl: 'https://www.mercadopago.com.br/developers/pt/docs/checkout-api/landing' },
   stripe: { id: 'stripe', name: 'Stripe', category: 'Pagamentos', fields: [
-    { key: 'secretKey', label: 'Secret Key', type: 'password', required: true, placeholder: 'sk_live_...' },
+    { key: 'secretKey', label: 'Secret Key', type: 'password', required: true, placeholder: 'sk_live_...',
+      helper: 'dashboard.stripe.com → Developers → API keys → Secret key' },
     { key: 'webhookSecret', label: 'Webhook Secret', type: 'password' },
-  ]},
+  ], docsUrl: 'https://stripe.com/docs/keys' },
+  paypal: { id: 'paypal', name: 'PayPal', category: 'Pagamentos', fields: [
+    { key: 'clientId', label: 'Client ID', type: 'text', required: true, placeholder: 'AYt...',
+      helper: 'developer.paypal.com → Apps & Credentials → Create App → Live' },
+    { key: 'clientSecret', label: 'Client Secret', type: 'password', required: true },
+  ], docsUrl: 'https://developer.paypal.com/api/rest/' },
   pagarme: { id: 'pagarme', name: 'Pagar.me', category: 'Pagamentos', fields: [
-    { key: 'apiKey', label: 'API Key', type: 'password', required: true },
-  ]},
+    { key: 'apiKey', label: 'API Key', type: 'password', required: true,
+      helper: 'app.pagar.me → Configurações → API keys → Chave de produção' },
+  ], docsUrl: 'https://docs.pagar.me/docs/api-key' },
   melhorenvio: { id: 'melhorenvio', name: 'Melhor Envio', category: 'Frete', fields: [
-    { key: 'apiToken', label: 'API Token', type: 'password', required: true },
+    { key: 'apiToken', label: 'API Token', type: 'password', required: true,
+      helper: 'melhorenvio.com.br/painel/gerenciar/tokens → Criar token (escopos: Envios, Checkout, Fretes)' },
+  ], docsUrl: 'https://docs.melhorenvio.com.br/reference/authentication' },
+  bling: { id: 'bling', name: 'Bling ERP', category: 'Fiscal', fields: [
+    { key: 'clientId', label: 'Client ID', type: 'text', required: true, placeholder: 'BLG-...',
+      helper: 'developer.bling.com.br → Meus aplicativos → Criar → Client ID' },
+    { key: 'clientSecret', label: 'Client Secret', type: 'password', required: true },
+  ], docsUrl: 'https://developer.bling.com.br/aplicativos' },
+  olist: { id: 'olist', name: 'Olist Tiny', category: 'Fiscal', fields: [
+    { key: 'apiToken', label: 'API Token', type: 'password', required: true,
+      helper: 'tiny.com.br → Configurações → Integrações → API → Token' },
   ]},
   resend: { id: 'resend', name: 'Resend', category: 'Email', fields: [
-    { key: 'apiKey', label: 'API Key', type: 'password', required: true, placeholder: 're_...' },
-    { key: 'fromEmail', label: 'Email remetente', type: 'email', required: true, placeholder: 'no-reply@suamarca.com' },
-  ]},
+    { key: 'apiKey', label: 'API Key', type: 'password', required: true, placeholder: 're_...',
+      helper: 'resend.com/api-keys → Create API Key' },
+    { key: 'fromEmail', label: 'Email remetente', type: 'email', required: true, placeholder: 'no-reply@suamarca.com',
+      helper: 'Deve ser de domínio verificado no Resend (Domains → Add)' },
+  ], docsUrl: 'https://resend.com/docs' },
   sendgrid: { id: 'sendgrid', name: 'SendGrid', category: 'Email', fields: [
-    { key: 'apiKey', label: 'API Key', type: 'password', required: true },
+    { key: 'apiKey', label: 'API Key', type: 'password', required: true,
+      helper: 'app.sendgrid.com → Settings → API Keys → Create' },
     { key: 'fromEmail', label: 'Email remetente', type: 'email', required: true },
-  ]},
+  ], docsUrl: 'https://docs.sendgrid.com/ui/account-and-settings/api-keys' },
   faqzap: { id: 'faqzap', name: 'FaqZap (WhatsApp)', category: 'WhatsApp', fields: [
-    { key: 'apiToken', label: 'API Token', type: 'password', required: true },
+    { key: 'apiToken', label: 'API Token', type: 'password', required: true,
+      helper: 'app.faqzap.com.br → Configurações → Integrações → API Token' },
   ]},
   anthropic: { id: 'anthropic', name: 'Anthropic Claude', category: 'IA', fields: [
-    { key: 'apiKey', label: 'API Key', type: 'password', required: true, placeholder: 'sk-ant-...' },
-  ]},
+    { key: 'apiKey', label: 'API Key', type: 'password', required: true, placeholder: 'sk-ant-...',
+      helper: 'console.anthropic.com/settings/keys → Create Key' },
+  ], docsUrl: 'https://console.anthropic.com/settings/keys' },
+  minimax: { id: 'minimax', name: 'MiniMax 2.7', category: 'IA', fields: [
+    { key: 'groupId', label: 'Group ID', type: 'text', required: true, placeholder: '1234567890',
+      helper: 'platform.minimax.io → avatar (canto superior) → Group ID' },
+    { key: 'apiKey', label: 'API Key', type: 'password', required: true, placeholder: 'eyJ...',
+      helper: 'platform.minimax.io → API Key Management → Create API Key' },
+  ], docsUrl: 'https://platform.minimax.io/user-center/basic-information/interface-key' },
+  removebg: { id: 'removebg', name: 'Remove.bg', category: 'IA', fields: [
+    { key: 'apiKey', label: 'API Key', type: 'password', required: true,
+      helper: 'remove.bg/dashboard/api-keys → New API key (50 créditos grátis/mês)' },
+  ], docsUrl: 'https://www.remove.bg/api' },
+  triggerdev: { id: 'triggerdev', name: 'Trigger.dev', category: 'Jobs', fields: [
+    { key: 'apiUrl', label: 'API URL', type: 'text', required: true, placeholder: 'https://api.trigger.dev',
+      helper: 'Para cloud use https://api.trigger.dev' },
+    { key: 'apiKey', label: 'API Key', type: 'password', required: true, placeholder: 'tr_pat_...',
+      helper: 'app.trigger.dev → Settings → API Keys → Personal Access Token' },
+  ], docsUrl: 'https://trigger.dev/docs/apikeys' },
 };
 
 export default function IntegracoesPage() {

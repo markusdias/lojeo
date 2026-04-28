@@ -14,7 +14,8 @@ export type SettingsTab =
   | 'ia'
   | 'comercial'
   | 'robots'
-  | 'equipe';
+  | 'equipe'
+  | 'jobs';
 
 interface TabItem {
   id: SettingsTab;
@@ -52,6 +53,7 @@ const TABS: TabItem[] = [
   { id: 'pixels', label: 'Pixels & Analytics', iconPath: ICONS.target, group: 'Comunicação' },
   { id: 'notificacoes' as SettingsTab, label: 'Notificações', iconPath: ICONS.bell, group: 'Comunicação', href: '/notificacoes/preferencias' },
   { id: 'ia', label: 'IA · cota', iconPath: ICONS.spark, group: 'Inteligência' },
+  { id: 'jobs', label: 'Jobs assíncronos', iconPath: ICONS.bell, group: 'Inteligência' },
   { id: 'robots', label: 'Robots.txt', iconPath: ICONS.globe, group: 'SEO' },
   { id: 'equipe', label: 'Equipe', iconPath: ICONS.users, group: 'Conta', href: '/settings/users' },
 ];
