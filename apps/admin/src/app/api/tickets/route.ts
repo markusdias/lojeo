@@ -3,6 +3,7 @@ import { db, supportTickets } from '@lojeo/db';
 import { eq, and, desc } from 'drizzle-orm';
 import { auth } from '../../../auth';
 import { applyAutoAssignment } from '../../../lib/ticket-assignment';
+import { guardPermission } from '../../../lib/permission-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +12,8 @@ const TENANT_ID = () => process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000
 export async function GET(req: Request) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+  const denied = await guardPermission('tickets', 'read');
+  if (denied) return denied;
 
   const { searchParams } = new URL(req.url);
   const status = searchParams.get('status');
@@ -34,6 +37,8 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+  const denied = await guardPermission('tickets', 'write');
+  if (denied) return denied;
 
   const body = await req.json() as {
     subject?: string;

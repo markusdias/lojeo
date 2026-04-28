@@ -3,6 +3,7 @@ import { db, supportTickets } from '@lojeo/db';
 import { eq, and } from 'drizzle-orm';
 import { auth } from '../../../../auth';
 import { recordAuditLog } from '../../../../lib/roles';
+import { guardPermission } from '../../../../lib/permission-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +15,8 @@ const VALID_PRIORITIES = ['low', 'medium', 'high', 'urgent'];
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+  const denied = await guardPermission('tickets', 'read');
+  if (denied) return denied;
 
   const { id } = await params;
   const [ticket] = await db
@@ -29,6 +32,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+  const denied = await guardPermission('tickets', 'write');
+  if (denied) return denied;
 
   const { id } = await params;
   const body = await req.json() as {

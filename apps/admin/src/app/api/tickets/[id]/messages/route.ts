@@ -3,6 +3,7 @@ import { db, ticketMessages, supportTickets } from '@lojeo/db';
 import { eq, and, asc } from 'drizzle-orm';
 import { auth } from '../../../../../auth';
 import { recordAuditLog } from '../../../../../lib/roles';
+import { guardPermission } from '../../../../../lib/permission-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +12,8 @@ const TENANT_ID = () => process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+  const denied = await guardPermission('tickets', 'read');
+  if (denied) return denied;
 
   const { id } = await params;
   // Verify ticket belongs to tenant
@@ -34,6 +37,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+  const denied = await guardPermission('tickets', 'write');
+  if (denied) return denied;
 
   const { id } = await params;
   const body = await req.json() as { body?: string; isInternal?: boolean };

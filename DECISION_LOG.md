@@ -6180,3 +6180,48 @@ Cada var com comentário explicativo (link doc, modo degradado quando aplicável
 - P2.I batch 2: ugc, recommendations, 2fa, blog, ai-analyst, notifications, tickets[id].
 - AuditLog wrapper para mutations sensíveis.
 - Push PWA real (web-push lib + VAPID).
+
+---
+
+## 2026-04-27 (continuacao) — Batch 62: Permission scopes batch 2 (P2.I follow-up)
+
+**Commits:** (a registrar nesta sessao).
+
+**Endpoints adicionais protegidos (4 endpoints / 9 handlers):**
+- `/api/recommendations/overrides` GET (read products) + POST (write products) + DELETE (write products).
+- `/api/tickets` GET (read tickets) + POST (write tickets).
+- `/api/tickets/[id]` GET (read) + PATCH (write).
+- `/api/tickets/[id]/messages` GET (read) + POST (write).
+
+**Total agora: ~12 endpoints / ~23 handlers protegidos:**
+- products + collections + inventory (scope=products) — batch 1.
+- affiliates + payout (scope=settings/billing) — batch 1.
+- recommendations + tickets (scope=products/tickets) — batch 2.
+
+**Endpoints restantes sem guard:**
+- 2fa (auth-bound, validação via session.user direto OK).
+- migrate (env-secret protected).
+- track (storefront-side via SDK).
+- seed/* (NODE_ENV=development only).
+- users/invites/accept (próprio usuário aceita).
+- ai-analyst, embeddings (já tinha — batch 0).
+- notifications (próprio usuário marca read).
+- ai-budget, audit (read scope insights/audit).
+- experiments (já tinha).
+- coupons CRUD — V2.
+- blog CRUD — V2.
+
+**Trade-offs arquiteturais:**
+- Convergência da pattern: `await guardPermission(scope, action); if (denied) return denied;` antes de business logic.
+- Tickets escope dedicado (separado de orders) — atendimento role tem write em tickets mas não em orders.
+- Sem audit log automático ainda — V2 wrapper recordAuditLog em PATCH/DELETE.
+
+**Validações:**
+- pnpm -r typecheck zero erro.
+- 514 passing total. Zero regressao.
+- pnpm -r lint admin/storefront limpo.
+
+**Próximo ciclo:**
+- AuditLog wrapper para mutations sensíveis (recordAuditLog automático).
+- Push PWA real (web-push lib + VAPID keys).
+- Audit endpoint coverage final (coupons/blog/2fa/ai-budget).

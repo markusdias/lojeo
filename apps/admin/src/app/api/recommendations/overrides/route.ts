@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { and, eq, desc, inArray } from 'drizzle-orm';
 import { db, recommendationOverrides, products } from '@lojeo/db';
+import { guardPermission } from '../../../../lib/permission-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +21,8 @@ const CreateSchema = z.object({
 
 // GET ?productId=X — lista overrides do produto fonte com snapshot do alvo (nome/slug)
 export async function GET(req: NextRequest) {
+  const denied = await guardPermission('products', 'read');
+  if (denied) return denied;
   const url = new URL(req.url);
   const productId = url.searchParams.get('productId');
   if (!productId || !UuidSchema.safeParse(productId).success) {
@@ -67,6 +70,8 @@ export async function GET(req: NextRequest) {
 
 // POST { productId, recommendedProductId, overrideType } — upsert por (tenant, product, target)
 export async function POST(req: NextRequest) {
+  const denied = await guardPermission('products', 'write');
+  if (denied) return denied;
   const tid = tenantId(req);
   const body = await req.json().catch(() => null);
   const parsed = CreateSchema.safeParse(body);
@@ -132,6 +137,8 @@ export async function POST(req: NextRequest) {
 
 // DELETE ?id=X — remove override (escopado por tenant)
 export async function DELETE(req: NextRequest) {
+  const denied = await guardPermission('products', 'write');
+  if (denied) return denied;
   const url = new URL(req.url);
   const id = url.searchParams.get('id');
   if (!id || !UuidSchema.safeParse(id).success) {
