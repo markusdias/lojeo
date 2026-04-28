@@ -42,7 +42,7 @@ function fmt(cents: number) {
 }
 
 function fmtDateTime(d: Date) {
-  return d.toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
 }
 
 function initials(source: string): string {
