@@ -61,14 +61,21 @@ export default async function PedidoDetailPage({ params }: PageProps) {
   const { id } = await params;
   const tid = process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
 
-  const order = await db.query.orders?.findFirst({
-    where: and(eq(orders.tenantId, tid), eq(orders.id, id)),
-  });
+  // Aceita UUID (link da lista) ou orderNumber (URL digitada manualmente).
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  const order = isUuid
+    ? await db.query.orders?.findFirst({
+        where: and(eq(orders.tenantId, tid), eq(orders.id, id)),
+      })
+    : await db.query.orders?.findFirst({
+        where: and(eq(orders.tenantId, tid), eq(orders.orderNumber, id)),
+      });
   if (!order) notFound();
+  const orderUuid = order.id;
 
   const [items, events] = await Promise.all([
-    db.select().from(orderItems).where(eq(orderItems.orderId, id)),
-    db.select().from(orderEvents).where(eq(orderEvents.orderId, id)).orderBy(asc(orderEvents.createdAt)),
+    db.select().from(orderItems).where(eq(orderItems.orderId, orderUuid)),
+    db.select().from(orderEvents).where(eq(orderEvents.orderId, orderUuid)).orderBy(asc(orderEvents.createdAt)),
   ]);
 
   const addr = order.shippingAddress as Record<string, string> | null;
@@ -141,9 +148,9 @@ export default async function PedidoDetailPage({ params }: PageProps) {
     }
     if (newStatus === 'delivered') updateData.deliveredAt = new Date();
 
-    await db.update(orders).set(updateData).where(and(eq(orders.tenantId, tid), eq(orders.id, id)));
+    await db.update(orders).set(updateData).where(and(eq(orders.tenantId, tid), eq(orders.id, orderUuid)));
     await db.insert(orderEvents).values({
-      orderId: id,
+      orderId: orderUuid,
       tenantId: tid,
       eventType: 'status_changed',
       fromStatus: order!.status,
@@ -155,10 +162,10 @@ export default async function PedidoDetailPage({ params }: PageProps) {
     if (newStatus === 'shipped' && trackingCode && order!.customerEmail) {
       void sendShippingNotificationEmail({
         customerEmail: order!.customerEmail,
-        orderCode: order!.orderNumber ?? id,
+        orderCode: order!.orderNumber ?? orderUuid,
         trackingCode,
         estimatedDelivery: '7 dias úteis',
-        orderId: id,
+        orderId: orderUuid,
       });
     }
 
