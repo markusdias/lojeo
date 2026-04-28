@@ -313,39 +313,18 @@ function CollectionCard({ c, highlight }: { c: CollectionItem; highlight?: boole
           placeItems: 'center',
         }}
       >
-        {/* placeholder cremoso + ícone redondo, igual idioma do PLP.jsx */}
-        <div
+        <span
           aria-hidden="true"
           style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 14,
-            color: 'var(--text-muted-decorative, #A89B8C)',
+            width: 56, height: 56, borderRadius: 999,
+            border: '1px solid var(--divider)',
+            display: 'grid', placeItems: 'center',
+            background: 'var(--surface)',
+            color: 'var(--text-secondary)',
           }}
         >
-          <span
-            style={{
-              fontSize: 10,
-              letterSpacing: '0.18em',
-              textTransform: 'uppercase',
-              color: 'var(--text-secondary)',
-            }}
-          >
-            Placeholder · imagem da coleção
-          </span>
-          <span
-            style={{
-              width: 56, height: 56, borderRadius: 999,
-              border: '1px solid var(--divider)',
-              display: 'grid', placeItems: 'center',
-              background: 'var(--surface)',
-              color: 'var(--text-secondary)',
-            }}
-          >
-            <Icon name="sparkle" size={22} />
-          </span>
-        </div>
+          <Icon name="sparkle" size={22} />
+        </span>
 
         {badge && (
           <span
