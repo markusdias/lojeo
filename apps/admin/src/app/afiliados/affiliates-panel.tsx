@@ -549,21 +549,16 @@ export function AffiliatesPanel({ initial, initialMeta, storefrontOrigin }: Prop
         {rows.length === 0 ? (
           <EmptyState onCreate={openCreate} hasFilter={!!(search || status !== 'active' || tag)} />
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-body-s)' }}>
+          <div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-body-s)', tableLayout: 'auto' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border-strong)', background: 'var(--bg-subtle)' }}>
                   <Th>Afiliado</Th>
                   <Th>Código</Th>
-                  <Th>Status</Th>
-                  <Th>Tag</Th>
                   <Th align="right">%</Th>
-                  <Th align="right">Cliques</Th>
-                  <Th align="right">Conv.</Th>
+                  <Th align="right">Performance</Th>
                   <Th>Validade</Th>
-                  <Th align="right">Pendente</Th>
-                  <Th align="right">Pago</Th>
-                  <Th>Última atividade</Th>
+                  <Th align="right">Comissão</Th>
                   <Th align="center">Ações</Th>
                 </tr>
               </thead>
@@ -575,8 +570,16 @@ export function AffiliatesPanel({ initial, initialMeta, storefrontOrigin }: Prop
                   return (
                     <tr key={r.id} style={{ borderBottom: '1px solid var(--border)', opacity: st === 'archived' ? 0.6 : 1 }}>
                       <Td>
-                        <div style={{ fontWeight: 500, color: 'var(--fg)' }}>{r.affiliateName}</div>
-                        {r.affiliateEmail && <div style={{ fontSize: 11, color: 'var(--fg-muted)' }}>{r.affiliateEmail}</div>}
+                        <div style={{ fontWeight: 500, color: 'var(--fg)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                          <span>{r.affiliateName}</span>
+                          <span style={{ display: 'inline-block', padding: '1px 8px', borderRadius: 'var(--radius-full)', fontSize: 10, fontWeight: 500, background: badge.bg, color: badge.fg }}>
+                            {badge.label}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--fg-muted)', display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                          {r.affiliateEmail && <span>{r.affiliateEmail}</span>}
+                          {tagLabel && <span>· {tagLabel}</span>}
+                        </div>
                       </Td>
                       <Td mono>
                         <button
@@ -597,23 +600,16 @@ export function AffiliatesPanel({ initial, initialMeta, storefrontOrigin }: Prop
                           {r.code}
                         </button>
                       </Td>
-                      <Td>
-                        <span style={{ display: 'inline-block', padding: '2px var(--space-2)', borderRadius: 'var(--radius-full)', fontSize: 11, fontWeight: 500, background: badge.bg, color: badge.fg }}>
-                          {badge.label}
-                        </span>
-                      </Td>
-                      <Td>
-                        {tagLabel ? (
-                          <span style={{ fontSize: 11, color: 'var(--fg-secondary)' }}>{tagLabel}</span>
-                        ) : (
-                          <span style={{ color: 'var(--fg-muted)' }}>—</span>
-                        )}
-                      </Td>
                       <Td align="right">{bpsToPercent(r.commissionBps).toFixed(1)}%</Td>
-                      <Td align="right" mono>{r.clicks}</Td>
                       <Td align="right" mono>
-                        {r.conversions}
-                        {r.maxUses ? <span style={{ color: 'var(--fg-muted)' }}>/{r.maxUses}</span> : null}
+                        <div style={{ fontSize: 'var(--text-body-s)' }}>
+                          {r.conversions}
+                          {r.maxUses ? <span style={{ color: 'var(--fg-muted)' }}>/{r.maxUses}</span> : null}
+                          <span style={{ color: 'var(--fg-muted)' }}> conv</span>
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--fg-muted)' }}>
+                          {r.clicks} click{r.clicks === 1 ? '' : 's'}
+                        </div>
                       </Td>
                       <Td>
                         <div style={{ fontSize: 11, color: 'var(--fg-secondary)' }}>{r.cookieDays}d cookie</div>
@@ -622,16 +618,17 @@ export function AffiliatesPanel({ initial, initialMeta, storefrontOrigin }: Prop
                             até {new Date(r.expiresAt).toLocaleDateString('pt-BR')}
                           </div>
                         )}
+                        <div style={{ fontSize: 11, color: 'var(--fg-muted)' }}>
+                          {r.lastConversionAt ? `conv ${fmtRelative(r.lastConversionAt)}` : (r.lastClickAt ? `click ${fmtRelative(r.lastClickAt)}` : 'sem atividade')}
+                        </div>
                       </Td>
                       <Td align="right" mono>
-                        <span style={{ color: r.pendingCents > 0 ? 'var(--accent)' : 'var(--fg)', fontWeight: r.pendingCents > 0 ? 500 : 400 }}>
+                        <div style={{ color: r.pendingCents > 0 ? 'var(--accent)' : 'var(--fg)', fontWeight: r.pendingCents > 0 ? 600 : 400 }}>
                           {fmtBRL(r.pendingCents)}
-                        </span>
-                      </Td>
-                      <Td align="right" mono>{fmtBRL(r.payoutCents)}</Td>
-                      <Td>
-                        <div style={{ fontSize: 11, color: 'var(--fg-secondary)' }}>click {fmtRelative(r.lastClickAt)}</div>
-                        <div style={{ fontSize: 11, color: 'var(--fg-muted)' }}>conv {fmtRelative(r.lastConversionAt)}</div>
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--fg-muted)' }}>
+                          {fmtBRL(r.payoutCents)} pagos
+                        </div>
                       </Td>
                       <Td align="center">
                         <RowActions
@@ -818,11 +815,11 @@ function RowActions({ row, onEdit, onTogglePause, onArchive, onPayout, onCopy }:
             position: 'fixed',
             top: pos.top,
             right: pos.right,
-            minWidth: 180,
+            minWidth: 200,
             background: 'var(--bg-elevated)',
             border: '1px solid var(--border-strong)',
-            borderRadius: 'var(--radius-md)',
-            boxShadow: 'var(--shadow-lg)',
+            borderRadius: 'var(--radius-lg)',
+            boxShadow: 'var(--shadow-xl)',
             zIndex: 1000,
             padding: 'var(--space-1)',
             display: 'flex',
