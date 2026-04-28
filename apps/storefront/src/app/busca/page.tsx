@@ -51,12 +51,14 @@ export default async function BuscaPage({ searchParams }: BuscaProps) {
     <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '40px var(--container-pad) 80px' }}>
       <SearchTracker query={q} resultsCount={results.length} />
       <div style={{ marginBottom: 40 }}>
-        <p className="eyebrow" style={{ marginBottom: 8 }}>Resultados</p>
+        <p className="eyebrow" style={{ marginBottom: 8 }}>{q ? 'Resultados' : 'Buscar'}</p>
         <h1 style={{ margin: '0 0 8px' }}>
-          {q ? `"${q}"` : 'Todas as peças'}
+          {q ? `"${q}"` : 'O que procura?'}
         </h1>
         <p style={{ fontSize: 16, color: 'var(--text-secondary)', margin: 0 }}>
-          {results.length} {results.length === 1 ? 'peça encontrada' : 'peças encontradas'}
+          {q
+            ? `${results.length} ${results.length === 1 ? 'peça encontrada' : 'peças encontradas'}`
+            : 'Use a barra de busca no topo, ou explore nossa coleção completa abaixo.'}
         </p>
       </div>
 
