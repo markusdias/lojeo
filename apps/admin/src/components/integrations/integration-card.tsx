@@ -171,16 +171,40 @@ export function IntegrationCard({ providerId }: Props) {
     try {
       const r = await fetch('/api/integrations/test', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', accept: 'application/json' },
         body: JSON.stringify({ provider: providerId }),
+        credentials: 'same-origin',
       });
-      const d = (await r.json()) as { ok: boolean; message: string; reason?: string };
+      const ct = r.headers.get('content-type') ?? '';
+      const raw = await r.text();
+      if (!ct.includes('application/json')) {
+        // Sessão expirada (HTML login), proxy 502, edge runtime fail — sempre não-JSON
+        if (r.status === 401 || r.status === 403) {
+          setTestStatus('error');
+          setTestMsg('Sessão expirada — recarregue a página');
+          setTestReason(`HTTP ${r.status}`);
+          return;
+        }
+        setTestStatus('error');
+        setTestMsg('Servidor não respondeu em JSON');
+        setTestReason(`HTTP ${r.status} · ${ct || 'sem content-type'}`);
+        return;
+      }
+      let d: { ok: boolean; message: string; reason?: string };
+      try {
+        d = JSON.parse(raw) as { ok: boolean; message: string; reason?: string };
+      } catch {
+        setTestStatus('error');
+        setTestMsg('Resposta inválida do servidor');
+        setTestReason(`HTTP ${r.status}`);
+        return;
+      }
       setTestStatus(d.ok ? 'ok' : 'error');
       setTestMsg(d.message);
       setTestReason(d.reason ?? '');
     } catch (err) {
       setTestStatus('error');
-      setTestMsg('Erro ao chamar endpoint de teste');
+      setTestMsg('Erro de rede ao testar conexão');
       setTestReason(err instanceof Error ? err.message : String(err));
     }
   }

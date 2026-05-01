@@ -141,6 +141,11 @@ interface FormState {
   expiresAt: string;
   tag: string;
   notes: string;
+  // Modelo 1 — cupom dedicado amarrado ao afiliado.
+  // Quando ligado, cliente que digita o código no checkout ganha desconto E
+  // a venda é atribuída automaticamente ao afiliado (sem cookie).
+  generateCoupon: boolean;
+  couponDiscountPercent: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -155,6 +160,8 @@ const EMPTY_FORM: FormState = {
   expiresAt: '',
   tag: '',
   notes: '',
+  generateCoupon: false,
+  couponDiscountPercent: '10',
 };
 
 export function AffiliatesPanel({ initial, initialMeta, storefrontOrigin }: Props) {
@@ -260,6 +267,9 @@ export function AffiliatesPanel({ initial, initialMeta, storefrontOrigin }: Prop
       expiresAt: r.expiresAt ? r.expiresAt.slice(0, 10) : '',
       tag: r.tag ?? '',
       notes: r.notes ?? '',
+      // Edição: cupom já criado (ou não); toggle não aparece em edit. Default safe values.
+      generateCoupon: false,
+      couponDiscountPercent: '10',
     });
     setFormError(null);
     setShowForm(true);
@@ -296,6 +306,17 @@ export function AffiliatesPanel({ initial, initialMeta, storefrontOrigin }: Prop
       maxUses = n;
     }
 
+    let couponDiscount: { type: 'percent'; value: number; minOrderCents: number } | null = null;
+    if (form.generateCoupon && !editingId) {
+      const couponPct = parseFloat(form.couponDiscountPercent.replace(',', '.'));
+      if (!isFinite(couponPct) || couponPct < 1 || couponPct > 100) {
+        setFormError('Desconto do cupom deve ser entre 1% e 100%');
+        setSubmitting(false);
+        return;
+      }
+      couponDiscount = { type: 'percent', value: Math.round(couponPct), minOrderCents: 0 };
+    }
+
     const payload = {
       affiliateName: form.affiliateName.trim(),
       affiliateEmail: form.affiliateEmail.trim() || null,
@@ -306,6 +327,7 @@ export function AffiliatesPanel({ initial, initialMeta, storefrontOrigin }: Prop
       expiresAt: form.expiresAt ? new Date(form.expiresAt + 'T23:59:59').toISOString() : null,
       tag: form.tag || null,
       notes: form.notes.trim() || null,
+      ...(couponDiscount ? { couponDiscount } : {}),
     };
 
     try {
@@ -320,6 +342,8 @@ export function AffiliatesPanel({ initial, initialMeta, storefrontOrigin }: Prop
       if (!res.ok) {
         if (data.error === 'code_already_exists') {
           setFormError('Já existe um afiliado com este código');
+        } else if (data.error === 'coupon_code_already_exists') {
+          setFormError('Já existe um cupom com este código. Escolha outro código de afiliado ou desligue "cupom dedicado".');
         } else if (data.error === 'validation_error') {
           setFormError('Preencha os campos obrigatórios corretamente');
         } else {
@@ -1100,6 +1124,85 @@ function FormCard({
           }}
         />
       </Field>
+
+      {!editing && (
+        <div style={{
+          padding: 'var(--space-4)',
+          background: 'var(--surface-subtle, #FAF6EE)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-md)',
+        }}>
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-3)', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={form.generateCoupon}
+              onChange={(e) => setField('generateCoupon', e.target.checked)}
+              style={{ marginTop: 4 }}
+            />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 500, fontSize: 'var(--text-body-s)' }}>
+                Gerar cupom dedicado <span style={{ color: 'var(--fg-muted)', fontWeight: 400 }}>(modelo Shopify Collabs)</span>
+              </div>
+              <p style={{ fontSize: 11, color: 'var(--fg-muted)', margin: '4px 0 0', lineHeight: 1.5 }}>
+                Cliente digita <code className="mono">{form.code || 'CODIGO'}</code> no checkout → ganha desconto E você atribui a comissão automaticamente. Não exige cookie.
+                <br />
+                <strong>Sempre exclusivo</strong>: o cupom não combina com gift card nem outro cupom (anti-prejuízo).
+              </p>
+            </div>
+          </label>
+
+          {form.generateCoupon && (() => {
+            const couponPct = parseFloat(form.couponDiscountPercent.replace(',', '.')) || 0;
+            const commPct = parseFloat(form.commissionPercent.replace(',', '.')) || 0;
+            const totalCost = couponPct + commPct;
+            const marginColor = totalCost >= 40 ? '#B91C1C' : totalCost >= 25 ? '#92400E' : '#166534';
+            const marginLabel = totalCost >= 40 ? 'risco alto de prejuízo' : totalCost >= 25 ? 'verifique sua margem' : 'combinação saudável';
+            return (
+              <div style={{ marginTop: 'var(--space-3)', paddingLeft: 28 }}>
+                <Field label="Desconto pro cliente (%)" hint="Quanto o cliente economiza ao usar o código.">
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={form.couponDiscountPercent}
+                    onChange={(e) => setField('couponDiscountPercent', e.target.value)}
+                    style={{
+                      width: 120,
+                      padding: 'var(--space-2) var(--space-3)',
+                      fontSize: 'var(--text-body-s)',
+                      border: '1px solid var(--border-strong)',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'var(--bg)',
+                      color: 'var(--fg)',
+                    }}
+                  />
+                </Field>
+                <div style={{
+                  marginTop: 'var(--space-3)',
+                  padding: 'var(--space-3)',
+                  background: 'var(--bg)',
+                  border: `1px solid ${marginColor}40`,
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: 12,
+                  lineHeight: 1.6,
+                }}>
+                  <strong>Custo total por venda:</strong>{' '}
+                  <span style={{ color: marginColor, fontWeight: 600 }}>
+                    {totalCost.toFixed(1)}% do preço cheio
+                  </span>{' '}
+                  <span style={{ color: 'var(--fg-muted)' }}>
+                    ({couponPct}% desconto + {commPct}% comissão) — {marginLabel}
+                  </span>
+                  <br />
+                  <span style={{ color: 'var(--fg-muted)', fontSize: 11 }}>
+                    Em produto de R$ 100 com margem 50%: você fica com R$ {(100 - totalCost - 50).toFixed(2)} de lucro.
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
 
       {error && (
         <div style={{

@@ -844,6 +844,35 @@ export async function POST(req: NextRequest) {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_seller_notif_tenant_type ON seller_notifications(tenant_id, type)`);
     results.push('seller_notifications: ok');
 
+    // Sprint OAuth — tenant_oauth_tokens (Google/Meta/TikTok 1-click)
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS tenant_oauth_tokens (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+        provider varchar(32) NOT NULL,
+        account_email varchar(320),
+        account_id varchar(128),
+        access_token_enc text NOT NULL,
+        refresh_token_enc text,
+        expires_at timestamptz,
+        scopes jsonb DEFAULT '[]'::jsonb NOT NULL,
+        metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+        created_at timestamptz DEFAULT now() NOT NULL,
+        updated_at timestamptz DEFAULT now() NOT NULL
+      )
+    `);
+    await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS tenant_oauth_tokens_tenant_provider_uniq ON tenant_oauth_tokens(tenant_id, provider)`);
+    results.push('tenant_oauth_tokens: ok');
+
+    // Sprint anti-prejuízo — coupons.stackable (default false = exclusivo)
+    await db.execute(sql`ALTER TABLE coupons ADD COLUMN IF NOT EXISTS stackable boolean DEFAULT false NOT NULL`);
+    results.push('coupons.stackable: ok');
+
+    // Sprint cupom-afiliado amarrado (Modelo 1 — Shopify Collabs/Refersion)
+    await db.execute(sql`ALTER TABLE coupons ADD COLUMN IF NOT EXISTS linked_affiliate_id uuid`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_coupons_linked_affiliate ON coupons(linked_affiliate_id) WHERE linked_affiliate_id IS NOT NULL`);
+    results.push('coupons.linked_affiliate_id: ok');
+
     return NextResponse.json({ ok: true, results });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

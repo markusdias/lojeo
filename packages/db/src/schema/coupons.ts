@@ -21,6 +21,12 @@ import { tenants } from './tenants';
 // maxUses: null = ilimitado; quando preenchido, usesCount não pode atingir
 // usesCount: incrementado a cada pedido finalizado que usar o cupom (não mexer via PATCH)
 // active: soft-delete via false (preserva histórico de orders.coupon_code)
+// stackable: false (default) = cupom EXCLUSIVO — não combina com gift card, afiliado ou outro
+//            cupom. Default false é segurança anti-prejuízo (margem dupla).
+// linkedAffiliateId: cupom amarrado a um afiliado (Modelo 1 — Shopify Collabs / Refersion).
+//   Quando preenchido, código digitado pelo cliente atribui venda automaticamente
+//   ao afiliado (override de cookie). Ex: cupom MARIA10 → afiliado Maria sempre
+//   ganha comissão quando alguém usa. Não conta dupla atribuição.
 
 export const coupons = pgTable(
   'coupons',
@@ -37,6 +43,8 @@ export const coupons = pgTable(
     startsAt: timestamp('starts_at', { withTimezone: true }),
     endsAt: timestamp('ends_at', { withTimezone: true }),
     active: boolean('active').default(true).notNull(),
+    stackable: boolean('stackable').default(false).notNull(),
+    linkedAffiliateId: uuid('linked_affiliate_id'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },

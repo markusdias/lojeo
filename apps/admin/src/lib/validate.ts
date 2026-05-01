@@ -108,6 +108,8 @@ export const couponCreateSchema = z
     maxUses: z.number().int().min(1, 'maxUses deve ser >= 1').nullable().optional(),
     startsAt: couponDateSchema,
     endsAt: couponDateSchema,
+    // Default false = exclusivo (anti-prejuízo). True = combina com gift card/afiliado/outro cupom.
+    stackable: z.boolean().optional().default(false),
   })
   .superRefine((data, ctx) => {
     couponValueRefinement(data, ctx);
@@ -130,6 +132,7 @@ export const couponPatchSchema = z
     startsAt: couponDateSchema,
     endsAt: couponDateSchema,
     active: z.boolean().optional(),
+    stackable: z.boolean().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.type !== undefined && data.value !== undefined) {

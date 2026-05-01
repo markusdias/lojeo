@@ -7,7 +7,8 @@
 //
 // Tenant config:
 //   tenant.config.pixels.metaPixelId
-//   tenant.config.pixels.metaConversionsApiToken (sentinel-masked)
+//   tenant.config.pixels.metaCapiToken — System User Access Token (preferido)
+//   tenant.config.pixels.metaConversionsApiToken — alias legado, ainda lido como fallback
 
 import { logger } from '@lojeo/logger';
 import { createHash } from 'crypto';

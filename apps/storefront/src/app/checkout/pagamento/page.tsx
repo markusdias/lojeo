@@ -91,12 +91,21 @@ export default function PagamentoPage() {
         setCouponError(couponReasonPT(data.reason, data.minOrderCents));
         return;
       }
+      const stackable = data.stackable !== false;
+      // Anti-stack client-side: bloqueia cupom exclusivo se gift card já aplicado.
+      // Server enforce também (defesa em profundidade).
+      if (!stackable && giftCardApplied) {
+        setCoupon(null);
+        setCouponError(`Cupom ${data.code ?? code} é exclusivo. Remova o gift card antes de aplicar.`);
+        return;
+      }
       setCoupon({
         code: data.code ?? code,
         type: data.type,
         value: data.value,
         discountCents: data.discountCents ?? 0,
         freeShipping: data.freeShipping ?? false,
+        stackable,
       });
       setCouponInput(data.code ?? code);
     } catch {
@@ -116,6 +125,11 @@ export default function PagamentoPage() {
     const code = giftCardInput.trim().toUpperCase();
     if (!code) {
       setGiftCardError('Informe um código');
+      return;
+    }
+    // Anti-stack: bloqueia gift card se cupom exclusivo (não-stackable) já aplicado.
+    if (state.coupon && state.coupon.stackable === false) {
+      setGiftCardError(`Cupom ${state.coupon.code} é exclusivo. Remova o cupom antes de aplicar gift card.`);
       return;
     }
     setGiftCardLoading(true);
@@ -241,7 +255,12 @@ export default function PagamentoPage() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Erro ao criar pedido');
+      if (!res.ok) {
+        if (data.error === 'coupon_not_stackable') {
+          throw new Error(data.message ?? 'Cupom exclusivo não combina com outros descontos.');
+        }
+        throw new Error(data.error ?? 'Erro ao criar pedido');
+      }
 
       setOrder(data.orderId, data.orderNumber);
       setStep('confirmacao');

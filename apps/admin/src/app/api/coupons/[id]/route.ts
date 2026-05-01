@@ -65,6 +65,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   if (parsed.active !== undefined) updates.active = parsed.active;
+  if (parsed.stackable !== undefined) updates.stackable = parsed.stackable;
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ coupon: existing });

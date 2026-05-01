@@ -65,7 +65,13 @@ export default function CartPage() {
         setCouponMsg({ kind: 'err', text: 'Cupom inválido — aplique no checkout' });
         return;
       }
-      setCouponMsg({ kind: 'ok', text: 'Cupom válido — aplique no checkout' });
+      const exclusive = data.stackable === false;
+      setCouponMsg({
+        kind: 'ok',
+        text: exclusive
+          ? 'Cupom exclusivo — não combina com gift card ou afiliado. Aplique no checkout.'
+          : 'Cupom válido — aplique no checkout',
+      });
     } catch {
       setCouponMsg({ kind: 'err', text: 'Erro ao validar' });
     } finally {

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db, orders, orderItems, orderEvents, coupons, calcCouponDiscountCents, tenants } from '@lojeo/db';
+import { db, orders, orderItems, orderEvents, coupons, calcCouponDiscountCents, tenants, affiliateLinks } from '@lojeo/db';
 import { emitMultichannelNotification } from '@lojeo/notifications';
 import { createMercadoPagoPreference, createMercadoPagoPixPayment, createMercadoPagoBoletoPayment } from '../../../lib/payments/mercado-pago';
 import { createStripePaymentIntent } from '../../../lib/payments/stripe';
@@ -114,6 +114,9 @@ export async function POST(req: Request) {
     // ── Coupon lookup + atomic increment ────────────────────────────────────
     let couponDiscountCents = 0;
     let couponCodePersisted: string | null = null;
+    // Modelo 1 — cupom amarrado a afiliado: código digitado tem precedência
+    // sobre cookie de afiliado. Quando preenchido, sobrepõe atribuição.
+    let couponLinkedAffiliateId: string | null = null;
     const rawCouponCode = body.couponCode?.trim().toUpperCase();
     if (rawCouponCode && rawCouponCode.length >= 2) {
       // Lookup case-insensitive (codes stored uppercased)
@@ -144,6 +147,66 @@ export async function POST(req: Request) {
           { error: 'coupon_invalid', reason: 'below_minimum', minOrderCents: coupon.minOrderCents },
           { status: 400 },
         );
+      }
+
+      // Anti-stack enforcement (server-side, NUNCA confiar no client).
+      // Default: cupom é EXCLUSIVO. Bloqueia combinação com:
+      //   - gift card (giftCardCode)
+      //   - afiliado last-touch DIFERENTE do amarrado ao cupom (Modelo 1)
+      //   - afiliado last-touch quando cupom não tem linkedAffiliateId (cupom genérico
+      //     + cookie afiliado = margem dupla)
+      // Validar ANTES do claim atomic pra não queimar uses_count.
+      const affiliateParsedEarly = parseAffiliateCookie(req.headers.get('cookie'));
+      const hasActiveAffiliate = isCookieValid(affiliateParsedEarly);
+      const cookieAffiliateCode = hasActiveAffiliate ? affiliateParsedEarly.code : null;
+
+      // Cupom amarrado: lookup do afiliado pra (a) override de atribuição
+      // (b) detectar se cookie é mesma origem (não conta como stack).
+      let linkedAffiliateCode: string | null = null;
+      if (coupon.linkedAffiliateId) {
+        const [linkedAff] = await db
+          .select({ code: affiliateLinks.code, active: affiliateLinks.active, archivedAt: affiliateLinks.archivedAt })
+          .from(affiliateLinks)
+          .where(and(eq(affiliateLinks.tenantId, tid), eq(affiliateLinks.id, coupon.linkedAffiliateId)))
+          .limit(1);
+        if (!linkedAff || !linkedAff.active || linkedAff.archivedAt) {
+          return NextResponse.json(
+            { error: 'coupon_invalid', reason: 'linked_affiliate_inactive' },
+            { status: 400 },
+          );
+        }
+        linkedAffiliateCode = linkedAff.code;
+        couponLinkedAffiliateId = coupon.linkedAffiliateId;
+      }
+
+      const hasGiftCard = Boolean(body.giftCardCode?.trim());
+      // Mesma origem = cookie aponta pro mesmo afiliado dono do cupom amarrado.
+      const sameOriginAffiliate =
+        linkedAffiliateCode !== null &&
+        cookieAffiliateCode !== null &&
+        linkedAffiliateCode.toLowerCase() === cookieAffiliateCode.toLowerCase();
+
+      if (!coupon.stackable) {
+        if (hasGiftCard) {
+          return NextResponse.json(
+            { error: 'coupon_not_stackable', reason: 'gift_card_present', message: 'Este cupom é exclusivo e não combina com gift card.' },
+            { status: 400 },
+          );
+        }
+        // Cupom genérico (sem afiliado amarrado) + cookie afiliado ativo = bloqueio
+        if (!coupon.linkedAffiliateId && hasActiveAffiliate) {
+          return NextResponse.json(
+            { error: 'coupon_not_stackable', reason: 'affiliate_active', message: 'Este cupom é exclusivo. Remova o link de afiliado ou use outro cupom acumulável.' },
+            { status: 400 },
+          );
+        }
+        // Cupom amarrado a Maria + cookie de Bruno = código tem precedência (Maria fica),
+        // mas é tipo "stack" perigoso? Não — código digitado é intent explícita do cliente.
+        // Cookie é descartado silenciosamente. SEM bloqueio.
+        if (coupon.linkedAffiliateId && hasActiveAffiliate && !sameOriginAffiliate) {
+          // Override silencioso: código digitado vence cookie.
+          // Sem return — segue fluxo, mas couponLinkedAffiliateId é a atribuição.
+        }
       }
 
       // Atomic increment: prevents race conditions on maxUses.
@@ -220,9 +283,21 @@ export async function POST(req: Request) {
 
     const orderNumber = await nextOrderNumber(tid);
 
-    // Affiliate ref do cookie (atribuição last-touch 30d)
+    // Affiliate attribution — prioridade:
+    //   1. Cupom amarrado a afiliado (couponLinkedAffiliateId) → resolve code via DB
+    //   2. Cookie last-touch (parseAffiliateCookie)
+    // Modelo 1: código digitado é intent explícita; sobrepõe cookie.
     const affiliateParsed = parseAffiliateCookie(req.headers.get('cookie'));
-    const affiliateRef = isCookieValid(affiliateParsed) ? affiliateParsed.code : null;
+    const cookieAffiliateRef = isCookieValid(affiliateParsed) ? affiliateParsed.code : null;
+    let affiliateRef: string | null = cookieAffiliateRef;
+    if (couponLinkedAffiliateId) {
+      const [linked] = await db
+        .select({ code: affiliateLinks.code })
+        .from(affiliateLinks)
+        .where(and(eq(affiliateLinks.tenantId, tid), eq(affiliateLinks.id, couponLinkedAffiliateId)))
+        .limit(1);
+      if (linked) affiliateRef = linked.code;
+    }
 
     const inserted = await db.insert(orders).values({
       tenantId: tid,
@@ -503,7 +578,7 @@ export async function POST(req: Request) {
     });
 
     // Meta Conversions API server-side — Purchase event (bypassa iOS/ATT/ad-blocker).
-    // Lê tenant.config.pixels.{metaPixelId, metaConversionsApiToken}. Sem token: mocked.
+    // Lê tenant.config.pixels.{metaPixelId, metaCapiToken}. Sem token: mocked.
     void (async () => {
       try {
         const [tenantRow] = await db
@@ -512,10 +587,12 @@ export async function POST(req: Request) {
           .where(eq(tenants.id, tid))
           .limit(1);
         const cfg = (tenantRow?.config ?? {}) as {
-          pixels?: { metaPixelId?: string; metaConversionsApiToken?: string };
+          pixels?: { metaPixelId?: string; metaCapiToken?: string; metaConversionsApiToken?: string };
         };
         const pixelId = cfg.pixels?.metaPixelId;
-        const accessToken = cfg.pixels?.metaConversionsApiToken;
+        // Nome canônico: metaCapiToken (alinhado com admin /settings#pixels).
+        // metaConversionsApiToken mantido como alias temporário pra compat.
+        const accessToken = cfg.pixels?.metaCapiToken ?? cfg.pixels?.metaConversionsApiToken;
         if (!pixelId || !accessToken) return;
         await sendMetaPurchase({
           pixelId,

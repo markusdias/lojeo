@@ -30,6 +30,7 @@ export interface CheckoutCoupon {
   value: number;
   discountCents: number;
   freeShipping: boolean;
+  stackable: boolean;
 }
 
 export interface CheckoutState {

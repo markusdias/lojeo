@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
       startsAt,
       endsAt,
       active: true,
+      stackable: parsed.stackable ?? false,
     }).returning();
 
     await recordAuditLog({
@@ -63,6 +64,7 @@ export async function POST(req: NextRequest) {
         value: parsed.value,
         minOrderCents: parsed.minOrderCents,
         maxUses: parsed.maxUses ?? null,
+        stackable: parsed.stackable ?? false,
       },
     });
 

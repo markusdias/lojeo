@@ -16,6 +16,7 @@ interface ValidateResponse {
   freeShipping?: boolean;
   minOrderCents?: number;
   code?: string;
+  stackable?: boolean;
 }
 
 export async function GET(req: Request) {
@@ -81,5 +82,6 @@ export async function GET(req: Request) {
     discountCents,
     freeShipping: row.type === 'free_shipping',
     minOrderCents: row.minOrderCents,
+    stackable: row.stackable,
   });
 }

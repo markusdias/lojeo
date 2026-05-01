@@ -15,6 +15,7 @@ interface Coupon {
   startsAt: string | null;
   endsAt: string | null;
   active: boolean;
+  stackable: boolean;
   createdAt: string;
 }
 
@@ -68,6 +69,8 @@ export default function CuponsPage() {
   const [maxUses, setMaxUses] = useState('');
   const [startsAt, setStartsAt] = useState('');
   const [endsAt, setEndsAt] = useState('');
+  // Default false = exclusivo (anti-prejuízo). Toggle pra true só quando lojista quer combinar.
+  const [stackable, setStackable] = useState(false);
 
   function load() {
     setLoading(true);
@@ -97,6 +100,7 @@ export default function CuponsPage() {
     setMaxUses('');
     setStartsAt('');
     setEndsAt('');
+    setStackable(false);
   }
 
   async function handleCreate(e: React.FormEvent) {
@@ -118,6 +122,7 @@ export default function CuponsPage() {
         maxUses: max,
         startsAt: startsAt || null,
         endsAt: endsAt || null,
+        stackable,
       };
 
       const res = await fetch('/api/coupons', {
@@ -282,6 +287,27 @@ export default function CuponsPage() {
           </div>
         </div>
 
+        <div className="border-t border-gray-100 pt-4">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={stackable}
+              onChange={e => setStackable(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-gray-300"
+            />
+            <div className="flex-1">
+              <div className="text-sm font-medium text-gray-900">
+                Cumulativo com outros descontos
+              </div>
+              <p className="text-[12px] text-gray-500 mt-0.5 leading-relaxed">
+                <strong>Padrão: desligado (exclusivo).</strong> Quando ligado, esse cupom pode somar
+                com gift card e link de afiliado. Cuidado: combinar comissão de afiliado + desconto
+                de cupom pode dar prejuízo na margem do produto.
+              </p>
+            </div>
+          </label>
+        </div>
+
         <div className="flex justify-end">
           <button type="submit" disabled={saving} className="lj-btn-primary">
             {saving ? 'Criando…' : 'Criar cupom'}
@@ -319,7 +345,26 @@ export default function CuponsPage() {
                 return (
                   <tr key={c.id} className="border-t border-gray-100">
                     <td className="px-4 py-2">
-                      <div className="font-mono font-semibold">{c.code}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-semibold">{c.code}</span>
+                        {!c.stackable ? (
+                          <span
+                            title="Não cumulativo — bloqueia gift card e afiliado no checkout"
+                            className="text-[10px] font-medium px-1.5 py-0.5 rounded"
+                            style={{ background: '#FEF3C7', color: '#92400E' }}
+                          >
+                            EXCLUSIVO
+                          </span>
+                        ) : (
+                          <span
+                            title="Cumulativo com gift card e afiliado"
+                            className="text-[10px] font-medium px-1.5 py-0.5 rounded"
+                            style={{ background: '#DBEAFE', color: '#1E40AF' }}
+                          >
+                            CUMULATIVO
+                          </span>
+                        )}
+                      </div>
                       <div className="text-[11px] text-gray-500">{c.name}</div>
                     </td>
                     <td className="px-4 py-2">{formatTypeValue(c)}</td>

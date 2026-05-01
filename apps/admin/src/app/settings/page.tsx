@@ -16,6 +16,8 @@ import {
 } from '../../components/integrations/integration-card';
 import { GoogleConnectCard } from './google-connect-card';
 import { MetaConnectCard } from './meta-connect-card';
+import { TikTokConnectCard } from './tiktok-connect-card';
+import { ClarityQuickSetup } from './clarity-quick-setup';
 
 interface BrandGuide {
   brandName?: string;
@@ -319,6 +321,22 @@ export default function SettingsPage() {
               metaPixelId: settings.config.pixels?.metaPixelId,
               metaCapiToken: settings.config.pixels?.metaCapiToken,
             }}
+            onChange={(next) => setConfig({ pixels: { ...settings.config.pixels, ...next } })}
+          />
+
+          <div style={{ height: 12 }} />
+
+          <TikTokConnectCard
+            pixels={{ tiktokPixelId: settings.config.pixels?.tiktokPixelId }}
+            onChange={(next) => setConfig({ pixels: { ...settings.config.pixels, ...next } })}
+          />
+
+          <div style={{ height: 12 }} />
+
+          <ClarityQuickSetup
+            pixels={{ clarityProjectId: settings.config.pixels?.clarityProjectId }}
+            storeName={settings.name}
+            storeDomain={settings.domain}
             onChange={(next) => setConfig({ pixels: { ...settings.config.pixels, ...next } })}
           />
 

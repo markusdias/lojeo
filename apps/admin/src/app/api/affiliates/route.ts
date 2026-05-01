@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, affiliateLinks } from '@lojeo/db';
+import { db, affiliateLinks, coupons } from '@lojeo/db';
 import { and, eq, isNull, isNotNull, or, ilike, asc, desc, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import { TENANT_ID } from '../../../lib/roles';
@@ -139,6 +139,17 @@ const createSchema = z.object({
   expiresAt: z.string().datetime().nullable().optional(),
   tag: z.string().max(40).nullable().optional(),
   notes: z.string().max(500).optional().nullable(),
+  // Modelo 1 — cupom dedicado amarrado ao afiliado.
+  // Quando preenchido: cria cupom com mesmo code do afiliado, linkedAffiliateId apontando.
+  // Cliente digita code → ganha desconto + atribuição automática à comissão do afiliado.
+  couponDiscount: z
+    .object({
+      type: z.enum(['percent', 'fixed']),
+      value: z.number().int().positive(),       // percent: 1..100; fixed: cents
+      minOrderCents: z.number().int().nonnegative().default(0),
+    })
+    .nullable()
+    .optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -159,29 +170,82 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'validation_error', issues: parsed.error.issues }, { status: 400 });
   }
 
-  try {
-    const inserted = await db
-      .insert(affiliateLinks)
-      .values({
-        tenantId: TENANT_ID,
-        affiliateName: parsed.data.affiliateName,
-        affiliateEmail: parsed.data.affiliateEmail ?? null,
-        code: parsed.data.code.toUpperCase(),
-        commissionBps: parsed.data.commissionBps,
-        cookieDays: parsed.data.cookieDays,
-        maxUses: parsed.data.maxUses ?? null,
-        expiresAt: parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null,
-        tag: parsed.data.tag ?? null,
-        notes: parsed.data.notes ?? null,
-        active: true,
-      })
-      .returning();
+  const codeUpper = parsed.data.code.toUpperCase();
+  const couponDiscount = parsed.data.couponDiscount ?? null;
 
-    return NextResponse.json({ ok: true, affiliate: inserted[0] }, { status: 201 });
+  // Validação cupom-amarrado: se solicitado, garantir que code não exista em coupons antes
+  // (preserva idempotência semântica + evita estado parcial onde afiliado existe mas cupom não)
+  if (couponDiscount) {
+    const [existingCoupon] = await db
+      .select({ id: coupons.id })
+      .from(coupons)
+      .where(and(eq(coupons.tenantId, TENANT_ID), sql`LOWER(${coupons.code}) = LOWER(${codeUpper})`))
+      .limit(1);
+    if (existingCoupon) {
+      return NextResponse.json({ error: 'coupon_code_already_exists' }, { status: 409 });
+    }
+    if (couponDiscount.type === 'percent' && (couponDiscount.value < 1 || couponDiscount.value > 100)) {
+      return NextResponse.json({ error: 'invalid_coupon_value', detail: 'percent: 1..100' }, { status: 400 });
+    }
+  }
+
+  try {
+    const result = await db.transaction(async (tx) => {
+      const [aff] = await tx
+        .insert(affiliateLinks)
+        .values({
+          tenantId: TENANT_ID,
+          affiliateName: parsed.data.affiliateName,
+          affiliateEmail: parsed.data.affiliateEmail ?? null,
+          code: codeUpper,
+          commissionBps: parsed.data.commissionBps,
+          cookieDays: parsed.data.cookieDays,
+          maxUses: parsed.data.maxUses ?? null,
+          expiresAt: parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null,
+          tag: parsed.data.tag ?? null,
+          notes: parsed.data.notes ?? null,
+          active: true,
+        })
+        .returning();
+
+      let coupon = null;
+      if (couponDiscount && aff) {
+        const [c] = await tx
+          .insert(coupons)
+          .values({
+            tenantId: TENANT_ID,
+            code: codeUpper,
+            name: `Cupom afiliado · ${parsed.data.affiliateName}`,
+            type: couponDiscount.type,
+            value: couponDiscount.value,
+            minOrderCents: couponDiscount.minOrderCents,
+            maxUses: parsed.data.maxUses ?? null,
+            startsAt: null,
+            endsAt: parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null,
+            active: true,
+            // Cupom amarrado ao afiliado deve ser stackable=false (segurança):
+            // não combina com gift card nem outro cupom. Atribuição já é única (mesmo afiliado).
+            stackable: false,
+            linkedAffiliateId: aff.id,
+          })
+          .returning();
+        coupon = c;
+      }
+
+      return { aff, coupon };
+    });
+
+    return NextResponse.json(
+      { ok: true, affiliate: result.aff, coupon: result.coupon },
+      { status: 201 },
+    );
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.includes('uniq_affiliates_tenant_code')) {
       return NextResponse.json({ error: 'code_already_exists' }, { status: 409 });
+    }
+    if (msg.includes('uniq_coupons_tenant_code')) {
+      return NextResponse.json({ error: 'coupon_code_already_exists' }, { status: 409 });
     }
     return NextResponse.json({ error: 'create_failed', detail: msg }, { status: 500 });
   }
