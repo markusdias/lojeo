@@ -171,16 +171,16 @@ export default function AtribuicaoPage() {
           <table style={{ width: '100%', fontSize: 14, borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #E5E7EB', textAlign: 'left', background: '#F9FAFB' }}>
-                <th style={{ padding: '10px 12px', fontWeight: 600 }}>Source</th>
-                <th style={{ padding: '10px 12px', fontWeight: 600 }}>Medium</th>
-                <th style={{ padding: '10px 12px', fontWeight: 600 }}>Campaign</th>
-                <th style={{ padding: '10px 12px', fontWeight: 600, textAlign: 'right' }}>Orders</th>
-                <th style={{ padding: '10px 12px', fontWeight: 600, textAlign: 'right' }}>Revenue (R$)</th>
-                <th style={{ padding: '10px 12px', fontWeight: 600, textAlign: 'right' }}>AOV</th>
+                <th style={{ padding: '10px 12px', fontWeight: 600 }}>Origem</th>
+                <th style={{ padding: '10px 12px', fontWeight: 600 }}>Mídia</th>
+                <th style={{ padding: '10px 12px', fontWeight: 600 }}>Campanha</th>
+                <th style={{ padding: '10px 12px', fontWeight: 600, textAlign: 'right' }}>Pedidos</th>
+                <th style={{ padding: '10px 12px', fontWeight: 600, textAlign: 'right' }}>Receita (R$)</th>
+                <th style={{ padding: '10px 12px', fontWeight: 600, textAlign: 'right' }}>Ticket médio</th>
                 <th style={{ padding: '10px 12px', fontWeight: 600, textAlign: 'right' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center' }}>
-                    Conv%
-                    <InfoTooltip text="Pedidos / sessões únicas com mesmo UTM. AOV = average order value." />
+                    Conversão
+                    <InfoTooltip text="Pedidos / sessões únicas com mesmo UTM. Ticket médio = receita ÷ pedidos." />
                   </span>
                 </th>
               </tr>

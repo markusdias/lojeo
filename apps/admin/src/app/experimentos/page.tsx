@@ -308,7 +308,7 @@ export default function ExperimentsPage() {
             return (
               <a
                 key={exp.id}
-                href={`/experiments/${exp.id}/results`}
+                href={`/experimentos/${exp.id}/results`}
                 className="lj-card p-5"
                 style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}
               >

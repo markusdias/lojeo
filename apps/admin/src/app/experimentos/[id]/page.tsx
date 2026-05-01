@@ -6,5 +6,5 @@ export default async function ExperimentDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  redirect(`/experiments/${id}/results`);
+  redirect(`/experimentos/${id}/results`);
 }

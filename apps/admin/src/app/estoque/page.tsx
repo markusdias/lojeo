@@ -119,8 +119,8 @@ export default function InventoryPage() {
           icon={<IconBoxes />}
           title="Nenhum registro de estoque"
           description="Cadastre produtos com SKU para começar a controlar quantidade, reservas e alertas de mínimo. Entradas também podem ser registradas via API POST /api/inventory."
-          action={{ label: '+ Novo produto', href: '/products/new' }}
-          secondaryAction={{ label: 'Ver produtos', href: '/products' }}
+          action={{ label: '+ Novo produto', href: '/produtos/novo' }}
+          secondaryAction={{ label: 'Ver produtos', href: '/produtos' }}
         />
       )}
 

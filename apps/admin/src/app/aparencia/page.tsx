@@ -532,7 +532,7 @@ export default function AparenciaPage() {
                 fontSize: 'var(--text-caption)',
                 lineHeight: 1.5,
               }}>
-                <strong>Aplicado em novas gerações</strong> — descrições, e-mails e copy criados a partir de agora seguem estas regras. <em style={{ fontStyle: 'normal', color: 'var(--fg-secondary)' }}>Pra regenerar textos antigos, vá em <Link href="/products" style={{ color: 'var(--accent)', borderBottom: '1px solid currentColor', textDecoration: 'none' }}>Produtos</Link> e use &ldquo;Regerar copy&rdquo;.</em>
+                <strong>Aplicado em novas gerações</strong> — descrições, e-mails e copy criados a partir de agora seguem estas regras. <em style={{ fontStyle: 'normal', color: 'var(--fg-secondary)' }}>Pra regenerar textos antigos, vá em <Link href="/produtos" style={{ color: 'var(--accent)', borderBottom: '1px solid currentColor', textDecoration: 'none' }}>Produtos</Link> e use &ldquo;Regerar copy&rdquo;.</em>
               </div>
               <p className="caption" style={{ marginBottom: 'var(--space-3)' }}>A IA usa essas regras pra escrever descrições, e-mails, copy de campanha. Quanto mais específico, mais a voz fica reconhecível.</p>
 

@@ -21,7 +21,7 @@ export default async function ProductEditPage({ params }: { params: Promise<{ id
 
   return (
     <div style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }}>
-      <Link href="/products" style={{ fontSize: 'var(--text-caption)', color: 'var(--fg-secondary)', textDecoration: 'none' }}>
+      <Link href="/produtos" style={{ fontSize: 'var(--text-caption)', color: 'var(--fg-secondary)', textDecoration: 'none' }}>
         ← Produtos
       </Link>
 

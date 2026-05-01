@@ -218,7 +218,7 @@ export default function ProductImportPage() {
               {!dryRun && (result.inserted ?? 0) > 0 && (
                 <div style={{ marginTop: 16 }}>
                   <Link
-                    href="/products"
+                    href="/produtos"
                     style={{
                       display: 'inline-block',
                       padding: '8px 16px',

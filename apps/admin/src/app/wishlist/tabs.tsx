@@ -152,7 +152,7 @@ export function WishlistTabs({ initialTab, totals, wishlists, giftcards, giftcar
                 icon={<IconHeart />}
                 title="Nenhuma wishlist registrada"
                 description="Quando clientes salvarem produtos como favoritos no storefront, eles aparecem aqui ranqueados por demanda. Use para priorizar reposição e campanha."
-                action={{ label: 'Ver produtos', href: '/products' }}
+                action={{ label: 'Ver produtos', href: '/produtos' }}
               />
             </div>
           ) : (
@@ -309,7 +309,7 @@ export function WishlistTabs({ initialTab, totals, wishlists, giftcards, giftcar
                 icon={<IconHeart />}
                 title="Ninguém esperando reposição"
                 description="Quando clientes clicarem em “avise-me quando voltar” em produtos esgotados, a fila aparece aqui. Use para priorizar reposição com demanda confirmada."
-                action={{ label: 'Ver estoque', href: '/inventory' }}
+                action={{ label: 'Ver estoque', href: '/estoque' }}
               />
             </div>
           ) : (

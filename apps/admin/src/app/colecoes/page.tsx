@@ -92,7 +92,7 @@ export default function CollectionsPage() {
                 {c.description && <p style={{ fontSize: 13, color: 'var(--fg-secondary)', marginTop: 4 }}>{c.description}</p>}
               </div>
               <Link
-                href={`/collections/${c.id}`}
+                href={`/colecoes/${c.id}`}
                 style={{ fontSize: 13, color: '#2563EB', textDecoration: 'none' }}
               >
                 Editar →

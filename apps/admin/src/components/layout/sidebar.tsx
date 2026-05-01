@@ -74,9 +74,9 @@ const SECTIONS: NavSection[] = [
   {
     title: 'Catálogo',
     items: [
-      { href: '/products', label: 'Produtos', icon: <Icon d={I.box} /> },
-      { href: '/collections', label: 'Coleções', icon: <Icon d={I.squares} /> },
-      { href: '/inventory', label: 'Estoque', icon: <Icon d={I.box} /> },
+      { href: '/produtos', label: 'Produtos', icon: <Icon d={I.box} /> },
+      { href: '/colecoes', label: 'Coleções', icon: <Icon d={I.squares} /> },
+      { href: '/estoque', label: 'Estoque', icon: <Icon d={I.box} /> },
       { href: '/recomendacoes', label: 'Recomendações', icon: <Icon d={I.sparkles} /> },
     ],
   },
@@ -104,9 +104,9 @@ const SECTIONS: NavSection[] = [
     items: [
       { href: '/ia-analyst', label: 'IA Analyst', icon: <Icon d={I.sparkles} /> },
       { href: '/ia-uso', label: 'Uso IA', icon: <Icon d={I.flask} /> },
-      { href: '/competitors', label: 'Concorrentes', icon: <Icon d={I.chart} /> },
+      { href: '/concorrentes', label: 'Concorrentes', icon: <Icon d={I.chart} /> },
       { href: '/conteudo', label: 'Conteúdo', icon: <Icon d={I.book} /> },
-      { href: '/experiments', label: 'Experimentos A/B', icon: <Icon d={I.flask} /> },
+      { href: '/experimentos', label: 'Experimentos A/B', icon: <Icon d={I.flask} /> },
     ],
   },
   {

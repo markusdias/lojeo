@@ -40,12 +40,12 @@ export default async function ProductRecommendationsPage({
   return (
     <div className="p-8 max-w-3xl">
       <div style={{ marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12 }}>
-        <Link href="/products" style={{ color: '#6B7280', textDecoration: 'none', fontSize: 14 }}>
+        <Link href="/produtos" style={{ color: '#6B7280', textDecoration: 'none', fontSize: 14 }}>
           ← Produtos
         </Link>
         <span style={{ color: '#D1D5DB' }}>/</span>
         <Link
-          href={`/products/${product.id}`}
+          href={`/produtos/${product.id}`}
           style={{ color: '#6B7280', textDecoration: 'none', fontSize: 14 }}
         >
           {product.name}

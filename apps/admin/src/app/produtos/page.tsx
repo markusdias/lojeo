@@ -245,7 +245,7 @@ export default async function ProductsPage() {
             Importar CSV
           </button>
           <Link
-            href="/products/new"
+            href="/produtos/novo"
             className="lj-btn-primary"
             style={{ textDecoration: 'none' }}
           >
@@ -333,8 +333,8 @@ export default async function ProductsPage() {
           icon={<IconPackage />}
           title="Sem produtos ainda"
           description="Comece cadastrando seu primeiro produto — leva 2 minutinhos. Ou suba uma planilha CSV se já tiver catálogo."
-          action={{ label: '+ Novo produto', href: '/products/new' }}
-          secondaryAction={{ label: 'Importar CSV', href: '/products/import' }}
+          action={{ label: '+ Novo produto', href: '/produtos/novo' }}
+          secondaryAction={{ label: 'Importar CSV', href: '/produtos/importar' }}
         />
       ) : (
         <div className="lj-card" style={{ overflow: 'hidden' }}>
@@ -456,7 +456,7 @@ export default async function ProductsPage() {
                     </td>
                     <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
                       <Link
-                        href={`/products/${p.id}`}
+                        href={`/produtos/${p.id}`}
                         style={{
                           display: 'flex',
                           alignItems: 'center',

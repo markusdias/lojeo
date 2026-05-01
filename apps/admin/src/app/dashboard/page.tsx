@@ -331,7 +331,7 @@ export default async function DashboardPage() {
         </div>
         <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
           <Link href="/pedidos" className="lj-btn-secondary" style={{ textDecoration: 'none' }}>Exportar</Link>
-          <Link href="/products/new" className="lj-btn-primary" style={{ textDecoration: 'none' }}>+ Novo produto</Link>
+          <Link href="/produtos/novo" className="lj-btn-primary" style={{ textDecoration: 'none' }}>+ Novo produto</Link>
         </div>
       </header>
 
@@ -362,7 +362,7 @@ export default async function DashboardPage() {
               title="Cadastre seu primeiro produto"
               desc="Nome, foto, preço. SKU e variantes vêm depois."
               cta="Criar produto"
-              href="/products/new"
+              href="/produtos/novo"
               primary
             />
             <OnboardingStep

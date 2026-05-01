@@ -71,7 +71,7 @@ export default function ExperimentResultsPage({ params }: { params: Promise<{ id
     <div style={{ padding: 'var(--space-8) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }} className="space-y-6">
       <header className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <a href="/experiments" className="text-xs" style={{ color: 'var(--fg-secondary)' }}>← Experimentos</a>
+          <a href="/experimentos" className="text-xs" style={{ color: 'var(--fg-secondary)' }}>← Experimentos</a>
           <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginTop: 'var(--space-1)' }}>
             Resultados: {exp.name}
           </h1>
