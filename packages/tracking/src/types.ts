@@ -34,6 +34,12 @@ export interface TrackEventInput {
   metadata?: Record<string, unknown>;
 }
 
+export interface UtmParams {
+  source?: string | null;
+  medium?: string | null;
+  campaign?: string | null;
+}
+
 export interface TrackPayload {
   tenantId: string;
   anonymousId: string;
@@ -41,4 +47,5 @@ export interface TrackPayload {
   userId?: string;
   events: Array<TrackEventInput & { ts: number }>;
   consent: ConsentState;
+  utm?: UtmParams;
 }

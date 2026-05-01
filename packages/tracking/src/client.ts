@@ -101,11 +101,19 @@ export class Tracker {
     if (this.buffer.length === 0) return;
     const events = this.buffer;
     this.buffer = [];
+
+    let utm: TrackPayload['utm'];
+    try {
+      const raw = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('lojeo_utm') : null;
+      if (raw) utm = JSON.parse(raw) as TrackPayload['utm'];
+    } catch { /* ignore parse errors */ }
+
     const payload: TrackPayload = {
       tenantId: this.cfg.tenantId,
       anonymousId: getAnonId(),
       events,
       consent: getConsent(),
+      ...(utm?.source ? { utm } : {}),
     };
     const body = JSON.stringify(payload);
     if (useBeacon && typeof navigator !== 'undefined' && navigator.sendBeacon) {

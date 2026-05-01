@@ -14,7 +14,7 @@ export async function ingest(
   payload: TrackPayload,
   opts?: { userAgent?: string; userId?: string; ipAddress?: string },
 ) {
-  const { tenantId, anonymousId, events, consent } = payload;
+  const { tenantId, anonymousId, events, consent, utm } = payload;
   if (!events?.length) return { accepted: 0 };
 
   let session = await db.query.sessionsBehavior.findFirst({
@@ -52,6 +52,11 @@ export async function ingest(
       ...e.metadata,
       ts: e.ts,
       ...(opts?.ipAddress ? { ipHash: hashIp(opts.ipAddress) } : {}),
+      ...(e.type === 'page_view' && utm?.source ? {
+        utm_source: utm.source,
+        utm_medium: utm.medium ?? null,
+        utm_campaign: utm.campaign ?? null,
+      } : {}),
     },
   }));
 

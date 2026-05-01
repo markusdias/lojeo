@@ -438,6 +438,66 @@ async function profitMargins(limit: number, days: number): Promise<object> {
   };
 }
 
+async function acquisitionFunnelBySource(days: number): Promise<object> {
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+  const rows = await db.execute(sql`
+    WITH utm_sessions AS (
+      SELECT DISTINCT ON (anonymous_id)
+        anonymous_id,
+        metadata->>'utm_source'   AS source,
+        metadata->>'utm_medium'   AS medium,
+        metadata->>'utm_campaign' AS campaign
+      FROM behavior_events
+      WHERE tenant_id   = ${TENANT_ID}::uuid
+        AND event_type  = 'page_view'
+        AND metadata->>'utm_source' IS NOT NULL
+        AND created_at >= ${since}
+      ORDER BY anonymous_id, created_at ASC
+    )
+    SELECT
+      us.source,
+      us.medium,
+      us.campaign,
+      COUNT(DISTINCT us.anonymous_id)::int                                                                    AS sessions,
+      COUNT(DISTINCT CASE WHEN be.event_type = 'product_view'                             THEN be.anonymous_id END)::int AS product_views,
+      COUNT(DISTINCT CASE WHEN be.event_type = 'cart_add'                                 THEN be.anonymous_id END)::int AS cart_adds,
+      COUNT(DISTINCT CASE WHEN be.event_type IN ('checkout_start','checkout_step_start')  THEN be.anonymous_id END)::int AS checkout_starts,
+      COUNT(DISTINCT CASE WHEN be.event_type IN ('checkout_complete','order_created')     THEN be.anonymous_id END)::int AS purchases
+    FROM utm_sessions us
+    LEFT JOIN behavior_events be
+           ON be.anonymous_id = us.anonymous_id
+          AND be.tenant_id    = ${TENANT_ID}::uuid
+          AND be.created_at  >= ${since}
+    GROUP BY us.source, us.medium, us.campaign
+    ORDER BY sessions DESC
+    LIMIT 20
+  `);
+
+  type Row = { source: string; medium: string | null; campaign: string | null; sessions: number; product_views: number; cart_adds: number; checkout_starts: number; purchases: number };
+  const items = (Array.from(rows) as Row[]).map(r => ({
+    source: r.source,
+    medium: r.medium,
+    campaign: r.campaign,
+    sessions: Number(r.sessions),
+    productViews: Number(r.product_views),
+    cartAdds: Number(r.cart_adds),
+    checkoutStarts: Number(r.checkout_starts),
+    purchases: Number(r.purchases),
+    conversionRate: Number(r.sessions) > 0
+      ? Number((Number(r.purchases) / Number(r.sessions) * 100).toFixed(1))
+      : 0,
+  }));
+
+  return {
+    windowDays: days,
+    note: items.length === 0
+      ? 'Nenhum evento com UTM encontrado no período. Para rastrear origens, adicione parâmetros utm_source nas URLs das campanhas (ex: ?utm_source=instagram&utm_medium=stories&utm_campaign=lancamento).'
+      : null,
+    items,
+  };
+}
+
 // ── Tool definitions for Claude ───────────────────────────────────────────────
 
 const TOOLS = [
@@ -552,6 +612,17 @@ const TOOLS = [
       required: ['limit', 'days'],
     },
   },
+  {
+    name: 'acquisition_funnel_by_source',
+    description: 'Funil de conversão segmentado por origem de aquisição (utm_source). Mostra sessões, visualizações, carrinhos, checkouts e compras por canal (Instagram, Google, Email, etc.).',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        days: { type: 'number', description: 'Janela em dias (1-90). Padrão 30.' },
+      },
+      required: ['days'],
+    },
+  },
 ];
 
 async function executeTool(name: string, input: Record<string, unknown>): Promise<string> {
@@ -599,6 +670,10 @@ async function executeTool(name: string, input: Record<string, unknown>): Promis
         const limit = Math.max(1, Math.min(50, Number(input['limit'] ?? 10)));
         const days = Math.max(1, Math.min(365, Number(input['days'] ?? 30)));
         return JSON.stringify(await profitMargins(limit, days));
+      }
+      case 'acquisition_funnel_by_source': {
+        const days = Math.max(1, Math.min(90, Number(input['days'] ?? 30)));
+        return JSON.stringify(await acquisitionFunnelBySource(days));
       }
       default:
         return JSON.stringify({ error: `Ferramenta desconhecida: ${name}` });
