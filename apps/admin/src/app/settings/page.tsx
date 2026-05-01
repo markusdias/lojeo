@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { InfoTooltip } from '@/components/ui/info-tooltip';
 import { SettingsSidebar, useTabHash } from './sidebar-tabs';
+import { NotificacoesPrefSection } from './notificacoes-prefs';
 import {
   GatewaysCardsLive,
   FreteCardsLive,
@@ -109,7 +110,7 @@ export default function SettingsPage() {
   const showSection = (tab: typeof activeTab) => activeTab === tab ? {} : { display: 'none' };
 
   // Cards-only tabs (Vendas/Comunicação/Jobs) renderizam fora do form
-  const isCardsTab = activeTab === 'pagamentos' || activeTab === 'frete' || activeTab === 'fiscal' || activeTab === 'email' || activeTab === ('whatsapp' as typeof activeTab) || activeTab === ('jobs' as typeof activeTab);
+  const isCardsTab = activeTab === 'pagamentos' || activeTab === 'frete' || activeTab === 'fiscal' || activeTab === 'email' || activeTab === 'whatsapp' || activeTab === 'jobs' || activeTab === 'notificacoes';
 
   return (
     <main style={{ padding: 'var(--space-6) var(--space-8) var(--space-12)', maxWidth: 'var(--container-max)', margin: '0 auto' }}>
@@ -125,9 +126,10 @@ export default function SettingsPage() {
             : activeTab === 'email' ? 'E-mail transacional'
             : activeTab === 'pixels' ? 'Pixels & Analytics'
             : activeTab === 'ia' ? 'IA · cota e brand guide'
-            : activeTab === ('jobs' as typeof activeTab) ? 'Jobs assíncronos'
+            : activeTab === 'jobs' ? 'Jobs assíncronos'
             : activeTab === 'comercial' ? 'Políticas comerciais'
             : activeTab === 'robots' ? 'Robots.txt'
+            : activeTab === 'notificacoes' ? 'Notificações'
             : 'Configurações da loja'
           }
         </h1>
@@ -136,6 +138,7 @@ export default function SettingsPage() {
             : activeTab === 'frete' ? 'Cotação automática e geração de etiquetas — Brasil e exterior.'
             : activeTab === 'fiscal' ? 'Emissão automática de NF-e por pedido + sync de estoque.'
             : activeTab === 'email' ? 'Confirmações de pedido, rastreio, recuperação de carrinho.'
+            : activeTab === 'notificacoes' ? 'Escolha quais eventos geram alertas no sino. Mudanças valem para toda a equipe.'
             : 'Tudo que sua loja precisa pra funcionar — em um lugar.'}
         </p>
         <p className="caption" style={{ marginTop: 'var(--space-2)', color: 'var(--fg-muted)' }}>
@@ -153,8 +156,9 @@ export default function SettingsPage() {
           {activeTab === 'frete' && <FreteCardsLive />}
           {activeTab === 'fiscal' && <FiscalCardsLive />}
           {activeTab === 'email' && <EmailCardsLive />}
-          {activeTab === ('whatsapp' as typeof activeTab) && <WhatsappCardsLive />}
-          {activeTab === ('jobs' as typeof activeTab) && <JobsCardsLive />}
+          {activeTab === 'whatsapp' && <WhatsappCardsLive />}
+          {activeTab === 'jobs' && <JobsCardsLive />}
+          {activeTab === 'notificacoes' && <NotificacoesPrefSection />}
 
           {!isCardsTab && (
       <form onSubmit={handleSave} className="space-y-8">

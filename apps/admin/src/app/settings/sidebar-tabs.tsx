@@ -11,6 +11,7 @@ export type SettingsTab =
   | 'email'
   | 'whatsapp'
   | 'pixels'
+  | 'notificacoes'
   | 'ia'
   | 'comercial'
   | 'robots'
@@ -51,7 +52,7 @@ const TABS: TabItem[] = [
   { id: 'email', label: 'E-mail', iconPath: ICONS.mail, group: 'Comunicação' },
   { id: 'whatsapp', label: 'WhatsApp', iconPath: ICONS.bell, group: 'Comunicação' },
   { id: 'pixels', label: 'Pixels & Analytics', iconPath: ICONS.target, group: 'Comunicação' },
-  { id: 'notificacoes' as SettingsTab, label: 'Notificações', iconPath: ICONS.bell, group: 'Comunicação', href: '/notificacoes/preferencias' },
+  { id: 'notificacoes', label: 'Notificações', iconPath: ICONS.bell, group: 'Comunicação' },
   { id: 'ia', label: 'IA · cota', iconPath: ICONS.spark, group: 'Inteligência' },
   { id: 'jobs', label: 'Jobs assíncronos', iconPath: ICONS.bell, group: 'Inteligência' },
   { id: 'robots', label: 'Robots.txt', iconPath: ICONS.globe, group: 'SEO' },

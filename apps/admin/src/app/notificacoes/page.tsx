@@ -62,7 +62,7 @@ export default async function NotificacoesPage({ searchParams }: { searchParams:
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <Link
-            href="/notificacoes/preferencias"
+            href="/settings#notificacoes"
             prefetch={false}
             style={{
               fontSize: 13,
@@ -71,7 +71,7 @@ export default async function NotificacoesPage({ searchParams }: { searchParams:
               padding: '8px 12px',
             }}
           >
-            Preferências
+            Configurar alertas
           </Link>
           <NotificacoesActions onlyUnread={onlyUnread} unreadCount={unreadCount} />
         </div>
