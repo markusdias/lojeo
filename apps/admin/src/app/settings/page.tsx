@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { InfoTooltip } from '@/components/ui/info-tooltip';
 import { SettingsSidebar, useTabHash } from './sidebar-tabs';
 import { NotificacoesPrefSection } from './notificacoes-prefs';
+import { BrandGuideSection, RateLimitSection } from './ia-sections';
 import {
   GatewaysCardsLive,
   FreteCardsLive,
@@ -13,6 +14,8 @@ import {
   IaCardsLive,
   JobsCardsLive,
 } from '../../components/integrations/integration-card';
+import { GoogleConnectCard } from './google-connect-card';
+import { MetaConnectCard } from './meta-connect-card';
 
 interface BrandGuide {
   brandName?: string;
@@ -41,6 +44,7 @@ interface TenantConfig {
     gaTrackingId?: string;     // G-XXXXXXXXXX
     gtmId?: string;             // GTM-XXXXXX
     metaPixelId?: string;       // 12345...
+    metaCapiToken?: string;     // System User Access Token (CAPI)
     tiktokPixelId?: string;     // C12345...
     clarityProjectId?: string;  // ABCDE12345
     googleAdsConversionId?: string; // AW-XXXX
@@ -281,124 +285,15 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div style={{ marginTop: 'var(--space-6)' }}>
-            <h2 className="font-semibold text-lg">Brand Guide para IA</h2>
-            <p className="text-xs text-neutral-500 mt-1">
-              Controla o tom e vocabulário quando IA gera descrições e SEO de produtos.
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-1">Nome da marca (usado nos prompts)</label>
-              <input
-                type="text"
-                value={settings.config.brandGuide?.brandName ?? ''}
-                onChange={e => setBrandGuide({ brandName: e.target.value })}
-                placeholder="Atelier Joias"
-                className="w-full border rounded px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-1">
-                Limite mensal IA (USD — 0 = ilimitado)
-                <InfoTooltip text="Limite mensal em USD cents (ex: 5000 = $50). 0 = ilimitado. Acima do limite, IA bloqueia automaticamente até virar mês." />
-              </label>
-              <input
-                type="number"
-                min={0}
-                step={1}
-                value={(settings.config.brandGuide?.aiMonthlyLimitCents ?? 0) / 100}
-                onChange={e => setBrandGuide({ aiMonthlyLimitCents: Math.round(parseFloat(e.target.value || '0') * 100) })}
-                placeholder="50"
-                className="w-full border rounded px-3 py-2 text-sm"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-1">Tom e personalidade</label>
-            <textarea
-              rows={3}
-              value={settings.config.brandGuide?.tonePersonality ?? ''}
-              onChange={e => setBrandGuide({ tonePersonality: e.target.value })}
-              placeholder="Luxo sem pretensão. Premium mas acessível. Storytelling com fatos de material. Voz ativa. Sem emoji."
-              className="w-full border rounded px-3 py-2 text-sm"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-1">Vocabulário preferido (vírgula)</label>
-              <input
-                type="text"
-                value={settings.config.brandGuide?.vocabPreferred ?? ''}
-                onChange={e => setBrandGuide({ vocabPreferred: e.target.value })}
-                placeholder="artesanal, certificado, atemporal"
-                className="w-full border rounded px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-1">Vocabulário a evitar (vírgula)</label>
-              <input
-                type="text"
-                value={settings.config.brandGuide?.vocabAvoid ?? ''}
-                onChange={e => setBrandGuide({ vocabAvoid: e.target.value })}
-                placeholder="exclusivo, viral, trending"
-                className="w-full border rounded px-3 py-2 text-sm"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-1">Exemplos de copy aprovada (1 por linha)</label>
-            <textarea
-              rows={4}
-              value={settings.config.brandGuide?.examples ?? ''}
-              onChange={e => setBrandGuide({ examples: e.target.value })}
-              placeholder={'Quartzo rosa garimpado individualmente, cada peça única em sua jornada.\nOuro 18k certificado, com 8 horas de trabalho artesanal por peça.'}
-              className="w-full border rounded px-3 py-2 text-sm font-mono text-xs"
-            />
-            <p className="text-xs text-neutral-400 mt-1">3–5 exemplos de alto desempenho melhoram muito a qualidade da geração.</p>
-          </div>
+          <BrandGuideSection
+            brandGuide={settings.config.brandGuide}
+            onChange={setBrandGuide}
+          />
 
-          {/* Rate limit IA Analyst (Sprint 8 v2) */}
-          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 'var(--space-4)', marginTop: 'var(--space-4)' }}>
-            <h3 className="font-semibold text-sm" style={{ marginBottom: 4 }}>Limites do IA Analyst por usuário</h3>
-            <p className="text-xs text-neutral-500" style={{ marginBottom: 'var(--space-3)' }}>
-              Controla quantas perguntas cada usuário pode fazer ao IA Analyst. Protege sua cota mensal contra uso abusivo.
-            </p>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-1">
-                  Por minuto
-                  <InfoTooltip text="Máximo de perguntas por minuto, por usuário. Padrão 10. Acima disso retorna 429." />
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  max={120}
-                  step={1}
-                  value={settings.config.aiAnalystRateLimit?.perMinute ?? 10}
-                  onChange={e => setConfig({ aiAnalystRateLimit: { ...settings.config.aiAnalystRateLimit, perMinute: Math.max(1, Math.min(120, parseInt(e.target.value || '10', 10))) } })}
-                  placeholder="10"
-                  className="w-full border rounded px-3 py-2 text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-1">
-                  Por dia
-                  <InfoTooltip text="Máximo de perguntas por dia, por usuário. Padrão 200. Reset à meia-noite UTC." />
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  max={10000}
-                  step={1}
-                  value={settings.config.aiAnalystRateLimit?.perDay ?? 200}
-                  onChange={e => setConfig({ aiAnalystRateLimit: { ...settings.config.aiAnalystRateLimit, perDay: Math.max(1, Math.min(10_000, parseInt(e.target.value || '200', 10))) } })}
-                  placeholder="200"
-                  className="w-full border rounded px-3 py-2 text-sm"
-                />
-              </div>
-            </div>
-          </div>
+          <RateLimitSection
+            value={settings.config.aiAnalystRateLimit}
+            onChange={v => setConfig({ aiAnalystRateLimit: v })}
+          />
         </section>
 
         {/* Pixels & Analytics */}
@@ -407,7 +302,31 @@ export default function SettingsPage() {
           <p className="text-xs text-neutral-500">
             IDs dos pixels de marketing. Deixe em branco para desativar. Os scripts respeitam o consentimento LGPD do cliente.
           </p>
-          <div className="grid grid-cols-2 gap-3">
+
+          <GoogleConnectCard
+            pixels={{
+              gtmId: settings.config.pixels?.gtmId,
+              gaTrackingId: settings.config.pixels?.gaTrackingId,
+              googleAdsConversionId: settings.config.pixels?.googleAdsConversionId,
+            }}
+            onChange={(next) => setConfig({ pixels: { ...settings.config.pixels, ...next } })}
+          />
+
+          <div style={{ height: 12 }} />
+
+          <MetaConnectCard
+            pixels={{
+              metaPixelId: settings.config.pixels?.metaPixelId,
+              metaCapiToken: settings.config.pixels?.metaCapiToken,
+            }}
+            onChange={(next) => setConfig({ pixels: { ...settings.config.pixels, ...next } })}
+          />
+
+          <details style={{ marginTop: 16 }}>
+            <summary style={{ cursor: 'pointer', fontSize: 13, fontWeight: 500, color: 'var(--fg-secondary)', padding: '8px 0' }}>
+              Modo manual (avançado) — colar IDs
+            </summary>
+          <div className="grid grid-cols-2 gap-3" style={{ marginTop: 12 }}>
             <label className="text-sm">
               <span className="text-xs text-neutral-600">
                 Google Tag Manager (GTM-XXXXXX)
@@ -469,6 +388,7 @@ export default function SettingsPage() {
               />
             </label>
           </div>
+          </details>
         </section>
 
         <section id="robots" className="bg-white rounded-lg shadow p-6 space-y-3" style={showSection('robots')}>
