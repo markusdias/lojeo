@@ -36,6 +36,8 @@ export const products = pgTable(
     seoTitle: varchar('seo_title', { length: 200 }),
     seoDescription: text('seo_description'),
     exportRestrictions: jsonb('export_restrictions').default({}).notNull(),
+    returnDays: integer('return_days'),
+    nonReturnable: boolean('non_returnable').default(false).notNull(),
     presaleShipDate: timestamp('presale_ship_date', { withTimezone: true }),
     publishedAt: timestamp('published_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),

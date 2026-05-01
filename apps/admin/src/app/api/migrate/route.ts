@@ -873,6 +873,11 @@ export async function POST(req: NextRequest) {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_coupons_linked_affiliate ON coupons(linked_affiliate_id) WHERE linked_affiliate_id IS NOT NULL`);
     results.push('coupons.linked_affiliate_id: ok');
 
+    // Produto — política de troca por produto (spec §6.2)
+    await db.execute(sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS return_days INTEGER`);
+    await db.execute(sql`ALTER TABLE products ADD COLUMN IF NOT EXISTS non_returnable BOOLEAN NOT NULL DEFAULT FALSE`);
+    results.push('products.return_policy: ok');
+
     return NextResponse.json({ ok: true, results });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

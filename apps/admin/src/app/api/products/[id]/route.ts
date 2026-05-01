@@ -21,6 +21,8 @@ const UpdateProductSchema = z.object({
   seoTitle: z.string().optional(),
   seoDescription: z.string().optional(),
   exportRestrictions: z.record(z.unknown()).optional(),
+  returnDays: z.number().int().min(0).nullable().optional(),
+  nonReturnable: z.boolean().optional(),
   presaleShipDate: z.string().datetime().nullable().optional(),
 });
 
