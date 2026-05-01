@@ -85,8 +85,30 @@ export async function GET() {
   const hasDegraded = checks.some(c => c.status === 'degraded');
   const overall: ServiceCheck['status'] = hasDown ? 'down' : hasDegraded ? 'degraded' : 'operational';
 
+  // Maintenance flag — consulta endpoint interno (cache 60s)
+  let maintenance = false;
+  let maintenanceMessage: string | undefined;
+  const internalSecret = process.env.INTERNAL_API_SECRET;
+  if (internalSecret) {
+    try {
+      const r = await fetch(`${process.env.STOREFRONT_URL ?? 'http://localhost:3001'}/api/internal/maintenance`, {
+        headers: { 'x-internal-token': internalSecret },
+        cache: 'no-store',
+      });
+      if (r.ok) {
+        const data = (await r.json()) as { enabled?: boolean; message?: string };
+        maintenance = Boolean(data.enabled);
+        if (data.enabled) maintenanceMessage = data.message;
+      }
+    } catch {
+      // fail open
+    }
+  }
+
   return NextResponse.json({
     overall,
+    maintenance,
+    maintenanceMessage,
     checkedAt: new Date().toISOString(),
     services: checks,
   });

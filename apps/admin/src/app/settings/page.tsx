@@ -28,6 +28,14 @@ interface BrandGuide {
   aiMonthlyLimitCents?: number; // limit in USD cents (0 = unlimited)
 }
 
+interface MaintenanceConfig {
+  enabled: boolean;
+  message: string;
+  etaIso?: string;
+  bypassToken?: string;
+  contactEmail?: string;
+}
+
 interface TenantConfig {
   contactEmail?: string;
   freeShippingThresholdCents?: number;
@@ -35,6 +43,7 @@ interface TenantConfig {
   installmentsMax?: number;
   warrantyMonthsDefault?: number;
   robotsTxt?: string;
+  maintenance?: MaintenanceConfig;
   appearance?: {
     typo?: string;        // 'a' | 'b' | 'c'
     accent?: string;      // 'champagne' | 'silver' | 'rose-gold' | 'copper' | 'noir-rose'
@@ -126,6 +135,7 @@ export default function SettingsPage() {
         </p>
         <h1 style={{ fontSize: 'var(--text-h1)', fontWeight: 'var(--w-semibold)', letterSpacing: 'var(--track-tight)', marginBottom: 'var(--space-1)' }}>
           {activeTab === 'identidade' ? 'Identidade da loja'
+            : activeTab === 'manutencao' ? 'Modo manutenção'
             : activeTab === 'pagamentos' ? 'Gateways de pagamento'
             : activeTab === 'frete' ? 'Frete e logística'
             : activeTab === 'fiscal' ? 'Fiscal e ERP'
@@ -144,6 +154,7 @@ export default function SettingsPage() {
             : activeTab === 'frete' ? 'Cotação automática e geração de etiquetas — Brasil e exterior.'
             : activeTab === 'fiscal' ? 'Emissão automática de NF-e por pedido + sync de estoque.'
             : activeTab === 'email' ? 'Confirmações de pedido, rastreio, recuperação de carrinho.'
+            : activeTab === 'manutencao' ? 'Coloque a loja temporariamente offline com mensagem custom. Admin continua acessível; webhooks e tracking não param.'
             : activeTab === 'notificacoes' ? 'Escolha quais eventos geram alertas no sino. Mudanças valem para toda a equipe.'
             : 'Tudo que sua loja precisa pra funcionar — em um lugar.'}
         </p>
@@ -197,6 +208,12 @@ export default function SettingsPage() {
           </div>
         </section>
 
+        {/* Modo manutenção */}
+        <MaintenanceSection
+          maintenance={settings.config.maintenance}
+          onChange={(m) => setConfig({ maintenance: m })}
+          show={showSection('manutencao')}
+        />
 
         {/* Políticas comerciais */}
         <section id="comercial" className="bg-white rounded-lg shadow p-6 space-y-4" style={showSection('comercial')}>
@@ -443,5 +460,172 @@ export default function SettingsPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+interface MaintenanceSectionProps {
+  maintenance: MaintenanceConfig | undefined;
+  onChange: (m: MaintenanceConfig) => void;
+  show: React.CSSProperties;
+}
+
+function MaintenanceSection({ maintenance, onChange, show }: MaintenanceSectionProps) {
+  const current: MaintenanceConfig = maintenance ?? {
+    enabled: false,
+    message: 'Estamos fazendo melhorias',
+  };
+  const [regenerating, setRegenerating] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  function setField<K extends keyof MaintenanceConfig>(key: K, value: MaintenanceConfig[K]) {
+    onChange({ ...current, [key]: value });
+  }
+
+  function etaForInput(): string {
+    if (!current.etaIso) return '';
+    const d = new Date(current.etaIso);
+    if (Number.isNaN(d.getTime())) return '';
+    // datetime-local quer YYYY-MM-DDTHH:mm
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  async function regenerate() {
+    if (!confirm('Regenerar token? O link atual e cookies de admin/QA deixarão de funcionar.')) return;
+    setRegenerating(true);
+    try {
+      const r = await fetch('/api/settings/maintenance-token', { method: 'POST' });
+      const data = (await r.json()) as { token?: string; error?: string };
+      if (!r.ok || !data.token) {
+        alert(data.error ?? `Erro: ${r.status}`);
+        return;
+      }
+      onChange({ ...current, bypassToken: data.token });
+    } finally {
+      setRegenerating(false);
+    }
+  }
+
+  const previewUrl =
+    current.bypassToken && typeof window !== 'undefined'
+      ? `${process.env.NEXT_PUBLIC_STOREFRONT_URL ?? 'http://localhost:3001'}/?_preview=${current.bypassToken}`
+      : null;
+
+  function copyPreviewUrl() {
+    if (!previewUrl) return;
+    navigator.clipboard.writeText(previewUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <section
+      id="manutencao"
+      className="bg-white rounded-lg shadow p-6 space-y-4"
+      style={show}
+    >
+      <div>
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={current.enabled}
+            onChange={e => setField('enabled', e.target.checked)}
+            className="mt-1 h-5 w-5 rounded border-gray-300"
+          />
+          <div className="flex-1">
+            <div className="text-base font-semibold">Loja em manutenção</div>
+            <p className="text-xs text-neutral-500 mt-1 leading-relaxed">
+              Quando ligado: visitantes do storefront vêem página de manutenção (HTTP 307 → /manutencao).
+              Admin continua acessível. Webhooks de pagamento, /api/health e tracking de afiliado
+              continuam respondendo. Bypass via link com token abaixo.
+            </p>
+          </div>
+        </label>
+      </div>
+
+      <div>
+        <label className="block text-xs text-neutral-600 mb-1">Mensagem mostrada ao cliente</label>
+        <textarea
+          value={current.message}
+          onChange={e => setField('message', e.target.value)}
+          rows={3}
+          maxLength={500}
+          placeholder="Estamos fazendo melhorias na loja. Voltamos em breve."
+          className="lj-input w-full"
+        />
+        <p className="text-[11px] text-neutral-400 mt-1">Máx 500 caracteres. Suporta quebras de linha.</p>
+      </div>
+
+      <div>
+        <label className="block text-xs text-neutral-600 mb-1">Previsão de retorno (opcional)</label>
+        <input
+          type="datetime-local"
+          value={etaForInput()}
+          onChange={e => {
+            const v = e.target.value;
+            if (!v) {
+              setField('etaIso', undefined);
+              return;
+            }
+            const d = new Date(v);
+            if (!Number.isNaN(d.getTime())) setField('etaIso', d.toISOString());
+          }}
+          className="lj-input"
+          style={{ maxWidth: 280 }}
+        />
+        <p className="text-[11px] text-neutral-400 mt-1">Aparece como "Voltamos em X" na página do cliente.</p>
+      </div>
+
+      <div className="border-t border-neutral-100 pt-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-semibold text-neutral-700">Link de bypass (preview admin)</span>
+          {current.bypassToken ? (
+            <button
+              type="button"
+              onClick={regenerate}
+              disabled={regenerating}
+              className="text-xs text-red-600 hover:underline"
+            >
+              {regenerating ? 'Regenerando…' : 'Regenerar token'}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={regenerate}
+              disabled={regenerating}
+              className="text-xs text-blue-600 hover:underline"
+            >
+              {regenerating ? 'Gerando…' : 'Gerar token'}
+            </button>
+          )}
+        </div>
+        {previewUrl ? (
+          <div className="flex items-center gap-2">
+            <code className="flex-1 text-[11px] bg-neutral-50 border border-neutral-200 rounded px-2 py-1.5 truncate font-mono">
+              {previewUrl}
+            </code>
+            <button
+              type="button"
+              onClick={copyPreviewUrl}
+              className="px-3 py-1.5 text-xs bg-neutral-900 text-white rounded hover:bg-neutral-800"
+            >
+              {copied ? '✓ Copiado' : 'Copiar'}
+            </button>
+          </div>
+        ) : (
+          <p className="text-xs text-neutral-500">
+            Clique em <strong>Gerar token</strong> para criar um link que permite admin/QA acessar
+            o storefront durante a manutenção. Cookie válido por 4 horas.
+          </p>
+        )}
+        {current.bypassToken && (
+          <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 mt-2">
+            ⚠ Qualquer pessoa com este link pode acessar a loja durante a manutenção. Compartilhe apenas
+            com a equipe.
+          </p>
+        )}
+      </div>
+    </section>
   );
 }

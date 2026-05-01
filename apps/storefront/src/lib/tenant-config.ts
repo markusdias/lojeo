@@ -37,10 +37,24 @@ export interface BrandGuideConfig {
   examples?: string;
 }
 
+export interface MaintenanceConfig {
+  enabled: boolean;
+  message: string;            // mostrado pro cliente em /manutencao
+  etaIso?: string;            // ISO 8601 datetime — "voltamos às X"
+  bypassToken?: string;       // 32 bytes hex; cliente com cookie igual a este passa
+  contactEmail?: string;      // override de config.contactEmail (opcional)
+}
+
+export const DEFAULT_MAINTENANCE: MaintenanceConfig = {
+  enabled: false,
+  message: 'Estamos fazendo melhorias',
+};
+
 export interface TenantRuntimeConfig {
   pixels: PixelConfig;
   appearance: AppearanceConfig;
   brandGuide: BrandGuideConfig;
+  maintenance: MaintenanceConfig;
 }
 
 const tenantId = () => process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
@@ -48,10 +62,20 @@ const tenantId = () => process.env.TENANT_ID ?? '00000000-0000-0000-0000-0000000
 export const getTenantRuntimeConfig = cache(async (): Promise<TenantRuntimeConfig> => {
   try {
     const [tenant] = await db.select({ config: tenants.config }).from(tenants).where(eq(tenants.id, tenantId())).limit(1);
-    const cfg = (tenant?.config ?? {}) as { pixels?: PixelConfig; appearance?: AppearanceConfig; brandGuide?: BrandGuideConfig };
-    return { pixels: cfg.pixels ?? {}, appearance: cfg.appearance ?? {}, brandGuide: cfg.brandGuide ?? {} };
+    const cfg = (tenant?.config ?? {}) as {
+      pixels?: PixelConfig;
+      appearance?: AppearanceConfig;
+      brandGuide?: BrandGuideConfig;
+      maintenance?: Partial<MaintenanceConfig>;
+    };
+    return {
+      pixels: cfg.pixels ?? {},
+      appearance: cfg.appearance ?? {},
+      brandGuide: cfg.brandGuide ?? {},
+      maintenance: { ...DEFAULT_MAINTENANCE, ...(cfg.maintenance ?? {}) },
+    };
   } catch {
-    return { pixels: {}, appearance: {}, brandGuide: {} };
+    return { pixels: {}, appearance: {}, brandGuide: {}, maintenance: DEFAULT_MAINTENANCE };
   }
 });
 

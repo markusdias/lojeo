@@ -5,6 +5,14 @@ import { auth } from '../../../auth';
 
 const tenantId = () => process.env.TENANT_ID ?? '00000000-0000-0000-0000-000000000001';
 
+interface MaintenanceConfig {
+  enabled: boolean;
+  message: string;
+  etaIso?: string;
+  bypassToken?: string;
+  contactEmail?: string;
+}
+
 interface TenantConfig {
   contactEmail?: string;
   freeShippingThresholdCents?: number;
@@ -19,6 +27,21 @@ interface TenantConfig {
     bgTone?: string;
     imgRadius?: string;
   };
+  maintenance?: MaintenanceConfig;
+}
+
+async function bustStorefrontMaintenance(): Promise<void> {
+  const url = process.env.STOREFRONT_URL;
+  const secret = process.env.INTERNAL_API_SECRET;
+  if (!url || !secret) return; // fail open
+  try {
+    await fetch(`${url}/api/internal/maintenance?bust=1`, {
+      headers: { 'x-internal-token': secret },
+      cache: 'no-store',
+    });
+  } catch {
+    // best effort — TTL 60s ainda propaga
+  }
 }
 
 export async function GET() {
@@ -63,11 +86,16 @@ export async function PATCH(req: Request) {
     update.templateId = candidate;
   }
 
+  let touchedMaintenance = false;
   if (body.config) {
     const existing = (tenant.config ?? {}) as TenantConfig;
+    if (body.config.maintenance !== undefined) touchedMaintenance = true;
     update.config = { ...existing, ...body.config };
   }
 
   await db.update(tenants).set(update).where(eq(tenants.id, tid));
+
+  if (touchedMaintenance) await bustStorefrontMaintenance();
+
   return NextResponse.json({ ok: true });
 }

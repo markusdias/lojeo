@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 
 export type SettingsTab =
   | 'identidade'
+  | 'manutencao'
   | 'pagamentos'
   | 'frete'
   | 'fiscal'
@@ -40,11 +41,13 @@ const ICONS = {
   tag: 'M20 12V4h-8L4 12l8 8z M7 7h.01',
   globe: 'M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18ZM3 12h18M12 3a13 13 0 0 1 0 18M12 3a13 13 0 0 0 0 18',
   bell: 'M9 2v.5M5.25 5.25v3.5l-1 2.25h9.5l-1-2.25v-3.5a3.75 3.75 0 1 0-7.5 0ZM7.5 13a1.5 1.5 0 0 0 3 0',
+  wrench: 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z',
 };
 
 const TABS: TabItem[] = [
   { id: 'identidade', label: 'Identidade da loja', iconPath: ICONS.store, group: 'Loja' },
   { id: 'aparencia' as SettingsTab, label: 'Aparência ↗', iconPath: ICONS.palette, group: 'Loja', href: '/aparencia' },
+  { id: 'manutencao', label: 'Modo manutenção', iconPath: ICONS.wrench, group: 'Loja' },
   { id: 'pagamentos', label: 'Gateways', iconPath: ICONS.card, group: 'Vendas' },
   { id: 'frete', label: 'Frete', iconPath: ICONS.truck, group: 'Vendas' },
   { id: 'fiscal', label: 'Fiscal e ERP', iconPath: ICONS.receipt, group: 'Vendas' },
