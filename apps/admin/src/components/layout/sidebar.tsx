@@ -17,6 +17,7 @@ interface BadgeCounts {
   ugc: number;
   tickets: number;
   devolucoes: number;
+  notificacoes: number;
 }
 
 // SVG icons inspired by Lucide outline style — paridade design oficial
@@ -45,6 +46,7 @@ const I = {
   coupon: 'M3 9V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4ZM9 7v10',
   squares: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z',
   link: 'M9 17H7a5 5 0 0 1 0-10h2M15 7h2a5 5 0 0 1 0 10h-2M8 12h8',
+  bell: 'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0',
   globe: 'M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18ZM3 12h18M12 3a13 13 0 0 1 0 18M12 3a13 13 0 0 0 0 18',
   inbox: 'M3 13h6l1 3h4l1-3h6M3 13V7l3-4h12l3 4v6M3 13v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7',
   book: 'M4 4v15a2 2 0 0 0 2 2h14V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2Zm0 0a2 2 0 0 1 2-2h12M8 8h8M8 12h8M8 16h6',
@@ -57,6 +59,7 @@ const SECTIONS: NavSection[] = [
     items: [
       { href: '/dashboard', label: 'Dashboard', icon: <Icon d={I.home} /> },
       { href: '/insights', label: 'Análises', icon: <Icon d={I.chart} /> },
+      { href: '/notificacoes', label: 'Notificações', icon: <Icon d={I.bell} />, badgeKey: 'notificacoes' },
     ],
   },
   {
@@ -137,7 +140,7 @@ function initials(name: string): string {
 
 export function Sidebar({ userName, userEmail, tenantLabel, tenantPlan }: SidebarProps = {}) {
   const pathname = usePathname() ?? '/';
-  const [badges, setBadges] = useState<BadgeCounts>({ pedidos: 0, ugc: 0, tickets: 0, devolucoes: 0 });
+  const [badges, setBadges] = useState<BadgeCounts>({ pedidos: 0, ugc: 0, tickets: 0, devolucoes: 0, notificacoes: 0 });
 
   useEffect(() => {
     fetch('/api/sidebar/badges', { headers: { accept: 'application/json' } })
