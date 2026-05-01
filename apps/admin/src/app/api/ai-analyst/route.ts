@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { db, behaviorEvents, orders, orderItems, aiCalls, tenants } from '@lojeo/db';
-import { eq, and, gte, inArray, desc, sql } from 'drizzle-orm';
+import { db, behaviorEvents, orders, orderItems, aiCalls, tenants, products, productVariants, coupons } from '@lojeo/db';
+import { eq, and, gte, inArray, desc, sql, not, lt, isNotNull } from 'drizzle-orm';
 import { logger } from '@lojeo/logger';
 import { scoreCustomers, type RfmInput } from '@lojeo/engine';
 import { auth } from '../../../auth';
@@ -203,6 +203,241 @@ async function behaviorAggregates(eventType: string, days: number): Promise<obje
   return { eventType, windowDays: days, total, series };
 }
 
+async function topViewedProducts(limit: number, days: number): Promise<object> {
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const rows = await db
+    .select({
+      productId: products.id,
+      productName: products.name,
+      slug: products.slug,
+      views: sql<number>`COUNT(*)::int`,
+      uniqueVisitors: sql<number>`COUNT(DISTINCT ${behaviorEvents.anonymousId})::int`,
+    })
+    .from(behaviorEvents)
+    .innerJoin(products, eq(products.id, sql`${behaviorEvents.entityId}::uuid`))
+    .where(and(
+      eq(behaviorEvents.tenantId, TENANT_ID),
+      eq(behaviorEvents.eventType, 'product_view'),
+      eq(behaviorEvents.entityType, 'product'),
+      gte(behaviorEvents.createdAt, since),
+      eq(products.tenantId, TENANT_ID),
+    ))
+    .groupBy(products.id, products.name, products.slug)
+    .orderBy(desc(sql`COUNT(*)`))
+    .limit(limit);
+
+  return {
+    windowDays: days,
+    items: rows.map(r => ({
+      productName: r.productName,
+      slug: r.slug,
+      views: Number(r.views),
+      uniqueVisitors: Number(r.uniqueVisitors),
+    })),
+  };
+}
+
+async function inventoryStatus(lowStockThreshold: number): Promise<object> {
+  const rows = await db
+    .select({
+      productName: products.name,
+      productSku: products.sku,
+      variantSku: productVariants.sku,
+      variantName: productVariants.name,
+      stockQty: productVariants.stockQty,
+    })
+    .from(productVariants)
+    .innerJoin(products, eq(products.id, productVariants.productId))
+    .where(and(
+      eq(productVariants.tenantId, TENANT_ID),
+      eq(products.tenantId, TENANT_ID),
+      eq(products.status, 'active'),
+    ))
+    .orderBy(productVariants.stockQty);
+
+  const byProduct = new Map<string, { name: string; sku: string | null; totalStock: number; outOfStock: number; lowStock: number; variants: number }>();
+  for (const r of rows) {
+    const key = r.productName;
+    if (!byProduct.has(key)) {
+      byProduct.set(key, { name: r.productName, sku: r.productSku ?? null, totalStock: 0, outOfStock: 0, lowStock: 0, variants: 0 });
+    }
+    const p = byProduct.get(key)!;
+    const qty = Number(r.stockQty ?? 0);
+    p.totalStock += qty;
+    p.variants += 1;
+    if (qty === 0) p.outOfStock += 1;
+    else if (qty <= lowStockThreshold) p.lowStock += 1;
+  }
+
+  const items = Array.from(byProduct.values()).sort((a, b) => a.totalStock - b.totalStock);
+  const outOfStockCount = items.filter(i => i.outOfStock === i.variants).length;
+  const lowStockCount = items.filter(i => i.totalStock > 0 && i.totalStock <= lowStockThreshold * i.variants).length;
+
+  return {
+    lowStockThreshold,
+    totalActiveProducts: items.length,
+    outOfStockProducts: outOfStockCount,
+    lowStockProducts: lowStockCount,
+    items,
+  };
+}
+
+async function ordersByStatus(days: number): Promise<object> {
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+  const [statusRows, lateRows] = await Promise.all([
+    db
+      .select({
+        status: orders.status,
+        count: sql<number>`COUNT(*)::int`,
+        totalCents: sql<number>`COALESCE(SUM(${orders.totalCents}), 0)::bigint`,
+      })
+      .from(orders)
+      .where(and(eq(orders.tenantId, TENANT_ID), gte(orders.createdAt, since)))
+      .groupBy(orders.status)
+      .orderBy(desc(sql`COUNT(*)`)),
+
+    db
+      .select({ count: sql<number>`COUNT(*)::int` })
+      .from(orders)
+      .where(and(
+        eq(orders.tenantId, TENANT_ID),
+        not(inArray(orders.status, ['delivered', 'cancelled'])),
+        isNotNull(orders.shippingDeadlineDays),
+        lt(
+          sql`${orders.createdAt} + (${orders.shippingDeadlineDays} || ' days')::interval`,
+          sql`NOW()`,
+        ),
+      )),
+  ]);
+
+  const STATUS_LABEL: Record<string, string> = {
+    pending: 'Aguardando pagamento',
+    paid: 'Pagamento confirmado',
+    preparing: 'Em separação',
+    shipped: 'Enviado',
+    delivered: 'Entregue',
+    cancelled: 'Cancelado',
+  };
+
+  return {
+    windowDays: days,
+    lateOrders: Number(lateRows[0]?.count ?? 0),
+    byStatus: statusRows.map(r => ({
+      status: r.status,
+      label: STATUS_LABEL[r.status ?? ''] ?? r.status,
+      count: Number(r.count),
+      revenueBrl: Number(r.totalCents) / 100,
+    })),
+  };
+}
+
+async function couponPerformance(days: number): Promise<object> {
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const rows = await db
+    .select({
+      couponCode: orders.couponCode,
+      uses: sql<number>`COUNT(*)::int`,
+      totalDiscountCents: sql<number>`COALESCE(SUM(${orders.couponDiscountCents}), 0)::bigint`,
+      totalRevenueCents: sql<number>`COALESCE(SUM(${orders.totalCents}), 0)::bigint`,
+    })
+    .from(orders)
+    .where(and(
+      eq(orders.tenantId, TENANT_ID),
+      isNotNull(orders.couponCode),
+      gte(orders.createdAt, since),
+    ))
+    .groupBy(orders.couponCode)
+    .orderBy(desc(sql`COUNT(*)`))
+    .limit(20);
+
+  const couponDetails = await db
+    .select({ code: coupons.code, name: coupons.name, type: coupons.type, value: coupons.value, maxUses: coupons.maxUses, usesCount: coupons.usesCount })
+    .from(coupons)
+    .where(eq(coupons.tenantId, TENANT_ID));
+
+  const detailMap = new Map(couponDetails.map(c => [c.code, c]));
+
+  return {
+    windowDays: days,
+    items: rows.map(r => {
+      const detail = detailMap.get(r.couponCode ?? '');
+      return {
+        code: r.couponCode,
+        name: detail?.name ?? null,
+        type: detail?.type ?? null,
+        uses: Number(r.uses),
+        totalDiscountBrl: Number(r.totalDiscountCents) / 100,
+        totalRevenueBrl: Number(r.totalRevenueCents) / 100,
+        maxUses: detail?.maxUses ?? null,
+        allTimeUses: detail?.usesCount ?? null,
+      };
+    }),
+  };
+}
+
+async function profitMargins(limit: number, days: number): Promise<object> {
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const rows = await db
+    .select({
+      productName: orderItems.productName,
+      sku: orderItems.sku,
+      unitsSold: sql<number>`COALESCE(SUM(${orderItems.qty}), 0)::int`,
+      revenueCents: sql<number>`COALESCE(SUM(${orderItems.totalCents}), 0)::bigint`,
+      costCents: products.costCents,
+    })
+    .from(orderItems)
+    .innerJoin(orders, eq(orders.id, orderItems.orderId))
+    .leftJoin(products, and(
+      eq(products.tenantId, TENANT_ID),
+      eq(products.sku, orderItems.sku),
+    ))
+    .where(and(
+      eq(orderItems.tenantId, TENANT_ID),
+      gte(orders.createdAt, since),
+      isNotNull(products.costCents),
+    ))
+    .groupBy(orderItems.productName, orderItems.sku, products.costCents)
+    .orderBy(desc(sql`COALESCE(SUM(${orderItems.totalCents}), 0)`))
+    .limit(limit);
+
+  const withoutCost = await db
+    .select({ count: sql<number>`COUNT(DISTINCT ${orderItems.sku})::int` })
+    .from(orderItems)
+    .innerJoin(orders, eq(orders.id, orderItems.orderId))
+    .leftJoin(products, and(eq(products.tenantId, TENANT_ID), eq(products.sku, orderItems.sku)))
+    .where(and(
+      eq(orderItems.tenantId, TENANT_ID),
+      gte(orders.createdAt, since),
+      sql`${products.costCents} IS NULL`,
+    ));
+
+  return {
+    windowDays: days,
+    skusWithoutCostPrice: Number(withoutCost[0]?.count ?? 0),
+    note: Number(withoutCost[0]?.count ?? 0) > 0
+      ? 'Alguns SKUs excluídos por não terem preço de custo cadastrado. Cadastre em Produtos > editar > Preço de custo.'
+      : null,
+    items: rows.map(r => {
+      const units = Number(r.unitsSold);
+      const revenue = Number(r.revenueCents) / 100;
+      const costPerUnit = Number(r.costCents ?? 0) / 100;
+      const totalCost = costPerUnit * units;
+      const grossProfit = revenue - totalCost;
+      const margin = revenue > 0 ? grossProfit / revenue : 0;
+      return {
+        productName: r.productName,
+        sku: r.sku,
+        unitsSold: units,
+        revenueBrl: Number(revenue.toFixed(2)),
+        totalCostBrl: Number(totalCost.toFixed(2)),
+        grossProfitBrl: Number(grossProfit.toFixed(2)),
+        marginPercent: Number((margin * 100).toFixed(1)),
+      };
+    }),
+  };
+}
+
 // ── Tool definitions for Claude ───────────────────────────────────────────────
 
 const TOOLS = [
@@ -260,6 +495,63 @@ const TOOLS = [
       required: ['eventType', 'days'],
     },
   },
+  {
+    name: 'top_viewed_products',
+    description: 'Lista os produtos mais visualizados (page views na PDP) nos últimos N dias, com visitantes únicos.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        limit: { type: 'number', description: 'Quantidade máxima de produtos (1-50). Padrão 10.' },
+        days: { type: 'number', description: 'Janela em dias (1-90). Padrão 30.' },
+      },
+      required: ['limit', 'days'],
+    },
+  },
+  {
+    name: 'inventory_status',
+    description: 'Situação do estoque de produtos ativos: total em estoque, produtos zerados, produtos com estoque baixo.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        lowStockThreshold: { type: 'number', description: 'Quantidade mínima considerada "estoque baixo" por variante. Padrão 5.' },
+      },
+      required: ['lowStockThreshold'],
+    },
+  },
+  {
+    name: 'orders_by_status',
+    description: 'Distribuição de pedidos por status nos últimos N dias. Inclui contagem de pedidos atrasados (prazo de entrega vencido e não entregue).',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        days: { type: 'number', description: 'Janela em dias (1-365). Padrão 30.' },
+      },
+      required: ['days'],
+    },
+  },
+  {
+    name: 'coupon_performance',
+    description: 'Performance de cupons de desconto: usos, desconto total concedido e receita gerada por cupom nos últimos N dias.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        days: { type: 'number', description: 'Janela em dias (1-365). Padrão 30.' },
+      },
+      required: ['days'],
+    },
+  },
+  {
+    name: 'profit_margins',
+    description: 'Margem bruta por produto (receita − custo) nos últimos N dias. Só retorna produtos com preço de custo cadastrado.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        limit: { type: 'number', description: 'Quantidade máxima de produtos (1-50). Padrão 10.' },
+        days: { type: 'number', description: 'Janela em dias (1-365). Padrão 30.' },
+      },
+      required: ['limit', 'days'],
+    },
+  },
 ];
 
 async function executeTool(name: string, input: Record<string, unknown>): Promise<string> {
@@ -285,6 +577,28 @@ async function executeTool(name: string, input: Record<string, unknown>): Promis
         const eventType = String(input['eventType'] ?? 'product_view');
         const days = Math.max(1, Math.min(90, Number(input['days'] ?? 30)));
         return JSON.stringify(await behaviorAggregates(eventType, days));
+      }
+      case 'top_viewed_products': {
+        const limit = Math.max(1, Math.min(50, Number(input['limit'] ?? 10)));
+        const days = Math.max(1, Math.min(90, Number(input['days'] ?? 30)));
+        return JSON.stringify(await topViewedProducts(limit, days));
+      }
+      case 'inventory_status': {
+        const threshold = Math.max(0, Math.min(100, Number(input['lowStockThreshold'] ?? 5)));
+        return JSON.stringify(await inventoryStatus(threshold));
+      }
+      case 'orders_by_status': {
+        const days = Math.max(1, Math.min(365, Number(input['days'] ?? 30)));
+        return JSON.stringify(await ordersByStatus(days));
+      }
+      case 'coupon_performance': {
+        const days = Math.max(1, Math.min(365, Number(input['days'] ?? 30)));
+        return JSON.stringify(await couponPerformance(days));
+      }
+      case 'profit_margins': {
+        const limit = Math.max(1, Math.min(50, Number(input['limit'] ?? 10)));
+        const days = Math.max(1, Math.min(365, Number(input['days'] ?? 30)));
+        return JSON.stringify(await profitMargins(limit, days));
       }
       default:
         return JSON.stringify({ error: `Ferramenta desconhecida: ${name}` });
